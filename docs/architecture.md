@@ -20,9 +20,21 @@ A **Rig** is a container directory for managing a project and its agents. Import
 
 This design prevents agent confusion: each agent has exactly one place to work (their own clone), with no ambiguous "rig root" that could tempt a lost agent.
 
+### Overseer (Human Operator)
+
+The **Overseer** is the human operator of Gas Town - not an AI agent, but the person who runs the system. The Overseer:
+
+- **Sets strategy**: Defines project goals and priorities
+- **Provisions resources**: Adds machines, polecats, and rigs
+- **Reviews output**: Approves swarm results and merged code
+- **Handles escalations**: Makes final decisions on stuck or ambiguous work
+- **Operates the system**: Runs `gt` commands, monitors dashboards
+
+The Mayor reports to the Overseer. When agents can't resolve issues, they escalate up through the chain: Polecat → Witness → Mayor → Overseer.
+
 ### Agents
 
-Gas Town has four agent roles:
+Gas Town has four AI agent roles:
 
 | Agent | Scope | Responsibility |
 |-------|-------|----------------|
@@ -169,20 +181,21 @@ Mayor                     Refinery                    Polecats
 ### Worker Cleanup (Witness-Owned)
 
 ```
-Polecat                   Witness                     Mayor
-  │                          │                           │
-  │ (completes work)         │                           │
-  ├─── [done signal] ───────►│                           │
-  │                          │ (capture git state)       │
-  │                          │ (assess cleanliness)      │
-  │◄── [nudge if dirty] ─────┤                           │
-  │ (fixes issues)           │                           │
-  ├─── [done signal] ───────►│                           │
-  │                          │ (verify clean)            │
-  │                          │ (kill session)            │
-  │                          │                           │
-  │                          │ (if stuck 3x) ───────────►│
-  │                          │                           │ (escalation)
+Polecat                   Witness                     Mayor         Overseer
+  │                          │                           │              │
+  │ (completes work)         │                           │              │
+  ├─── [done signal] ───────►│                           │              │
+  │                          │ (capture git state)       │              │
+  │                          │ (assess cleanliness)      │              │
+  │◄── [nudge if dirty] ─────┤                           │              │
+  │ (fixes issues)           │                           │              │
+  ├─── [done signal] ───────►│                           │              │
+  │                          │ (verify clean)            │              │
+  │                          │ (kill session)            │              │
+  │                          │                           │              │
+  │                          │ (if stuck 3x) ───────────►│              │
+  │                          │                           │ (can't fix) ─►│
+  │                          │                           │              │ (human decision)
 ```
 
 ### Session Cycling (Mail-to-Self)
@@ -254,7 +267,7 @@ When an agent's context fills, it hands off to its next session:
 - **Clear role detection**: "Am I in a `/rig/` directory?" = I'm in an agent clone
 - **Refinery is canonical main**: Refinery's clone serves as the authoritative "main branch" - it pulls, merges PRs, and pushes. No need for a separate rig-root clone.
 
-### 8. Plugins as Agents
+### 7. Plugins as Agents
 
 **Decision**: Plugins are just additional agents with identities, mailboxes, and access to beads. No special plugin infrastructure.
 
@@ -267,7 +280,7 @@ When an agent's context fills, it hands off to its next session:
 
 **Structure**: `<rig>/plugins/<name>/` with optional `rig/`, `CLAUDE.md`, `mail/`, `state.json`.
 
-### 7. Rig-Level Beads via BEADS_DIR
+### 8. Rig-Level Beads via BEADS_DIR
 
 **Decision**: Each rig has its own `.beads/` directory. Agents use the `BEADS_DIR` environment variable to point to it.
 
@@ -369,6 +382,14 @@ gt spawn --issue <id>  # Start polecat on issue
 gt kill <polecat>      # Kill polecat session
 gt wake <polecat>      # Mark polecat as active
 gt sleep <polecat>     # Mark polecat as inactive
+```
+
+### Emergency Operations
+
+```bash
+gt stop --all              # Kill ALL sessions (emergency halt)
+gt stop --rig <name>       # Kill all sessions in one rig
+gt doctor --fix            # Auto-repair common issues
 ```
 
 ## Plugins
@@ -481,6 +502,37 @@ gt plugin status <name>    # Check plugin state
 ```
 
 Or just `ls <rig>/plugins/`.
+
+## Failure Modes and Recovery
+
+Gas Town is designed for resilience. Common failure modes and their recovery:
+
+| Failure | Detection | Recovery |
+|---------|-----------|----------|
+| Agent crash | Session gone, state shows 'working' | `gt doctor` detects, reset state to idle |
+| Git dirty state | Witness pre-kill check fails | Nudge worker, or manual commit/discard |
+| Beads sync conflict | `bd sync` fails | Beads tombstones handle most cases |
+| Tmux crash | All sessions inaccessible | `gt doctor --fix` cleans up |
+| Stuck swarm | No progress for 30+ minutes | Witness escalates, Overseer intervenes |
+| Disk full | Write operations fail | Clean logs, remove old clones |
+
+### Recovery Principles
+
+1. **Fail safe**: Prefer stopping over corrupting data
+2. **State is recoverable**: Git and beads have built-in recovery
+3. **Doctor heals**: `gt doctor --fix` handles common issues
+4. **Emergency stop**: `gt stop --all` as last resort
+5. **Human escalation**: Some failures need Overseer intervention
+
+### Doctor Checks
+
+`gt doctor` performs health checks at both workspace and rig levels:
+
+**Workspace checks**: Config validity, Mayor mailbox, rig registry
+**Rig checks**: Git state, clone health, Witness/Refinery presence
+**Swarm checks**: Stuck detection, zombie sessions, heartbeat health
+
+Run `gt doctor` regularly. Run `gt doctor --fix` to auto-repair issues.
 
 ## Future: Federation
 
