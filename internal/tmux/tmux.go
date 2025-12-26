@@ -566,16 +566,6 @@ func (t *Tmux) ConfigureGasTownSession(session string, theme Theme, rig, worker,
 	return nil
 }
 
-// LinkWindow links a window from another session into the current session.
-// This allows viewing another session's window as a tab without switching sessions.
-// Useful when already inside tmux and want to see another session.
-// Uses -d flag to NOT auto-select the new window, keeping user in current window.
-func (t *Tmux) LinkWindow(sourceSession string, windowIndex int) error {
-	source := fmt.Sprintf("%s:%d", sourceSession, windowIndex)
-	_, err := t.run("link-window", "-s", source, "-d")
-	return err
-}
-
 // IsInsideTmux checks if the current process is running inside a tmux session.
 // This is detected by the presence of the TMUX environment variable.
 func IsInsideTmux() bool {
