@@ -49,13 +49,23 @@ func runNudge(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		mgr, _, err := getSessionManager(rigName)
-		if err != nil {
-			return err
+		var sessionName string
+
+		// Check if this is a crew address (polecatName starts with "crew/")
+		if strings.HasPrefix(polecatName, "crew/") {
+			// Extract crew name and use crew session naming
+			crewName := strings.TrimPrefix(polecatName, "crew/")
+			sessionName = crewSessionName(rigName, crewName)
+		} else {
+			// Regular polecat - use session manager
+			mgr, _, err := getSessionManager(rigName)
+			if err != nil {
+				return err
+			}
+			sessionName = mgr.SessionName(polecatName)
 		}
 
-		// Get session name and send nudge using the reliable NudgeSession
-		sessionName := mgr.SessionName(polecatName)
+		// Send nudge using the reliable NudgeSession
 		if err := t.NudgeSession(sessionName, message); err != nil {
 			return fmt.Errorf("nudging session: %w", err)
 		}
