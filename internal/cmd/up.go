@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,12 +9,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/daemon"
 	"github.com/steveyegge/gastown/internal/refinery"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/tmux"
-	"github.com/steveyegge/gastown/internal/wisp"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
 
@@ -39,7 +38,7 @@ spawned on demand by the Mayor or Witnesses.
 
 Use --restore to also start:
   • Crew       - Per rig settings (settings/config.json crew.startup)
-  • Polecats   - Those with hooks (work attached)
+  • Polecats   - Those with pinned beads (work attached)
 
 Running 'gt up' multiple times is safe - it only starts services that
 aren't already running.`,
@@ -144,9 +143,9 @@ func runUp(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		// 7. Polecats with hooks (if --restore)
+		// 7. Polecats with pinned work (if --restore)
 		for _, rigName := range rigs {
-			polecatsStarted, polecatErrors := startPolecatsWithHooks(t, townRoot, rigName)
+			polecatsStarted, polecatErrors := startPolecatsWithWork(t, townRoot, rigName)
 			for _, name := range polecatsStarted {
 				printStatus(fmt.Sprintf("Polecat (%s/%s)", rigName, name), true, fmt.Sprintf("gt-%s-polecat-%s", rigName, name))
 			}
@@ -512,9 +511,9 @@ func ensureCrewSession(t *tmux.Tmux, sessionName, crewPath, rigName, crewName st
 	return nil
 }
 
-// startPolecatsWithHooks starts polecats that have hook files (work attached).
+// startPolecatsWithWork starts polecats that have pinned beads (work attached).
 // Returns list of started polecat names and map of errors.
-func startPolecatsWithHooks(t *tmux.Tmux, townRoot, rigName string) ([]string, map[string]error) {
+func startPolecatsWithWork(t *tmux.Tmux, townRoot, rigName string) ([]string, map[string]error) {
 	started := []string{}
 	errors := map[string]error{}
 
@@ -536,24 +535,16 @@ func startPolecatsWithHooks(t *tmux.Tmux, townRoot, rigName string) ([]string, m
 		polecatName := entry.Name()
 		polecatPath := filepath.Join(polecatsDir, polecatName)
 
-		// Check if this polecat has a hook file
+		// Check if this polecat has a pinned bead (work attached)
 		agentID := fmt.Sprintf("%s/polecats/%s", rigName, polecatName)
-		hookPath := filepath.Join(polecatPath, ".beads", wisp.HookFilename(agentID))
-
-		hookData, err := os.ReadFile(hookPath)
-		if err != nil {
-			// No hook file - skip
-			continue
-		}
-
-		// Verify hook has work
-		var hook wisp.SlungWork
-		if err := json.Unmarshal(hookData, &hook); err != nil {
-			continue
-		}
-
-		if hook.BeadID == "" {
-			// Empty hook - skip
+		b := beads.New(polecatPath)
+		pinnedBeads, err := b.List(beads.ListOptions{
+			Status:   beads.StatusPinned,
+			Assignee: agentID,
+			Priority: -1,
+		})
+		if err != nil || len(pinnedBeads) == 0 {
+			// No pinned beads - skip
 			continue
 		}
 

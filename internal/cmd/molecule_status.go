@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/style"
-	"github.com/steveyegge/gastown/internal/wisp"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
 
@@ -39,8 +38,6 @@ type MoleculeStatusInfo struct {
 	IsWisp           bool                  `json:"is_wisp"`
 	Progress         *MoleculeProgressInfo `json:"progress,omitempty"`
 	NextAction       string                `json:"next_action,omitempty"`
-	// SlungWork is set when there's a wisp hook file (from gt hook/sling/handoff)
-	SlungWork *wisp.SlungWork `json:"slung_work,omitempty"`
 }
 
 // MoleculeCurrentInfo contains info about what an agent should be working on.
@@ -258,9 +255,6 @@ func runMoleculeStatus(cmd *cobra.Command, args []string) error {
 		HasWork: len(pinnedBeads) > 0,
 	}
 
-	// Note: Hook files are deprecated. Work is now tracked via pinned beads only.
-	// The SlungWork field is kept for backward compatibility but will be nil.
-
 	if len(pinnedBeads) > 0 {
 		// Take the first pinned bead (agents typically have one pinned bead)
 		status.PinnedBead = pinnedBeads[0]
@@ -445,35 +439,7 @@ func outputMoleculeStatus(status MoleculeStatusInfo) error {
 		return nil
 	}
 
-	// Show slung work (wisp hook file) if present
-	if status.SlungWork != nil {
-		fmt.Printf("%s %s\n", style.Bold.Render("🎯 SLUNG WORK:"), status.SlungWork.BeadID)
-		if status.SlungWork.Subject != "" {
-			fmt.Printf("   Subject: %s\n", status.SlungWork.Subject)
-		}
-		if status.SlungWork.Context != "" {
-			fmt.Printf("   Context: %s\n", status.SlungWork.Context)
-		}
-		if status.SlungWork.Args != "" {
-			fmt.Printf("   Args: %s\n", style.Bold.Render(status.SlungWork.Args))
-		}
-		fmt.Printf("   Slung by: %s at %s\n",
-			status.SlungWork.CreatedBy,
-			status.SlungWork.CreatedAt.Format("2006-01-02 15:04:05"))
-
-		// Show bead details
-		fmt.Println()
-		fmt.Println(style.Bold.Render("Bead details:"))
-		cmd := exec.Command("bd", "show", status.SlungWork.BeadID)
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-
-		fmt.Println()
-		fmt.Println(style.Bold.Render("→ PROPULSION: Work is on your hook. RUN IT."))
-		return nil
-	}
-
-	// Show pinned bead info (legacy beads pinned field)
+	// Show pinned bead info
 	if status.PinnedBead == nil {
 		fmt.Printf("%s\n", style.Dim.Render("Work indicated but no bead found"))
 		return nil
