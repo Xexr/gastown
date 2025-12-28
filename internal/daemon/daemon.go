@@ -185,6 +185,10 @@ func (d *Daemon) heartbeat(state *State) {
 	// 4. Process lifecycle requests
 	d.processLifecycleRequests()
 
+	// 5. Check for stale agents (timeout fallback - gt-2hzl4)
+	// Agents that report "running" but haven't updated in too long are marked dead
+	d.checkStaleAgents()
+
 	// Update state
 	state.LastHeartbeat = time.Now()
 	state.HeartbeatCount++

@@ -3,103 +3,12 @@ package beads
 
 import "strings"
 
-// AgentFields holds parsed fields from an agent bead's description.
-// Agent beads store their state as key: value lines in the description.
-type AgentFields struct {
-	RoleType   string // role_type: mayor, deacon, witness, refinery, polecat
-	Rig        string // rig: gastown (or null)
-	AgentState string // agent_state: idle, running, working, stopped
-	HookBead   string // hook_bead: the bead ID on the hook (or null)
-	RoleBead   string // role_bead: the role definition bead
-}
+// Note: AgentFields, ParseAgentFields, FormatAgentDescription, and CreateAgentBead are in beads.go
 
-// ParseAgentFields extracts agent fields from an issue's description.
-// Fields are expected as "key: value" lines. Returns nil if no agent fields found.
-func ParseAgentFields(issue *Issue) *AgentFields {
-	if issue == nil || issue.Description == "" {
-		return nil
-	}
-	return ParseAgentFieldsFromDescription(issue.Description)
-}
-
-// ParseAgentFieldsFromDescription extracts agent fields from a description string.
-// Returns nil if no agent fields found.
+// ParseAgentFieldsFromDescription is an alias for ParseAgentFields.
+// Used by daemon for compatibility.
 func ParseAgentFieldsFromDescription(description string) *AgentFields {
-	if description == "" {
-		return nil
-	}
-
-	fields := &AgentFields{}
-	hasFields := false
-
-	for _, line := range strings.Split(description, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		colonIdx := strings.Index(line, ":")
-		if colonIdx == -1 {
-			continue
-		}
-
-		key := strings.TrimSpace(line[:colonIdx])
-		value := strings.TrimSpace(line[colonIdx+1:])
-		if value == "" || value == "null" {
-			continue
-		}
-
-		switch strings.ToLower(key) {
-		case "role_type", "role-type", "roletype":
-			fields.RoleType = value
-			hasFields = true
-		case "rig":
-			fields.Rig = value
-			hasFields = true
-		case "agent_state", "agent-state", "agentstate":
-			fields.AgentState = value
-			hasFields = true
-		case "hook_bead", "hook-bead", "hookbead":
-			fields.HookBead = value
-			hasFields = true
-		case "role_bead", "role-bead", "rolebead":
-			fields.RoleBead = value
-			hasFields = true
-		}
-	}
-
-	if !hasFields {
-		return nil
-	}
-	return fields
-}
-
-// FormatAgentFields formats AgentFields as a string suitable for an issue description.
-// Only non-empty fields are included.
-func FormatAgentFields(fields *AgentFields) string {
-	if fields == nil {
-		return ""
-	}
-
-	var lines []string
-
-	if fields.RoleType != "" {
-		lines = append(lines, "role_type: "+fields.RoleType)
-	}
-	if fields.Rig != "" {
-		lines = append(lines, "rig: "+fields.Rig)
-	}
-	if fields.AgentState != "" {
-		lines = append(lines, "agent_state: "+fields.AgentState)
-	}
-	if fields.HookBead != "" {
-		lines = append(lines, "hook_bead: "+fields.HookBead)
-	}
-	if fields.RoleBead != "" {
-		lines = append(lines, "role_bead: "+fields.RoleBead)
-	}
-
-	return strings.Join(lines, "\n")
+	return ParseAgentFields(description)
 }
 
 // AttachmentFields holds the attachment info for pinned beads.

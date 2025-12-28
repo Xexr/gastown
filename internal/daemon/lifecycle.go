@@ -577,6 +577,94 @@ func (d *Daemon) identityToAgentBeadID(identity string) string {
 	}
 }
 
+// DeadAgentTimeout is how long an agent can report "running" without updating
+// before the daemon marks it as dead. This is a fallback for crashed agents.
+const DeadAgentTimeout = 15 * time.Minute
+
+// checkStaleAgents looks for agents that report state=running but haven't
+// updated their bead recently. These are likely dead agents that crashed
+// without updating their state. This is the timeout fallback per gt-2hzl4.
+func (d *Daemon) checkStaleAgents() {
+	// Known agent bead IDs to check
+	agentBeadIDs := []string{
+		"gt-deacon",
+		"gt-mayor",
+	}
+
+	// Add rig-specific agents (witness, refinery) for known rigs
+	// For now, we check gastown - could be expanded to discover rigs dynamically
+	rigs := []string{"gastown", "beads"}
+	for _, rig := range rigs {
+		agentBeadIDs = append(agentBeadIDs, "gt-witness-"+rig)
+		agentBeadIDs = append(agentBeadIDs, "gt-refinery-"+rig)
+	}
+
+	for _, agentBeadID := range agentBeadIDs {
+		info, err := d.getAgentBeadInfo(agentBeadID)
+		if err != nil {
+			// Agent bead doesn't exist or error fetching - skip
+			continue
+		}
+
+		// Only check agents reporting they're running/working
+		if info.State != "running" && info.State != "working" {
+			continue
+		}
+
+		// Parse the updated_at timestamp
+		updatedAt, err := time.Parse(time.RFC3339, info.LastUpdate)
+		if err != nil {
+			d.logger.Printf("Warning: cannot parse updated_at for %s: %v", agentBeadID, err)
+			continue
+		}
+
+		// Check if stale
+		age := time.Since(updatedAt)
+		if age > DeadAgentTimeout {
+			d.logger.Printf("Agent %s appears dead (state=%s, last update %v ago, timeout %v)",
+				agentBeadID, info.State, age.Round(time.Minute), DeadAgentTimeout)
+
+			// Mark as dead
+			if err := d.markAgentDead(agentBeadID); err != nil {
+				d.logger.Printf("Warning: failed to mark %s as dead: %v", agentBeadID, err)
+			} else {
+				d.logger.Printf("Marked agent %s as dead due to timeout", agentBeadID)
+			}
+		}
+	}
+}
+
+// markAgentDead updates an agent bead's state to "dead".
+// Uses bd update to modify the description with the new agent_state.
+func (d *Daemon) markAgentDead(agentBeadID string) error {
+	// Get current agent info
+	info, err := d.getAgentBeadInfo(agentBeadID)
+	if err != nil {
+		return fmt.Errorf("fetching agent bead: %w", err)
+	}
+
+	// Build new description with updated state
+	newDesc := fmt.Sprintf("role_type: %s\nrig: %s\nagent_state: dead\nhook_bead: %s\nrole_bead: %s\n\nMarked dead by daemon at %s (was %s, last update too old)",
+		info.RoleType,
+		info.Rig,
+		info.HookBead,
+		info.RoleBead,
+		time.Now().Format(time.RFC3339),
+		info.State,
+	)
+
+	// Use bd update to set the new description
+	cmd := exec.Command("bd", "update", agentBeadID, "--description", newDesc)
+	cmd.Dir = d.config.TownRoot
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("bd update: %w (output: %s)", err, string(output))
+	}
+
+	return nil
+}
+
 // identityToBDActor converts a daemon identity (with dashes) to BD_ACTOR format (with slashes).
 // Examples:
 //   - "mayor" → "mayor"
