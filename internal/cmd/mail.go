@@ -93,6 +93,11 @@ Addresses:
   <rig>/refinery   - Send to a rig's Refinery
   <rig>/<polecat>  - Send to a specific polecat
   <rig>/           - Broadcast to a rig
+  list:<name>      - Send to a mailing list (fans out to all members)
+
+Mailing lists are defined in ~/gt/config/messaging.json and allow
+sending to multiple recipients at once. Each recipient gets their
+own copy of the message.
 
 Message types:
   task          - Required processing
@@ -117,7 +122,8 @@ Examples:
   gt mail send gastown/Toast -s "Urgent" -m "Help!" --urgent
   gt mail send mayor/ -s "Re: Status" -m "Done" --reply-to msg-abc123
   gt mail send --self -s "Handoff" -m "Context for next session"
-  gt mail send gastown/Toast -s "Update" -m "Progress report" --cc overseer`,
+  gt mail send gastown/Toast -s "Update" -m "Progress report" --cc overseer
+  gt mail send list:oncall -s "Alert" -m "System down"`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runMailSend,
 }
@@ -381,6 +387,17 @@ func runMailSend(cmd *cobra.Command, args []string) error {
 
 	// Send via router
 	router := mail.NewRouter(workDir)
+
+	// Check if this is a list address to show fan-out details
+	var listRecipients []string
+	if strings.HasPrefix(to, "list:") {
+		var err error
+		listRecipients, err = router.ExpandListAddress(to)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+	}
+
 	if err := router.Send(msg); err != nil {
 		return fmt.Errorf("sending message: %w", err)
 	}
@@ -390,6 +407,12 @@ func runMailSend(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("%s Message sent to %s\n", style.Bold.Render("✓"), to)
 	fmt.Printf("  Subject: %s\n", mailSubject)
+
+	// Show fan-out recipients for list addresses
+	if len(listRecipients) > 0 {
+		fmt.Printf("  Recipients: %s\n", strings.Join(listRecipients, ", "))
+	}
+
 	if len(msg.CC) > 0 {
 		fmt.Printf("  CC: %s\n", strings.Join(msg.CC, ", "))
 	}

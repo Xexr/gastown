@@ -219,3 +219,149 @@ func TestNewRouterWithTownRoot(t *testing.T) {
 		t.Errorf("townRoot = %q, want '/home/gt'", r.townRoot)
 	}
 }
+
+func TestIsListAddress(t *testing.T) {
+	tests := []struct {
+		address string
+		want    bool
+	}{
+		{"list:oncall", true},
+		{"list:cleanup/gastown", true},
+		{"list:", true}, // Edge case: empty list name (will fail on expand)
+		{"mayor/", false},
+		{"gastown/witness", false},
+		{"listoncall", false}, // Missing colon
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.address, func(t *testing.T) {
+			got := isListAddress(tt.address)
+			if got != tt.want {
+				t.Errorf("isListAddress(%q) = %v, want %v", tt.address, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseListName(t *testing.T) {
+	tests := []struct {
+		address string
+		want    string
+	}{
+		{"list:oncall", "oncall"},
+		{"list:cleanup/gastown", "cleanup/gastown"},
+		{"list:", ""},
+		{"list:alerts", "alerts"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.address, func(t *testing.T) {
+			got := parseListName(tt.address)
+			if got != tt.want {
+				t.Errorf("parseListName(%q) = %q, want %q", tt.address, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExpandList(t *testing.T) {
+	// Create temp directory with messaging config
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write messaging.json with test lists
+	configContent := `{
+  "type": "messaging",
+  "version": 1,
+  "lists": {
+    "oncall": ["mayor/", "gastown/witness"],
+    "cleanup/gastown": ["gastown/witness", "deacon/"]
+  }
+}`
+	if err := os.WriteFile(filepath.Join(configDir, "messaging.json"), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	r := NewRouterWithTownRoot(tmpDir, tmpDir)
+
+	tests := []struct {
+		name      string
+		listName  string
+		want      []string
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:     "oncall list",
+			listName: "oncall",
+			want:     []string{"mayor/", "gastown/witness"},
+		},
+		{
+			name:     "cleanup/gastown list",
+			listName: "cleanup/gastown",
+			want:     []string{"gastown/witness", "deacon/"},
+		},
+		{
+			name:      "unknown list",
+			listName:  "nonexistent",
+			wantErr:   true,
+			errString: "unknown mailing list",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := r.expandList(tt.listName)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expandList(%q) expected error, got nil", tt.listName)
+				} else if tt.errString != "" && !contains(err.Error(), tt.errString) {
+					t.Errorf("expandList(%q) error = %v, want containing %q", tt.listName, err, tt.errString)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("expandList(%q) unexpected error: %v", tt.listName, err)
+				return
+			}
+			if len(got) != len(tt.want) {
+				t.Errorf("expandList(%q) = %v, want %v", tt.listName, got, tt.want)
+				return
+			}
+			for i, addr := range got {
+				if addr != tt.want[i] {
+					t.Errorf("expandList(%q)[%d] = %q, want %q", tt.listName, i, addr, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestExpandListNoTownRoot(t *testing.T) {
+	r := &Router{workDir: "/tmp", townRoot: ""}
+	_, err := r.expandList("oncall")
+	if err == nil {
+		t.Error("expandList with no townRoot should error")
+	}
+	if !contains(err.Error(), "no town root") {
+		t.Errorf("expandList error = %v, want containing 'no town root'", err)
+	}
+}
+
+// contains checks if s contains substr (helper for error checking)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

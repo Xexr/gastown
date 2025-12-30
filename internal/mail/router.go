@@ -9,8 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/tmux"
 )
+
+// ErrUnknownList indicates a mailing list name was not found in configuration.
+var ErrUnknownList = errors.New("unknown mailing list")
 
 // Router handles message delivery via beads.
 // It routes messages to the correct beads database based on address:
@@ -43,6 +47,42 @@ func NewRouterWithTownRoot(workDir, townRoot string) *Router {
 		townRoot: townRoot,
 		tmux:     tmux.NewTmux(),
 	}
+}
+
+// isListAddress returns true if the address uses list:name syntax.
+func isListAddress(address string) bool {
+	return strings.HasPrefix(address, "list:")
+}
+
+// parseListName extracts the list name from a list:name address.
+func parseListName(address string) string {
+	return strings.TrimPrefix(address, "list:")
+}
+
+// expandList returns the recipients for a mailing list.
+// Returns ErrUnknownList if the list is not found.
+func (r *Router) expandList(listName string) ([]string, error) {
+	// Load messaging config from town root
+	if r.townRoot == "" {
+		return nil, fmt.Errorf("%w: %s (no town root)", ErrUnknownList, listName)
+	}
+
+	configPath := config.MessagingConfigPath(r.townRoot)
+	cfg, err := config.LoadMessagingConfig(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading messaging config: %w", err)
+	}
+
+	recipients, ok := cfg.Lists[listName]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownList, listName)
+	}
+
+	if len(recipients) == 0 {
+		return nil, fmt.Errorf("%w: %s (empty list)", ErrUnknownList, listName)
+	}
+
+	return recipients, nil
 }
 
 // detectTownRoot finds the town root by looking for mayor/town.json.
@@ -114,7 +154,14 @@ func (r *Router) shouldBeWisp(msg *Message) bool {
 
 // Send delivers a message via beads message.
 // Routes the message to the correct beads database based on recipient address.
+// If the recipient is a mailing list (list:name), fans out to all list members,
+// creating a separate copy for each recipient.
 func (r *Router) Send(msg *Message) error {
+	// Check for mailing list address
+	if isListAddress(msg.To) {
+		return r.sendToList(msg)
+	}
+
 	// Convert addresses to beads identities
 	toIdentity := addressToIdentity(msg.To)
 
@@ -182,6 +229,49 @@ func (r *Router) Send(msg *Message) error {
 	}
 
 	return nil
+}
+
+// sendToList expands a mailing list and sends individual copies to each recipient.
+// Each recipient gets their own message copy with the same content.
+// Returns a ListDeliveryResult with details about the fan-out.
+func (r *Router) sendToList(msg *Message) error {
+	listName := parseListName(msg.To)
+	recipients, err := r.expandList(listName)
+	if err != nil {
+		return err
+	}
+
+	// Send to each recipient
+	var lastErr error
+	successCount := 0
+	for _, recipient := range recipients {
+		// Create a copy of the message for this recipient
+		copy := *msg
+		copy.To = recipient
+
+		if err := r.Send(&copy); err != nil {
+			lastErr = err
+			continue
+		}
+		successCount++
+	}
+
+	// If all sends failed, return the last error
+	if successCount == 0 && lastErr != nil {
+		return fmt.Errorf("sending to list %s: %w", listName, lastErr)
+	}
+
+	return nil
+}
+
+// ExpandListAddress expands a list:name address to its recipients.
+// Returns ErrUnknownList if the list is not found.
+// This is exported for use by commands that want to show fan-out details.
+func (r *Router) ExpandListAddress(address string) ([]string, error) {
+	if !isListAddress(address) {
+		return nil, fmt.Errorf("not a list address: %s", address)
+	}
+	return r.expandList(parseListName(address))
 }
 
 // isSelfMail returns true if sender and recipient are the same identity.
