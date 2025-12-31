@@ -163,11 +163,11 @@ func autoSpawnPatrol(cfg PatrolConfig) (string, error) {
 		return "", fmt.Errorf("created wisp but could not parse ID from output")
 	}
 
-	// Pin the wisp to the agent
-	cmdPin := exec.Command("bd", "--no-daemon", "update", patrolID, "--status=pinned", "--assignee="+cfg.Assignee)
+	// Hook the wisp to the agent so gt mol status sees it
+	cmdPin := exec.Command("bd", "--no-daemon", "update", patrolID, "--status=hooked", "--assignee="+cfg.Assignee)
 	cmdPin.Dir = cfg.BeadsDir
 	if err := cmdPin.Run(); err != nil {
-		return patrolID, fmt.Errorf("created wisp %s but failed to pin", patrolID)
+		return patrolID, fmt.Errorf("created wisp %s but failed to hook", patrolID)
 	}
 
 	return patrolID, nil
@@ -198,7 +198,7 @@ func outputPatrolContext(cfg PatrolConfig) {
 				return
 			}
 		} else {
-			fmt.Printf("✓ Created and pinned patrol wisp: %s\n", patrolID)
+			fmt.Printf("✓ Created and hooked patrol wisp: %s\n", patrolID)
 		}
 	} else {
 		// Has active patrol - show status
