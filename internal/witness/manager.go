@@ -1,12 +1,11 @@
 package witness
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"time"
 
+	"github.com/steveyegge/gastown/internal/agent"
 	"github.com/steveyegge/gastown/internal/rig"
 	"github.com/steveyegge/gastown/internal/util"
 )
@@ -19,8 +18,9 @@ var (
 
 // Manager handles witness lifecycle and monitoring operations.
 type Manager struct {
-	rig     *rig.Rig
-	workDir string
+	rig          *rig.Rig
+	workDir      string
+	stateManager *agent.StateManager[Witness]
 }
 
 // NewManager creates a new witness manager for a rig.
@@ -28,43 +28,28 @@ func NewManager(r *rig.Rig) *Manager {
 	return &Manager{
 		rig:     r,
 		workDir: r.Path,
+		stateManager: agent.NewStateManager[Witness](r.Path, "witness.json", func() *Witness {
+			return &Witness{
+				RigName: r.Name,
+				State:   StateStopped,
+			}
+		}),
 	}
 }
 
 // stateFile returns the path to the witness state file.
 func (m *Manager) stateFile() string {
-	return filepath.Join(m.rig.Path, ".runtime", "witness.json")
+	return m.stateManager.StateFile()
 }
 
 // loadState loads witness state from disk.
 func (m *Manager) loadState() (*Witness, error) {
-	data, err := os.ReadFile(m.stateFile())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &Witness{
-				RigName: m.rig.Name,
-				State:   StateStopped,
-			}, nil
-		}
-		return nil, err
-	}
-
-	var w Witness
-	if err := json.Unmarshal(data, &w); err != nil {
-		return nil, err
-	}
-
-	return &w, nil
+	return m.stateManager.Load()
 }
 
 // saveState persists witness state to disk using atomic write.
 func (m *Manager) saveState(w *Witness) error {
-	dir := filepath.Dir(m.stateFile())
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	return util.AtomicWriteJSON(m.stateFile(), w)
+	return m.stateManager.Save(w)
 }
 
 // Status returns the current witness status.

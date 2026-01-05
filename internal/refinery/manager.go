@@ -2,7 +2,6 @@ package refinery
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/steveyegge/gastown/internal/agent"
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/claude"
 	"github.com/steveyegge/gastown/internal/config"
@@ -33,9 +33,10 @@ var (
 
 // Manager handles refinery lifecycle and queue operations.
 type Manager struct {
-	rig     *rig.Rig
-	workDir string
-	output  io.Writer // Output destination for user-facing messages
+	rig          *rig.Rig
+	workDir      string
+	output       io.Writer // Output destination for user-facing messages
+	stateManager *agent.StateManager[Refinery]
 }
 
 // NewManager creates a new refinery manager for a rig.
@@ -44,6 +45,12 @@ func NewManager(r *rig.Rig) *Manager {
 		rig:     r,
 		workDir: r.Path,
 		output:  os.Stdout,
+		stateManager: agent.NewStateManager[Refinery](r.Path, "refinery.json", func() *Refinery {
+			return &Refinery{
+				RigName: r.Name,
+				State:   StateStopped,
+			}
+		}),
 	}
 }
 
@@ -55,7 +62,7 @@ func (m *Manager) SetOutput(w io.Writer) {
 
 // stateFile returns the path to the refinery state file.
 func (m *Manager) stateFile() string {
-	return filepath.Join(m.rig.Path, ".runtime", "refinery.json")
+	return m.stateManager.StateFile()
 }
 
 // sessionName returns the tmux session name for this refinery.
@@ -65,33 +72,12 @@ func (m *Manager) sessionName() string {
 
 // loadState loads refinery state from disk.
 func (m *Manager) loadState() (*Refinery, error) {
-	data, err := os.ReadFile(m.stateFile())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &Refinery{
-				RigName: m.rig.Name,
-				State:   StateStopped,
-			}, nil
-		}
-		return nil, err
-	}
-
-	var ref Refinery
-	if err := json.Unmarshal(data, &ref); err != nil {
-		return nil, err
-	}
-
-	return &ref, nil
+	return m.stateManager.Load()
 }
 
 // saveState persists refinery state to disk using atomic write.
 func (m *Manager) saveState(ref *Refinery) error {
-	dir := filepath.Dir(m.stateFile())
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	return util.AtomicWriteJSON(m.stateFile(), ref)
+	return m.stateManager.Save(ref)
 }
 
 // Status returns the current refinery status.
