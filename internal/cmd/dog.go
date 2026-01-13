@@ -12,6 +12,8 @@ import (
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/dog"
+	"github.com/steveyegge/gastown/internal/mail"
+	"github.com/steveyegge/gastown/internal/plugin"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/tmux"
 	"github.com/steveyegge/gastown/internal/workspace"
@@ -24,6 +26,12 @@ var (
 	dogForce      bool
 	dogRemoveAll  bool
 	dogCallAll    bool
+
+	// Dispatch flags
+	dogDispatchPlugin string
+	dogDispatchRig    string
+	dogDispatchCreate bool
+	dogDispatchDog    string
 )
 
 var dogCmd = &cobra.Command{
@@ -137,6 +145,34 @@ Examples:
 	RunE: runDogStatus,
 }
 
+var dogDispatchCmd = &cobra.Command{
+	Use:   "dispatch --plugin <name>",
+	Short: "Dispatch plugin execution to a dog",
+	Long: `Dispatch a plugin for execution by a dog worker.
+
+This is the formalized command for sending plugin work to dogs. The Deacon
+uses this during patrol cycles to dispatch plugins with open gates.
+
+The command:
+1. Finds the plugin definition (plugin.md)
+2. Creates a mail work unit with plugin instructions
+3. Hooks the mail to an idle dog
+4. Returns immediately (non-blocking)
+
+Examples:
+  gt dog dispatch --plugin rebuild-gt
+  gt dog dispatch --plugin rebuild-gt --rig gastown
+  gt dog dispatch --plugin rebuild-gt --dog alpha
+  gt dog dispatch --plugin rebuild-gt --create
+
+Flags:
+  --plugin  Plugin name (required)
+  --rig     Limit search to specific rig's plugins
+  --dog     Dispatch to specific dog (otherwise picks idle)
+  --create  Create a dog if none idle`,
+	RunE: runDogDispatch,
+}
+
 func init() {
 	// List flags
 	dogListCmd.Flags().BoolVar(&dogListJSON, "json", false, "Output as JSON")
@@ -151,12 +187,20 @@ func init() {
 	// Status flags
 	dogStatusCmd.Flags().BoolVar(&dogStatusJSON, "json", false, "Output as JSON")
 
+	// Dispatch flags
+	dogDispatchCmd.Flags().StringVar(&dogDispatchPlugin, "plugin", "", "Plugin name to dispatch (required)")
+	dogDispatchCmd.Flags().StringVar(&dogDispatchRig, "rig", "", "Limit plugin search to specific rig")
+	dogDispatchCmd.Flags().StringVar(&dogDispatchDog, "dog", "", "Dispatch to specific dog (default: any idle)")
+	dogDispatchCmd.Flags().BoolVar(&dogDispatchCreate, "create", false, "Create a dog if none idle")
+	_ = dogDispatchCmd.MarkFlagRequired("plugin")
+
 	// Add subcommands
 	dogCmd.AddCommand(dogAddCmd)
 	dogCmd.AddCommand(dogRemoveCmd)
 	dogCmd.AddCommand(dogListCmd)
 	dogCmd.AddCommand(dogCallCmd)
 	dogCmd.AddCommand(dogStatusCmd)
+	dogCmd.AddCommand(dogDispatchCmd)
 
 	rootCmd.AddCommand(dogCmd)
 }
@@ -589,4 +633,171 @@ func dogFormatTimeAgo(t time.Time) string {
 		}
 		return fmt.Sprintf("%d days ago", days)
 	}
+}
+
+// runDogDispatch dispatches plugin execution to a dog worker.
+func runDogDispatch(cmd *cobra.Command, args []string) error {
+	townRoot, err := workspace.FindFromCwd()
+	if err != nil {
+		return fmt.Errorf("finding town root: %w", err)
+	}
+
+	// Get rig names for plugin scanner
+	rigsConfigPath := filepath.Join(townRoot, "mayor", "rigs.json")
+	rigsConfig, err := config.LoadRigsConfig(rigsConfigPath)
+	if err != nil {
+		return fmt.Errorf("loading rigs config: %w", err)
+	}
+
+	var rigNames []string
+	for rigName := range rigsConfig.Rigs {
+		rigNames = append(rigNames, rigName)
+	}
+
+	// If --rig specified, search only that rig
+	if dogDispatchRig != "" {
+		rigNames = []string{dogDispatchRig}
+	}
+
+	// Find the plugin using scanner
+	scanner := plugin.NewScanner(townRoot, rigNames)
+	p, err := scanner.GetPlugin(dogDispatchPlugin)
+	if err != nil {
+		return fmt.Errorf("finding plugin: %w", err)
+	}
+
+	fmt.Printf("%s Found plugin: %s\n", style.Bold.Render("✓"), p.Name)
+	if p.RigName != "" {
+		fmt.Printf("  Location: %s/plugins/%s\n", p.RigName, p.Name)
+	} else {
+		fmt.Printf("  Location: plugins/%s (town-level)\n", p.Name)
+	}
+
+	// Get dog manager (reuse rigsConfig from above)
+	mgr := dog.NewManager(townRoot, rigsConfig)
+
+	// Find target dog
+	var targetDog *dog.Dog
+	if dogDispatchDog != "" {
+		// Specific dog requested
+		targetDog, err = mgr.Get(dogDispatchDog)
+		if err != nil {
+			return fmt.Errorf("getting dog %s: %w", dogDispatchDog, err)
+		}
+		if targetDog.State == dog.StateWorking {
+			return fmt.Errorf("dog %s is already working", dogDispatchDog)
+		}
+	} else {
+		// Find idle dog from pool
+		targetDog, err = mgr.GetIdleDog()
+		if err != nil {
+			return fmt.Errorf("finding idle dog: %w", err)
+		}
+
+		if targetDog == nil {
+			if dogDispatchCreate {
+				// Create a new dog
+				newName := generateDogNameForDispatch(mgr)
+				targetDog, err = mgr.Add(newName)
+				if err != nil {
+					return fmt.Errorf("creating dog %s: %w", newName, err)
+				}
+				fmt.Printf("%s Created dog %s (pool was empty)\n", style.Bold.Render("✓"), newName)
+
+				// Create agent bead for the dog
+				b := beads.New(townRoot)
+				location := filepath.Join("deacon", "dogs", newName)
+				if _, err := b.CreateDogAgentBead(newName, location); err != nil {
+					fmt.Printf("  Warning: could not create agent bead: %v\n", err)
+				}
+			} else {
+				return fmt.Errorf("no idle dogs available (use --create to add one)")
+			}
+		}
+	}
+
+	fmt.Printf("%s Dispatching to dog: %s\n", style.Bold.Render("🐕"), targetDog.Name)
+
+	// Create mail message with plugin instructions
+	dogAddress := fmt.Sprintf("deacon/dogs/%s", targetDog.Name)
+	subject := fmt.Sprintf("Plugin: %s", p.Name)
+	body := formatPluginMailBody(p)
+
+	// Send mail to dog via router
+	router := mail.NewRouterWithTownRoot(townRoot, townRoot)
+	msg := &mail.Message{
+		From:      "deacon/",
+		To:        dogAddress,
+		Subject:   subject,
+		Body:      body,
+		Timestamp: time.Now(),
+	}
+
+	if err := router.Send(msg); err != nil {
+		return fmt.Errorf("sending plugin mail to dog: %w", err)
+	}
+
+	// Assign work to dog (updates state to working)
+	workDesc := fmt.Sprintf("plugin:%s", p.Name)
+	if err := mgr.AssignWork(targetDog.Name, workDesc); err != nil {
+		return fmt.Errorf("assigning work to dog: %w", err)
+	}
+
+	fmt.Printf("%s Plugin dispatched (non-blocking)\n", style.Bold.Render("✓"))
+	fmt.Printf("  Dog: %s\n", targetDog.Name)
+	fmt.Printf("  Work: %s\n", workDesc)
+
+	return nil
+}
+
+// generateDogNameForDispatch creates a unique dog name for pool expansion.
+func generateDogNameForDispatch(mgr *dog.Manager) string {
+	names := []string{"alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel"}
+
+	dogs, _ := mgr.List()
+	existing := make(map[string]bool)
+	for _, d := range dogs {
+		existing[d.Name] = true
+	}
+
+	for _, name := range names {
+		if !existing[name] {
+			return name
+		}
+	}
+
+	// Fallback: numbered dogs
+	for i := 1; i <= 100; i++ {
+		name := fmt.Sprintf("dog%d", i)
+		if !existing[name] {
+			return name
+		}
+	}
+
+	return fmt.Sprintf("dog%d", len(dogs)+1)
+}
+
+// formatPluginMailBody formats the plugin as instructions for the dog.
+func formatPluginMailBody(p *plugin.Plugin) string {
+	var sb strings.Builder
+
+	sb.WriteString("Execute the following plugin:\n\n")
+	sb.WriteString(fmt.Sprintf("**Plugin**: %s\n", p.Name))
+	sb.WriteString(fmt.Sprintf("**Description**: %s\n", p.Description))
+	if p.RigName != "" {
+		sb.WriteString(fmt.Sprintf("**Rig**: %s\n", p.RigName))
+	}
+	if p.Execution != nil && p.Execution.Timeout != "" {
+		sb.WriteString(fmt.Sprintf("**Timeout**: %s\n", p.Execution.Timeout))
+	}
+	sb.WriteString("\n---\n\n")
+	sb.WriteString("## Instructions\n\n")
+	sb.WriteString(p.Instructions)
+	sb.WriteString("\n\n---\n\n")
+	sb.WriteString("After completion:\n")
+	sb.WriteString("1. Create a wisp to record the result (success/failure)\n")
+	sb.WriteString("2. Send DOG_DONE mail to deacon/\n")
+	sb.WriteString("3. Return to idle state\n")
+
+	return sb.String()
 }
