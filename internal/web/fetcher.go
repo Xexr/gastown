@@ -49,7 +49,8 @@ func runBdCmd(beadsDir string, args ...string) (*bytes.Buffer, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "bd", args...)
+	fullArgs := append([]string{"--no-daemon"}, args...)
+	cmd := exec.CommandContext(ctx, "bd", fullArgs...)
 	cmd.Dir = beadsDir
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
