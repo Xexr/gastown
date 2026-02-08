@@ -14,6 +14,7 @@ import (
 
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/config"
+	"github.com/steveyegge/gastown/internal/doltserver"
 	"github.com/steveyegge/gastown/internal/git"
 	"github.com/steveyegge/gastown/internal/rig"
 	"github.com/steveyegge/gastown/internal/tmux"
@@ -34,6 +35,7 @@ var (
 	ErrHasUncommittedWork = errors.New("polecat has uncommitted work")
 	ErrShellInWorktree    = errors.New("shell working directory is inside polecat worktree")
 	ErrDoltUnhealthy      = errors.New("dolt health check failed")
+	ErrDoltAtCapacity     = errors.New("dolt server at connection capacity")
 )
 
 // UncommittedWorkError provides details about uncommitted work.
@@ -120,6 +122,30 @@ func (m *Manager) CheckDoltHealth() error {
 		}
 	}
 	return fmt.Errorf("%w: %v", ErrDoltUnhealthy, lastErr)
+}
+
+// CheckDoltServerCapacity verifies the Dolt server has capacity for new connections.
+// This is an admission control gate: if the server is near its max_connections limit,
+// spawning another polecat (which will make many bd calls) could overwhelm it.
+// Returns nil if capacity is available, ErrDoltAtCapacity if the server is overloaded.
+// Returns nil (optimistic) if the check cannot be performed (e.g., non-server mode).
+func (m *Manager) CheckDoltServerCapacity() error {
+	townRoot, err := workspace.Find(m.rig.Path)
+	if err != nil || townRoot == "" {
+		return nil // Can't determine town root, skip check
+	}
+
+	hasCapacity, active, err := doltserver.HasConnectionCapacity(townRoot)
+	if err != nil {
+		// Can't check capacity — proceed optimistically
+		return nil
+	}
+
+	if !hasCapacity {
+		return fmt.Errorf("%w: %d active connections (server near limit)", ErrDoltAtCapacity, active)
+	}
+
+	return nil
 }
 
 // createAgentBeadWithRetry wraps CreateOrReopenAgentBead with retry logic.

@@ -1093,6 +1093,44 @@ func TestMigrateRigFromBeads_IdempotentDetection(t *testing.T) {
 
 // TestFindAndMigrateAll_Idempotent tests the full find-then-migrate workflow
 // twice: first run migrates, second run finds nothing to do.
+// =============================================================================
+// Max connections and admission control tests
+// =============================================================================
+
+func TestDefaultConfig_MaxConnections(t *testing.T) {
+	townRoot := t.TempDir()
+	config := DefaultConfig(townRoot)
+
+	if config.MaxConnections != DefaultMaxConnections {
+		t.Errorf("MaxConnections = %d, want %d", config.MaxConnections, DefaultMaxConnections)
+	}
+	if config.MaxConnections != 50 {
+		t.Errorf("DefaultMaxConnections = %d, want 50", config.MaxConnections)
+	}
+}
+
+func TestHasConnectionCapacity_ZeroMax(t *testing.T) {
+	// When MaxConnections is 0, the function should use Dolt default (1000).
+	// Since we can't connect to a real server in unit tests, we just verify
+	// the function doesn't panic and returns an error (no server).
+	townRoot := t.TempDir()
+
+	// Create minimal config structure
+	daemonDir := filepath.Join(townRoot, "daemon")
+	if err := os.MkdirAll(daemonDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// HasConnectionCapacity should return true (optimistic) when query fails
+	hasCapacity, _, err := HasConnectionCapacity(townRoot)
+	if err == nil {
+		t.Skip("Dolt server is actually running, cannot test offline case")
+	}
+	if !hasCapacity {
+		t.Error("expected optimistic true when server is unreachable")
+	}
+}
+
 func TestFindAndMigrateAll_Idempotent(t *testing.T) {
 	townRoot := t.TempDir()
 

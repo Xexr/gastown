@@ -87,6 +87,12 @@ func SpawnPolecatForSling(rigName string, opts SlingSpawnOptions) (*SpawnedPolec
 		return nil, fmt.Errorf("pre-spawn health check failed: %w", err)
 	}
 
+	// Pre-spawn admission control (gt-1obzke): verify Dolt server has connection
+	// capacity before spawning. Prevents connection storms during mass sling.
+	if err := polecatMgr.CheckDoltServerCapacity(); err != nil {
+		return nil, fmt.Errorf("admission control: %w", err)
+	}
+
 	// Allocate a new polecat name
 	polecatName, err := polecatMgr.AllocateName()
 	if err != nil {

@@ -47,8 +47,9 @@ import (
 
 // Default configuration
 const (
-	DefaultPort = 3307
-	DefaultUser = "root" // Default Dolt user (no password for local access)
+	DefaultPort           = 3307
+	DefaultUser           = "root" // Default Dolt user (no password for local access)
+	DefaultMaxConnections = 50     // Conservative default to prevent connection storms
 )
 
 // Config holds Dolt server configuration.
@@ -71,18 +72,24 @@ type Config struct {
 
 	// PidFile is the path to the PID file.
 	PidFile string
+
+	// MaxConnections is the maximum number of simultaneous connections the server will accept.
+	// Set to 0 to use the Dolt default (1000). Gas Town defaults to 50 to prevent
+	// connection storms during mass polecat slings.
+	MaxConnections int
 }
 
 // DefaultConfig returns the default Dolt server configuration.
 func DefaultConfig(townRoot string) *Config {
 	daemonDir := filepath.Join(townRoot, "daemon")
 	return &Config{
-		TownRoot: townRoot,
-		Port:     DefaultPort,
-		User:     DefaultUser,
-		DataDir:  filepath.Join(townRoot, ".dolt-data"),
-		LogFile:  filepath.Join(daemonDir, "dolt.log"),
-		PidFile:  filepath.Join(daemonDir, "dolt.pid"),
+		TownRoot:       townRoot,
+		Port:           DefaultPort,
+		User:           DefaultUser,
+		DataDir:        filepath.Join(townRoot, ".dolt-data"),
+		LogFile:        filepath.Join(daemonDir, "dolt.log"),
+		PidFile:        filepath.Join(daemonDir, "dolt.pid"),
+		MaxConnections: DefaultMaxConnections,
 	}
 }
 
@@ -358,10 +365,14 @@ func Start(townRoot string) error {
 	// Start dolt sql-server with --data-dir to serve all databases
 	// Note: --user flag is deprecated in newer Dolt; authentication is handled
 	// via privilege system. Default is root user with no password for localhost.
-	cmd := exec.Command("dolt", "sql-server",
+	args := []string{"sql-server",
 		"--port", strconv.Itoa(config.Port),
 		"--data-dir", config.DataDir,
-	)
+	}
+	if config.MaxConnections > 0 {
+		args = append(args, "--max-connections", strconv.Itoa(config.MaxConnections))
+	}
+	cmd := exec.Command("dolt", args...)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
@@ -774,6 +785,66 @@ func findRigBeadsDir(townRoot, rigName string) string {
 
 	// Neither exists; return mayor path (caller will create it)
 	return mayorBeads
+}
+
+// GetActiveConnectionCount queries the Dolt server to get the number of active connections.
+// Uses `dolt sql` to query information_schema.PROCESSLIST, which avoids needing
+// a MySQL driver dependency. Returns 0 if the server is unreachable or the query fails.
+func GetActiveConnectionCount(townRoot string) (int, error) {
+	config := DefaultConfig(townRoot)
+
+	// Use dolt sql-client to query the server
+	cmd := exec.Command("dolt",
+		"sql",
+		"--host", "127.0.0.1",
+		"--port", strconv.Itoa(config.Port),
+		"--user", config.User,
+		"--no-auto-commit",
+		"--result-format", "csv",
+		"-q", "SELECT COUNT(*) AS cnt FROM information_schema.PROCESSLIST",
+	)
+	cmd.Dir = config.DataDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("querying connection count: %w (output: %s)", err, strings.TrimSpace(string(output)))
+	}
+
+	// Parse CSV output: "cnt\n5\n"
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) < 2 {
+		return 0, fmt.Errorf("unexpected output from connection count query: %s", string(output))
+	}
+	count, err := strconv.Atoi(strings.TrimSpace(lines[len(lines)-1]))
+	if err != nil {
+		return 0, fmt.Errorf("parsing connection count %q: %w", lines[len(lines)-1], err)
+	}
+
+	return count, nil
+}
+
+// HasConnectionCapacity checks whether the Dolt server has capacity for new connections.
+// Returns true if the active connection count is below the threshold (80% of max_connections).
+// Returns true (optimistic) if the connection count cannot be determined.
+func HasConnectionCapacity(townRoot string) (bool, int, error) {
+	config := DefaultConfig(townRoot)
+	maxConn := config.MaxConnections
+	if maxConn <= 0 {
+		maxConn = 1000 // Dolt default
+	}
+
+	active, err := GetActiveConnectionCount(townRoot)
+	if err != nil {
+		// Optimistic: if we can't check, allow the spawn
+		return true, 0, err
+	}
+
+	// Use 80% threshold to leave headroom for existing operations
+	threshold := (maxConn * 80) / 100
+	if threshold < 1 {
+		threshold = 1
+	}
+
+	return active < threshold, active, nil
 }
 
 // moveDir moves a directory from src to dest. It first tries os.Rename for

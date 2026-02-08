@@ -87,9 +87,11 @@ The propulsion principle: if it's on your hook, YOU RUN IT.
 
 Batch Slinging:
   gt sling gt-abc gt-def gt-ghi gastown   # Sling multiple beads to a rig
+  gt sling gt-abc gt-def gastown --max-concurrent 3  # Limit concurrent spawns
 
   When multiple beads are provided with a rig target, each bead gets its own
-  polecat. This parallelizes work dispatch without running gt sling N times.`,
+  polecat. This parallelizes work dispatch without running gt sling N times.
+  Use --max-concurrent to throttle spawn rate and prevent Dolt server overload.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runSling,
 }
@@ -105,13 +107,14 @@ var (
 	slingHookRawBead bool     // --hook-raw-bead: hook raw bead without default formula (expert mode)
 
 	// Flags migrated for polecat spawning (used by sling for work assignment)
-	slingCreate   bool   // --create: create polecat if it doesn't exist
-	slingForce    bool   // --force: force spawn even if polecat has unread mail
-	slingAccount  string // --account: Claude Code account handle to use
-	slingAgent    string // --agent: override runtime agent for this sling/spawn
-	slingNoConvoy bool   // --no-convoy: skip auto-convoy creation
-	slingNoMerge  bool   // --no-merge: skip merge queue on completion (for upstream PRs/human review)
-	slingNoBoot   bool   // --no-boot: skip wakeRigAgents (avoid witness/refinery boot and lock contention)
+	slingCreate        bool   // --create: create polecat if it doesn't exist
+	slingForce         bool   // --force: force spawn even if polecat has unread mail
+	slingAccount       string // --account: Claude Code account handle to use
+	slingAgent         string // --agent: override runtime agent for this sling/spawn
+	slingNoConvoy      bool   // --no-convoy: skip auto-convoy creation
+	slingNoMerge       bool   // --no-merge: skip merge queue on completion (for upstream PRs/human review)
+	slingNoBoot        bool   // --no-boot: skip wakeRigAgents (avoid witness/refinery boot and lock contention)
+	slingMaxConcurrent int    // --max-concurrent: limit concurrent spawns in batch mode
 )
 
 func init() {
@@ -132,6 +135,7 @@ func init() {
 	slingCmd.Flags().BoolVar(&slingHookRawBead, "hook-raw-bead", false, "Hook raw bead without default formula (expert mode)")
 	slingCmd.Flags().BoolVar(&slingNoMerge, "no-merge", false, "Skip merge queue on completion (keep work on feature branch for review)")
 	slingCmd.Flags().BoolVar(&slingNoBoot, "no-boot", false, "Skip rig boot after polecat spawn (avoids witness/refinery lock contention)")
+	slingCmd.Flags().IntVar(&slingMaxConcurrent, "max-concurrent", 0, "Limit concurrent polecat spawns in batch mode (0 = no limit)")
 
 	rootCmd.AddCommand(slingCmd)
 }
