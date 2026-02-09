@@ -1200,7 +1200,7 @@ func (r *Router) GetMailbox(address string) (*Mailbox, error) {
 func (r *Router) notifyRecipient(msg *Message) error {
 	// Check DND status before attempting notification
 	if r.townRoot != "" {
-		if muted, _ := r.isRecipientMuted(msg.To); muted {
+		if r.isRecipientMuted(msg.To) {
 			return nil // Recipient has DND enabled, skip notification
 		}
 	}
@@ -1236,19 +1236,19 @@ func (r *Router) notifyRecipient(msg *Message) error {
 // isRecipientMuted checks if a mail recipient has DND/muted notifications enabled.
 // Returns true if the recipient is muted and should not receive tmux nudges.
 // Fails open (returns false) if the agent bead cannot be found.
-func (r *Router) isRecipientMuted(address string) (bool, error) {
+func (r *Router) isRecipientMuted(address string) bool {
 	agentBeadID := addressToAgentBeadID(address)
 	if agentBeadID == "" {
-		return false, nil // Can't determine agent bead, allow notification
+		return false // Can't determine agent bead, allow notification
 	}
 
 	bd := beads.New(r.townRoot)
 	level, err := bd.GetAgentNotificationLevel(agentBeadID)
 	if err != nil {
-		return false, nil // Agent bead might not exist, allow notification
+		return false // Agent bead might not exist, allow notification
 	}
 
-	return level == beads.NotifyMuted, nil
+	return level == beads.NotifyMuted
 }
 
 // addressToAgentBeadID converts a mail address to an agent bead ID for DND lookup.

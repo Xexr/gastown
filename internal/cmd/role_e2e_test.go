@@ -22,10 +22,21 @@ func cleanGTEnv() []string {
 	return clean
 }
 
+// resolveSymlinks resolves all symlinks in a path.
+// On macOS, t.TempDir() returns /var/... but the OS resolves it to /private/var/...
+func resolveSymlinks(t *testing.T, path string) string {
+	t.Helper()
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		t.Fatalf("EvalSymlinks(%s): %v", path, err)
+	}
+	return resolved
+}
+
 // TestRoleHomeE2E validates that gt role home returns correct paths
 // for all role types after a full gt install.
 func TestRoleHomeE2E(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -96,7 +107,7 @@ func TestRoleHomeE2E(t *testing.T) {
 
 // TestRoleHomeMissingFlags validates that gt role home fails when required flags are missing.
 func TestRoleHomeMissingFlags(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -154,7 +165,7 @@ func TestRoleHomeMissingFlags(t *testing.T) {
 
 // TestRoleHomeCwdDetection validates gt role home without arguments detects role from cwd.
 func TestRoleHomeCwdDetection(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -237,7 +248,7 @@ func TestRoleHomeCwdDetection(t *testing.T) {
 
 // TestRoleEnvCwdDetection validates gt role env without arguments detects role from cwd.
 func TestRoleEnvCwdDetection(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -350,7 +361,7 @@ func TestRoleEnvCwdDetection(t *testing.T) {
 
 // TestRoleListE2E validates gt role list shows all roles.
 func TestRoleListE2E(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -387,7 +398,7 @@ func TestRoleListE2E(t *testing.T) {
 
 // TestRoleShowE2E validates gt role show displays correct role info.
 func TestRoleShowE2E(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -496,7 +507,7 @@ func TestRoleShowE2E(t *testing.T) {
 
 // TestRoleShowMismatch validates gt role show displays mismatch warning.
 func TestRoleShowMismatch(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -545,7 +556,7 @@ func TestRoleShowMismatch(t *testing.T) {
 
 // TestRoleDetectE2E validates gt role detect uses cwd and ignores GT_ROLE.
 func TestRoleDetectE2E(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -657,7 +668,7 @@ func TestRoleDetectE2E(t *testing.T) {
 
 // TestRoleDetectIgnoresGTRole validates gt role detect ignores GT_ROLE env var.
 func TestRoleDetectIgnoresGTRole(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -696,7 +707,7 @@ func TestRoleDetectIgnoresGTRole(t *testing.T) {
 
 // TestRoleDetectInvalidPaths validates detection behavior for incomplete/invalid paths.
 func TestRoleDetectInvalidPaths(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -775,7 +786,7 @@ func TestRoleDetectInvalidPaths(t *testing.T) {
 
 // TestRoleEnvIncompleteEnvVars validates gt role env fills gaps from cwd with warning.
 func TestRoleEnvIncompleteEnvVars(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -919,7 +930,7 @@ func TestRoleEnvIncompleteEnvVars(t *testing.T) {
 
 // TestRoleEnvCwdMismatchFromIncompleteDir validates warnings when in incomplete directories.
 func TestRoleEnvCwdMismatchFromIncompleteDir(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 
@@ -997,7 +1008,7 @@ func TestRoleEnvCwdMismatchFromIncompleteDir(t *testing.T) {
 
 // TestRoleHomeInvalidPaths validates that commands fail gracefully for incomplete paths.
 func TestRoleHomeInvalidPaths(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := resolveSymlinks(t, t.TempDir())
 	hqPath := filepath.Join(tmpDir, "test-hq")
 	gtBinary := buildGT(t)
 

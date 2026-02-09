@@ -19,6 +19,16 @@ import (
 	"testing"
 )
 
+// extractJSON finds the first JSON object in output that may contain non-JSON warnings.
+// bd --json -q can still emit warnings to stdout before the JSON payload.
+func extractJSON(output []byte) []byte {
+	idx := strings.Index(string(output), "{")
+	if idx < 0 {
+		return output
+	}
+	return output[idx:]
+}
+
 // createTrackedBeadsRepoWithIssues creates a git repo with .beads/ tracked that contains existing issues.
 // This simulates a clone of a repo that has tracked beads with issues exported to issues.jsonl.
 // The beads.db is NOT included (gitignored), so prefix must be detected from config.yaml.
@@ -169,7 +179,7 @@ func TestBeadsDbInitAfterClone(t *testing.T) {
 		var result struct {
 			ID string `json:"id"`
 		}
-		if err := json.Unmarshal(output, &result); err != nil {
+		if err := json.Unmarshal(extractJSON(output), &result); err != nil {
 			t.Fatalf("parse output: %v", err)
 		}
 
@@ -225,7 +235,7 @@ func TestBeadsDbInitAfterClone(t *testing.T) {
 		var result struct {
 			ID string `json:"id"`
 		}
-		if err := json.Unmarshal(output, &result); err != nil {
+		if err := json.Unmarshal(extractJSON(output), &result); err != nil {
 			t.Fatalf("parse output: %v", err)
 		}
 
@@ -313,7 +323,7 @@ func TestBeadsDbInitAfterClone(t *testing.T) {
 		var result struct {
 			ID string `json:"id"`
 		}
-		if err := json.Unmarshal(output, &result); err != nil {
+		if err := json.Unmarshal(extractJSON(output), &result); err != nil {
 			t.Fatalf("parse output: %v", err)
 		}
 

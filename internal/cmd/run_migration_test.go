@@ -820,6 +820,9 @@ func TestExecuteMigrationStep_TracksPerCommandProgress(t *testing.T) {
 }
 
 func TestExecuteMigrationStep_SkipsCompletedCommandsOnRetry(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows: cmd.exe cannot reliably create files in CI temp paths with 8.3 short names")
+	}
 	townRoot := t.TempDir()
 
 	origTimeout := runMigrationTimeout
@@ -846,20 +849,11 @@ func TestExecuteMigrationStep_SkipsCompletedCommandsOnRetry(t *testing.T) {
 	marker2 := filepath.Join(townRoot, "marker2.txt")
 	marker3 := filepath.Join(townRoot, "marker3.txt")
 
-	// Use platform-appropriate file-creation commands
-	touchCmd := func(path string) string {
-		if runtime.GOOS == "windows" {
-			// Use copy nul which handles Windows paths better than type nul >
-			return fmt.Sprintf(`copy nul "%s"`, path)
-		}
-		return fmt.Sprintf("touch %s", path)
-	}
-
 	step := &formula.Step{
 		ID:    "retry-step",
 		Title: "Retry step",
-		Description: fmt.Sprintf("Commands.\n\n```bash\n%s\n```\n\n```bash\n%s\n```\n\n```bash\n%s\n```\n",
-			touchCmd(marker1), touchCmd(marker2), touchCmd(marker3)),
+		Description: fmt.Sprintf("Commands.\n\n```bash\ntouch %s\n```\n\n```bash\ntouch %s\n```\n\n```bash\ntouch %s\n```\n",
+			marker1, marker2, marker3),
 	}
 
 	err := executeMigrationStep(nil, cp, step, townRoot)
