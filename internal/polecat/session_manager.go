@@ -324,6 +324,9 @@ func (m *SessionManager) Start(polecat string, opts SessionStartOptions) error {
 		return fmt.Errorf("session %s died during startup (agent command may have failed)", sessionID)
 	}
 
+	// Track PID for defense-in-depth orphan cleanup (non-fatal)
+	_ = session.TrackSessionPID(townRoot, sessionID, m.tmux)
+
 	return nil
 }
 

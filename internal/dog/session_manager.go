@@ -173,6 +173,9 @@ func (m *SessionManager) Start(dogName string, opts SessionStartOptions) error {
 		return fmt.Errorf("session %s died during startup", sessionID)
 	}
 
+	// Track PID for defense-in-depth orphan cleanup (non-fatal)
+	_ = session.TrackSessionPID(m.townRoot, sessionID, m.tmux)
+
 	// Update persistent state to working
 	if m.mgr != nil {
 		if err := m.mgr.SetState(dogName, StateWorking); err != nil {

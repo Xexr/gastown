@@ -232,6 +232,17 @@ func runDown(cmd *cobra.Command, args []string) error {
 	// Phase 5: Orphan cleanup and verification (--all or --force)
 	if (downAll || downForce) && !downDryRun {
 		fmt.Println()
+
+		// Kill any processes tracked via PID files (defense-in-depth for
+		// processes that survived normal session teardown).
+		killed, pidErrs := session.KillTrackedPIDs(townRoot)
+		if killed > 0 {
+			fmt.Printf("  Killed %d tracked orphan process(es) via PID files\n", killed)
+		}
+		for _, e := range pidErrs {
+			fmt.Printf("  PID cleanup warning: %s\n", e)
+		}
+
 		fmt.Println("Cleaning up orphaned Claude processes...")
 		cleanupOrphanedClaude(defaultDownOrphanGraceSecs)
 

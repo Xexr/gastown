@@ -123,6 +123,9 @@ func (m *Manager) Start(agentOverride string) error {
 		return fmt.Errorf("waiting for deacon to start: %w", err)
 	}
 
+	// Track PID for defense-in-depth orphan cleanup (non-fatal)
+	_ = session.TrackSessionPID(m.townRoot, sessionID, t)
+
 	// PATCH-010: Set auto-respawn hook for Deacon resilience.
 	// When Claude exits (for any reason), tmux will automatically respawn it.
 	// This prevents the crash loop where daemon repeatedly restarts Deacon.
