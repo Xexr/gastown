@@ -94,10 +94,11 @@ type ResolveTargetOptions struct {
 	Account  string
 	Agent    string
 	NoBoot   bool
-	HookBead string // Bead ID to set atomically during polecat spawn (empty = skip)
-	BeadID   string // For cross-rig guard checks (empty = skip guard)
-	TownRoot string
-	WorkDesc string // Description for dog dispatch (defaults to HookBead if empty)
+	HookBead   string // Bead ID to set atomically during polecat spawn (empty = skip)
+	BeadID     string // For cross-rig guard checks (empty = skip guard)
+	TownRoot   string
+	WorkDesc   string // Description for dog dispatch (defaults to HookBead if empty)
+	BaseBranch string // Override base branch for polecat worktree
 }
 
 // ResolvedTarget holds the results of target resolution.
@@ -180,11 +181,12 @@ func resolveTarget(target string, opts ResolveTargetOptions) (*ResolvedTarget, e
 		}
 		fmt.Printf("Target is rig '%s', spawning fresh polecat...\n", rigName)
 		spawnOpts := SlingSpawnOptions{
-			Force:    opts.Force,
-			Account:  opts.Account,
-			Create:   opts.Create,
-			HookBead: opts.HookBead,
-			Agent:    opts.Agent,
+			Force:      opts.Force,
+			Account:    opts.Account,
+			Create:     opts.Create,
+			HookBead:   opts.HookBead,
+			Agent:      opts.Agent,
+			BaseBranch: opts.BaseBranch,
 		}
 		spawnInfo, err := SpawnPolecatForSling(rigName, spawnOpts)
 		if err != nil {
@@ -214,11 +216,12 @@ func resolveTarget(target string, opts ResolveTargetOptions) (*ResolvedTarget, e
 				}
 				fmt.Printf("Target polecat has no active session, spawning fresh polecat in rig '%s'...\n", rigName)
 				spawnOpts := SlingSpawnOptions{
-					Force:    opts.Force,
-					Account:  opts.Account,
-					Create:   opts.Create,
-					HookBead: opts.HookBead,
-					Agent:    opts.Agent,
+					Force:      opts.Force,
+					Account:    opts.Account,
+					Create:     opts.Create,
+					HookBead:   opts.HookBead,
+					Agent:      opts.Agent,
+					BaseBranch: opts.BaseBranch,
 				}
 				spawnInfo, spawnErr := SpawnPolecatForSling(rigName, spawnOpts)
 				if spawnErr != nil {

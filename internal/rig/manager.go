@@ -1145,14 +1145,7 @@ Full context is injected by ` + "`" + cli.Name() + " prime`" + ` at session star
 	case "refinery":
 		bootstrap = `# Refinery Context (` + rigName + `)
 
-> **Recovery**: Run ` + "`" + cli.Name() + " prime`" + ` after compaction, clear, or new session
-
-Full context is injected by ` + "`" + cli.Name() + " prime`" + ` at session start.
-
-## Quick Reference
-
-- Check MQ: ` + "`" + cli.Name() + " mq list`" + `
-- Process next: ` + "`" + cli.Name() + " mq process`" + `
+**MANDATORY**: Run ` + "`" + cli.Name() + " prime`" + ` BEFORE any other command. Do not check mail, hook, mq, or beads until after priming. Your role context, patrol molecule, and correct commands are all injected by prime.
 `
 	case "crew":
 		name := workerName
@@ -1360,10 +1353,13 @@ See docs/deacon-plugins.md for full documentation.
 		return fmt.Errorf("creating rig plugins directory: %w", err)
 	}
 
-	// Add plugins/ and .repo.git/ to rig .gitignore
+	// Add plugins/, .repo.git/, and .land-worktree/ to rig .gitignore
 	gitignorePath := filepath.Join(rigPath, ".gitignore")
 	if err := m.ensureGitignoreEntry(gitignorePath, "plugins/"); err != nil {
 		return err
 	}
-	return m.ensureGitignoreEntry(gitignorePath, ".repo.git/")
+	if err := m.ensureGitignoreEntry(gitignorePath, ".repo.git/"); err != nil {
+		return err
+	}
+	return m.ensureGitignoreEntry(gitignorePath, ".land-worktree/")
 }
