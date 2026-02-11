@@ -152,14 +152,15 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("initializing git: %w", err)
 	}
 
-	if _, err := createIntegrationBranchForEpic(bd, g, epic.ID, branchName, epicCreateBaseBranch, epic.Description); err != nil {
+	baseBranch := epicCreateBaseBranch
+	if baseBranch == "" {
+		baseBranch = r.DefaultBranch()
+	}
+	if _, err := createIntegrationBranchForEpic(bd, g, epic.ID, branchName, baseBranch, epic.Description); err != nil {
 		return err
 	}
 
-	baseBranchDisplay := epicCreateBaseBranch
-	if baseBranchDisplay == "" {
-		baseBranchDisplay = "main"
-	}
+	baseBranchDisplay := baseBranch
 	fmt.Printf("%s Created integration branch: %s (from %s)\n", style.Bold.Render("✓"), branchName, baseBranchDisplay)
 
 	return nil

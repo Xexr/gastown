@@ -208,15 +208,15 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	baseBranch := mqIntegrationCreateBaseBranch
+	if baseBranch == "" {
+		baseBranch = r.DefaultBranch()
+	}
 	if _, err := createIntegrationBranchForEpic(bd, g, epicID, branchName, baseBranch, epic.Description); err != nil {
 		return err
 	}
 
 	// Success output
 	baseBranchDisplay := baseBranch
-	if baseBranchDisplay == "" {
-		baseBranchDisplay = "main"
-	}
 	fmt.Printf("\n%s Created integration branch\n", style.Bold.Render("✓"))
 	fmt.Printf("  Epic:   %s\n", epicID)
 	fmt.Printf("  Branch: %s\n", branchName)
@@ -229,7 +229,7 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 
 // createIntegrationBranchForEpic validates, creates, pushes an integration branch and
 // updates the epic's metadata. Returns the (possibly updated) description.
-// baseBranch may be empty (defaults to "main").
+// baseBranch is the branch to fork from (e.g. "main", "develop"). Must not be empty.
 func createIntegrationBranchForEpic(bd *beads.Beads, g *git.Git, epicID, branchName, baseBranch, epicDesc string) (string, error) {
 	// Validate the branch name
 	if err := validateBranchName(branchName); err != nil {
@@ -261,13 +261,9 @@ func createIntegrationBranchForEpic(bd *beads.Beads, g *git.Git, epicID, branchN
 		return epicDesc, fmt.Errorf("fetching from origin: %w", err)
 	}
 
-	// Create branch from base (default: origin/main)
-	originBase := "origin/main"
-	baseBranchDisplay := "main"
-	if baseBranch != "" {
-		originBase = "origin/" + strings.TrimPrefix(baseBranch, "origin/")
-		baseBranchDisplay = strings.TrimPrefix(originBase, "origin/")
-	}
+	// Create branch from base
+	originBase := "origin/" + strings.TrimPrefix(baseBranch, "origin/")
+	baseBranchDisplay := strings.TrimPrefix(originBase, "origin/")
 	fmt.Printf("Creating branch '%s' from %s...\n", branchName, baseBranchDisplay)
 	if err := g.CreateBranchFrom(branchName, originBase); err != nil {
 		return epicDesc, fmt.Errorf("creating branch: %w", err)
@@ -283,9 +279,7 @@ func createIntegrationBranchForEpic(bd *beads.Beads, g *git.Git, epicID, branchN
 
 	// Store integration branch info in epic metadata
 	newDesc := addIntegrationBranchField(epicDesc, branchName)
-	if baseBranch != "" {
-		newDesc = beads.AddBaseBranchField(newDesc, baseBranchDisplay)
-	}
+	newDesc = beads.AddBaseBranchField(newDesc, baseBranchDisplay)
 	if newDesc != epicDesc {
 		if err := bd.Update(epicID, beads.UpdateOptions{Description: &newDesc}); err != nil {
 			// Non-fatal - branch was created, just metadata update failed
