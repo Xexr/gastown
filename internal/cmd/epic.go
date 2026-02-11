@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/steveyegge/gastown/internal/beads"
+	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
@@ -28,12 +30,13 @@ var epicCmd = &cobra.Command{
 
 var epicCreateCmd = &cobra.Command{
 	Use:   "create <title>",
-	Short: "Create an epic (optionally with an integration branch)",
-	Long: `Create a beads epic. When integration_branch_enabled is true in rig
-config, an integration branch is also created from the sanitized epic title.
+	Short: "Create an epic with an integration branch",
+	Long: `Create a beads epic and an integration branch named from the title.
+
+Requires integration_branch_enabled: true in rig settings/config.json.
 
 The branch is named integration/<kebab-case-title>. Use --no-integration-branch
-to skip branch creation even when the feature is enabled.
+to skip branch creation (epic only).
 
 Examples:
   gt epic create "User Authentication"
@@ -70,6 +73,13 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 	_, r, err := findCurrentRig(townRoot)
 	if err != nil {
 		return err
+	}
+
+	// Require integration branches to be enabled in rig config
+	settingsPath := filepath.Join(r.Path, "settings", "config.json")
+	settings, err := config.LoadRigSettings(settingsPath)
+	if err != nil || settings.MergeQueue == nil || !settings.MergeQueue.IsIntegrationBranchEnabled() {
+		return fmt.Errorf("integration branches are not enabled for this rig\n\n  Set \"integration_branch_enabled\": true in %s", settingsPath)
 	}
 
 	// Initialize beads for the rig
