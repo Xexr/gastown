@@ -13,6 +13,7 @@ import (
 	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/constants"
 	"github.com/steveyegge/gastown/internal/deacon"
+	"github.com/steveyegge/gastown/internal/rig"
 	"github.com/steveyegge/gastown/internal/style"
 )
 
@@ -345,9 +346,14 @@ func buildRefineryPatrolVars(ctx RoleContext) []string {
 	if mq.BuildCommand != "" {
 		vars = append(vars, fmt.Sprintf("build_command=%s", mq.BuildCommand))
 	}
-	if mq.TargetBranch != "" {
-		vars = append(vars, fmt.Sprintf("target_branch=%s", mq.TargetBranch))
+	// Read default_branch from rig config (single source of truth).
+	// Falls back to "main" if rig config can't be loaded.
+	defaultBranch := "main"
+	rigCfg, err := rig.LoadRigConfig(rigPath)
+	if err == nil && rigCfg.DefaultBranch != "" {
+		defaultBranch = rigCfg.DefaultBranch
 	}
+	vars = append(vars, fmt.Sprintf("target_branch=%s", defaultBranch))
 	vars = append(vars, fmt.Sprintf("delete_merged_branches=%t", mq.DeleteMergedBranches))
 	return vars
 }

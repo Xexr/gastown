@@ -71,9 +71,16 @@ Debug routing: `BD_DEBUG_ROUTING=1 bd show <id>`
   "type": "rig",
   "name": "myproject",
   "git_url": "https://github.com/...",
+  "default_branch": "main",
   "beads": { "prefix": "mp" }
 }
 ```
+
+**Rig config fields:**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `default_branch` | `string` | `"main"` | Default branch for the rig. Auto-detected from remote during `gt rig add`. Used as the merge target by the Refinery and as the base for polecats when no integration branch is active. |
 
 ### Settings (`settings/config.json`)
 
@@ -83,7 +90,6 @@ Debug routing: `BD_DEBUG_ROUTING=1 bd show <id>`
   "max_workers": 5,
   "merge_queue": {
     "enabled": true,
-    "target_branch": "main",
     "run_tests": true,
     "setup_command": "",
     "typecheck_command": "",
@@ -108,7 +114,6 @@ Debug routing: `BD_DEBUG_ROUTING=1 bd show <id>`
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `enabled` | `bool` | `true` | Whether the merge queue is active |
-| `target_branch` | `string` | `"main"` | Default branch to merge into |
 | `run_tests` | `bool` | `true` | Run tests before merging |
 | `setup_command` | `string` | `""` | Setup/install command (e.g., `pnpm install`) |
 | `typecheck_command` | `string` | `""` | Type check command (e.g., `tsc --noEmit`) |

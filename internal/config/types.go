@@ -810,9 +810,6 @@ type MergeQueueConfig struct {
 	// Enabled controls whether the merge queue is active.
 	Enabled bool `json:"enabled"`
 
-	// TargetBranch is the default branch to merge into (usually "main").
-	TargetBranch string `json:"target_branch"`
-
 	// IntegrationBranchPolecatEnabled controls whether polecats auto-source
 	// their worktrees from integration branches when the parent epic has one.
 	// Nil defaults to true.
@@ -913,7 +910,6 @@ func boolPtr(b bool) *bool {
 func DefaultMergeQueueConfig() *MergeQueueConfig {
 	return &MergeQueueConfig{
 		Enabled:                          true,
-		TargetBranch:                     "main",
 		IntegrationBranchPolecatEnabled:  boolPtr(true),
 		IntegrationBranchRefineryEnabled: boolPtr(true),
 		OnConflict:                       OnConflictAssignBack,

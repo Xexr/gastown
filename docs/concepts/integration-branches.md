@@ -353,7 +353,25 @@ gt mq integration land <epic-id> [flags]
 
 ## Configuration
 
-All fields live under `merge_queue` in rig settings (`settings/config.json`):
+### Default Branch
+
+The rig's `default_branch` (set in `config.json`, auto-detected during `gt rig add`)
+controls where work merges when no integration branch is active. It's also the
+default base branch when creating integration branches. If your project uses
+`develop` or `master` instead of `main`, set it once in rig config and the whole
+pipeline follows:
+
+```json
+{
+  "type": "rig",
+  "name": "myproject",
+  "default_branch": "develop"
+}
+```
+
+### Integration Branch Settings
+
+All integration branch fields live under `merge_queue` in rig settings (`settings/config.json`):
 
 ```json
 {

@@ -195,9 +195,6 @@ func TestRigSettingsRoundTrip(t *testing.T) {
 	if !loaded.MergeQueue.Enabled {
 		t.Error("MergeQueue.Enabled = false, want true")
 	}
-	if loaded.MergeQueue.TargetBranch != "main" {
-		t.Errorf("MergeQueue.TargetBranch = %q, want 'main'", loaded.MergeQueue.TargetBranch)
-	}
 }
 
 func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
@@ -210,7 +207,6 @@ func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
 		Version: 1,
 		MergeQueue: &MergeQueueConfig{
 			Enabled:              true,
-			TargetBranch:         "develop",
 			IntegrationBranchPolecatEnabled:  boolPtr(false),
 			IntegrationBranchRefineryEnabled: boolPtr(false),
 			OnConflict:           OnConflictAutoRebase,
@@ -233,9 +229,6 @@ func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
 	}
 
 	mq := loaded.MergeQueue
-	if mq.TargetBranch != "develop" {
-		t.Errorf("TargetBranch = %q, want 'develop'", mq.TargetBranch)
-	}
 	if mq.OnConflict != OnConflictAutoRebase {
 		t.Errorf("OnConflict = %q, want %q", mq.OnConflict, OnConflictAutoRebase)
 	}
@@ -364,9 +357,6 @@ func TestDefaultMergeQueueConfig(t *testing.T) {
 
 	if !cfg.Enabled {
 		t.Error("Enabled should be true by default")
-	}
-	if cfg.TargetBranch != "main" {
-		t.Errorf("TargetBranch = %q, want 'main'", cfg.TargetBranch)
 	}
 	if !cfg.IsPolecatIntegrationEnabled() {
 		t.Error("IsPolecatIntegrationEnabled should be true by default")

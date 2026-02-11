@@ -70,6 +70,13 @@ func TestBuildRefineryPatrolVars_FullConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write rig config.json with default_branch (source of truth for default branch)
+	rigConfig := map[string]interface{}{"type": "rig", "version": 1, "name": "testrig"}
+	rigData, _ := json.Marshal(rigConfig)
+	if err := os.WriteFile(filepath.Join(rigDir, "config.json"), rigData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	mq := config.DefaultMergeQueueConfig()
 	settings := config.RigSettings{
 		Type:       "rig-settings",
@@ -88,7 +95,7 @@ func TestBuildRefineryPatrolVars_FullConfig(t *testing.T) {
 	vars := buildRefineryPatrolVars(ctx)
 
 	// DefaultMergeQueueConfig: refinery_enabled=true, auto_land=false, run_tests=true,
-	// test_command="go test ./...", target_branch="main", delete_merged_branches=true
+	// test_command="go test ./...", target_branch="main" (from rig config), delete_merged_branches=true
 	// New commands (setup, typecheck, lint, build) default to empty = omitted
 	expected := map[string]string{
 		"integration_branch_refinery_enabled": "true",
@@ -197,7 +204,6 @@ func TestBuildRefineryPatrolVars_EmptyTestCommand(t *testing.T) {
 
 	mq := &config.MergeQueueConfig{
 		Enabled:              true,
-		TargetBranch:         "main",
 		RunTests:             false,
 		TestCommand:          "", // empty - should be omitted
 		DeleteMergedBranches: true,
@@ -252,13 +258,19 @@ func TestBuildRefineryPatrolVars_BoolFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write rig config.json with default_branch = "develop"
+	rigConfig := map[string]interface{}{"type": "rig", "version": 1, "name": "testrig", "default_branch": "develop"}
+	rigData, _ := json.Marshal(rigConfig)
+	if err := os.WriteFile(filepath.Join(rigDir, "config.json"), rigData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	trueVal := true
 	mq := &config.MergeQueueConfig{
 		Enabled:                         true,
 		IntegrationBranchAutoLand:       &trueVal,
 		IntegrationBranchRefineryEnabled: &trueVal,
 		RunTests:                         true,
-		TargetBranch:                     "develop",
 		SetupCommand:                     "npm ci",
 		TypecheckCommand:                 "tsc --noEmit",
 		LintCommand:                      "eslint .",

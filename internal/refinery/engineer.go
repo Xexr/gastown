@@ -27,9 +27,6 @@ type MergeQueueConfig struct {
 	// Enabled controls whether the merge queue is active.
 	Enabled bool `json:"enabled"`
 
-	// TargetBranch is the default branch to merge to (e.g., "main").
-	TargetBranch string `json:"target_branch"`
-
 	// IntegrationBranchPolecatEnabled controls whether polecats auto-source
 	// their worktrees from integration branches.
 	IntegrationBranchPolecatEnabled *bool `json:"integration_branch_polecat_enabled,omitempty"`
@@ -69,7 +66,6 @@ func boolPtr(b bool) *bool {
 func DefaultMergeQueueConfig() *MergeQueueConfig {
 	return &MergeQueueConfig{
 		Enabled:                          true,
-		TargetBranch:                     "main",
 		IntegrationBranchPolecatEnabled:  boolPtr(true),
 		IntegrationBranchRefineryEnabled: boolPtr(true),
 		OnConflict:                       "assign_back",
@@ -116,8 +112,6 @@ type Engineer struct {
 // NewEngineer creates a new Engineer for the given rig.
 func NewEngineer(r *rig.Rig) *Engineer {
 	cfg := DefaultMergeQueueConfig()
-	// Override target branch with rig's configured default branch
-	cfg.TargetBranch = r.DefaultBranch()
 
 	// Determine the git working directory for refinery operations.
 	// Prefer refinery/rig worktree, fall back to mayor/rig (legacy architecture).
@@ -173,7 +167,6 @@ func (e *Engineer) LoadConfig() error {
 	// We need special handling for poll_interval (string -> Duration)
 	var mqRaw struct {
 		Enabled                          *bool   `json:"enabled"`
-		TargetBranch                     *string `json:"target_branch"`
 		IntegrationBranchPolecatEnabled  *bool   `json:"integration_branch_polecat_enabled"`
 		IntegrationBranchRefineryEnabled *bool   `json:"integration_branch_refinery_enabled"`
 		OnConflict                       *string `json:"on_conflict"`
@@ -192,9 +185,6 @@ func (e *Engineer) LoadConfig() error {
 	// Apply non-nil values to config (preserving defaults for missing fields)
 	if mqRaw.Enabled != nil {
 		e.config.Enabled = *mqRaw.Enabled
-	}
-	if mqRaw.TargetBranch != nil {
-		e.config.TargetBranch = *mqRaw.TargetBranch
 	}
 	if mqRaw.IntegrationBranchPolecatEnabled != nil {
 		e.config.IntegrationBranchPolecatEnabled = mqRaw.IntegrationBranchPolecatEnabled
