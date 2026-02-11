@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/steveyegge/gastown/internal/beads"
 	"github.com/steveyegge/gastown/internal/config"
+	"github.com/steveyegge/gastown/internal/git"
+	"github.com/steveyegge/gastown/internal/rig"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
@@ -19,6 +21,7 @@ var (
 	epicCreateLabels              []string
 	epicCreateDescription         string
 	epicCreatePriority            int
+	epicCreateRig                 string
 )
 
 var epicCmd = &cobra.Command{
@@ -43,7 +46,8 @@ Examples:
   gt epic create "API v2 Migration" --parent gt-abc
   gt epic create "Big Feature" --base-branch develop
   gt epic create "Quick Epic" --no-integration-branch
-  gt epic create "Urgent Fix" -p 1 -l urgent -l backend`,
+  gt epic create "Urgent Fix" -p 1 -l urgent -l backend
+  gt epic create "Cross-Rig Feature" --rig greenplace`,
 	Args: cobra.ExactArgs(1),
 	RunE: runEpicCreate,
 }
@@ -55,9 +59,23 @@ func init() {
 	epicCreateCmd.Flags().StringSliceVarP(&epicCreateLabels, "label", "l", nil, "Labels (repeatable)")
 	epicCreateCmd.Flags().StringVarP(&epicCreateDescription, "description", "d", "", "Epic description")
 	epicCreateCmd.Flags().IntVarP(&epicCreatePriority, "priority", "p", 0, "Priority (0-3)")
+	epicCreateCmd.Flags().StringVar(&epicCreateRig, "rig", "", "Rig to create epic in (default: infer from cwd)")
 
 	epicCmd.AddCommand(epicCreateCmd)
 	rootCmd.AddCommand(epicCmd)
+}
+
+// findRigByName resolves a rig by name from the town root.
+func findRigByName(townRoot, rigName string) (*rig.Rig, error) {
+	rigsConfigPath := filepath.Join(townRoot, "mayor", "rigs.json")
+	rigsConfig, err := config.LoadRigsConfig(rigsConfigPath)
+	if err != nil {
+		rigsConfig = &config.RigsConfig{Rigs: make(map[string]config.RigEntry)}
+	}
+
+	g := git.NewGit(townRoot)
+	rigMgr := rig.NewManager(townRoot, rigsConfig, g)
+	return rigMgr.GetRig(rigName)
 }
 
 func runEpicCreate(cmd *cobra.Command, args []string) error {
@@ -69,10 +87,18 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not in a Gas Town workspace: %w", err)
 	}
 
-	// Find current rig
-	_, r, err := findCurrentRig(townRoot)
-	if err != nil {
-		return err
+	// Resolve rig: --rig flag > infer from cwd
+	var r *rig.Rig
+	if epicCreateRig != "" {
+		r, err = findRigByName(townRoot, epicCreateRig)
+		if err != nil {
+			return fmt.Errorf("rig '%s' not found", epicCreateRig)
+		}
+	} else {
+		_, r, err = findCurrentRig(townRoot)
+		if err != nil {
+			return fmt.Errorf("could not determine rig (use --rig flag): %w", err)
+		}
 	}
 
 	// Require integration branches to be enabled in rig config
