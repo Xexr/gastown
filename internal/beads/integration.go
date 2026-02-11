@@ -9,6 +9,46 @@ import (
 // Integration branch template constants
 const DefaultIntegrationBranchTemplate = "integration/{epic}"
 
+// MaxSanitizedTitleLen is the safe max length for a title slug in a branch name.
+// GitHub enforces a 255-byte ref limit. "refs/heads/integration/" = 23 bytes,
+// leaving 232. We use 200 as a comfortable buffer.
+const MaxSanitizedTitleLen = 200
+
+// SanitizeTitleForBranch converts an epic title to a branch-safe kebab-case slug.
+// Non-alphanumeric characters become hyphens; consecutive hyphens collapse;
+// truncation happens at a word boundary (last hyphen before maxLen).
+func SanitizeTitleForBranch(title string, maxLen int) string {
+	// 1. Lowercase
+	s := strings.ToLower(title)
+
+	// 2. Map: keep a-z, 0-9; everything else becomes a hyphen
+	s = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, s)
+
+	// 3. Trim leading/trailing hyphens
+	s = strings.Trim(s, "-")
+
+	// 4. Collapse consecutive hyphens
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+
+	// 5. Truncate at word boundary if needed
+	if maxLen > 0 && len(s) > maxLen {
+		truncated := s[:maxLen]
+		if idx := strings.LastIndex(truncated, "-"); idx > 0 {
+			truncated = truncated[:idx]
+		}
+		s = strings.TrimRight(truncated, "-")
+	}
+
+	return s
+}
+
 // IssueShower provides issue lookup without requiring a full Beads instance.
 // *Beads satisfies this interface, so existing callers need no changes.
 type IssueShower interface {

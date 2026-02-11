@@ -833,6 +833,11 @@ type MergeQueueConfig struct {
 	// Nil defaults to false (manual landing required).
 	IntegrationBranchAutoLand *bool `json:"integration_branch_auto_land,omitempty"`
 
+	// IntegrationBranchEnabled controls whether `gt epic create` auto-creates
+	// an integration branch from the sanitized epic title.
+	// Nil defaults to false (no auto-creation).
+	IntegrationBranchEnabled *bool `json:"integration_branch_enabled,omitempty"`
+
 	// OnConflict specifies conflict resolution strategy: "assign_back" or "auto_rebase".
 	OnConflict string `json:"on_conflict"`
 
@@ -899,6 +904,15 @@ func (c *MergeQueueConfig) IsIntegrationBranchAutoLandEnabled() bool {
 		return false
 	}
 	return *c.IntegrationBranchAutoLand
+}
+
+// IsIntegrationBranchEnabled returns whether `gt epic create` should
+// auto-create integration branches. Nil-safe, defaults to false.
+func (c *MergeQueueConfig) IsIntegrationBranchEnabled() bool {
+	if c.IntegrationBranchEnabled == nil {
+		return false
+	}
+	return *c.IntegrationBranchEnabled
 }
 
 // boolPtr returns a pointer to a bool value.

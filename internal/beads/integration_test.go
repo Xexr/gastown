@@ -493,3 +493,106 @@ func TestDetectIntegrationBranch(t *testing.T) {
 		}
 	})
 }
+
+func TestSanitizeTitleForBranch(t *testing.T) {
+	tests := []struct {
+		name   string
+		title  string
+		maxLen int
+		want   string
+	}{
+		{
+			name:   "basic title",
+			title:  "My Cool Feature",
+			maxLen: 200,
+			want:   "my-cool-feature",
+		},
+		{
+			name:   "special chars",
+			title:  "Fix: auth (v2) [urgent]",
+			maxLen: 200,
+			want:   "fix-auth-v2-urgent",
+		},
+		{
+			name:   "unicode stripped",
+			title:  "Über Feature",
+			maxLen: 200,
+			want:   "ber-feature",
+		},
+		{
+			name:   "consecutive specials collapse",
+			title:  "a---b",
+			maxLen: 200,
+			want:   "a-b",
+		},
+		{
+			name:   "leading and trailing stripped",
+			title:  "  --hello--  ",
+			maxLen: 200,
+			want:   "hello",
+		},
+		{
+			name:   "truncation at word boundary",
+			title:  "this-is-a-very-long-title-that-exceeds-the-limit",
+			maxLen: 20,
+			want:   "this-is-a-very-long",
+		},
+		{
+			name:   "truncation hard cut when no hyphen",
+			title:  "abcdefghijklmnopqrstuvwxyz",
+			maxLen: 10,
+			want:   "abcdefghij",
+		},
+		{
+			name:   "empty after sanitize",
+			title:  "!!!",
+			maxLen: 200,
+			want:   "",
+		},
+		{
+			name:   "numbers preserved",
+			title:  "v2-migration",
+			maxLen: 200,
+			want:   "v2-migration",
+		},
+		{
+			name:   "all lowercase already",
+			title:  "simple",
+			maxLen: 200,
+			want:   "simple",
+		},
+		{
+			name:   "zero maxLen means no truncation",
+			title:  "a-very-long-title",
+			maxLen: 0,
+			want:   "a-very-long-title",
+		},
+		{
+			name:   "mixed case and symbols",
+			title:  "Add OAuth2.0 + SAML Support!",
+			maxLen: 200,
+			want:   "add-oauth2-0-saml-support",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SanitizeTitleForBranch(tt.title, tt.maxLen)
+			if got != tt.want {
+				t.Errorf("SanitizeTitleForBranch(%q, %d) = %q, want %q", tt.title, tt.maxLen, got, tt.want)
+			}
+		})
+	}
+
+	// Additional: verify long titles respect MaxSanitizedTitleLen
+	t.Run("long title within default max", func(t *testing.T) {
+		longTitle := strings.Repeat("word ", 100) // 500 chars
+		got := SanitizeTitleForBranch(longTitle, MaxSanitizedTitleLen)
+		if len(got) > MaxSanitizedTitleLen {
+			t.Errorf("result length %d exceeds MaxSanitizedTitleLen %d", len(got), MaxSanitizedTitleLen)
+		}
+		if got == "" {
+			t.Error("expected non-empty result for long title")
+		}
+	})
+}

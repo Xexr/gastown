@@ -201,24 +201,48 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 	template := getIntegrationBranchTemplate(r.Path, mqIntegrationCreateBranch)
 	branchName := buildIntegrationBranchName(template, epicID)
 
-	// Validate the branch name
-	if err := validateBranchName(branchName); err != nil {
-		return fmt.Errorf("invalid branch name: %w", err)
-	}
-
 	// Initialize git for the rig
 	g, err := getRigGit(r.Path)
 	if err != nil {
 		return fmt.Errorf("initializing git: %w", err)
 	}
 
+	baseBranch := mqIntegrationCreateBaseBranch
+	if _, err := createIntegrationBranchForEpic(bd, g, epicID, branchName, baseBranch, epic.Description); err != nil {
+		return err
+	}
+
+	// Success output
+	baseBranchDisplay := baseBranch
+	if baseBranchDisplay == "" {
+		baseBranchDisplay = "main"
+	}
+	fmt.Printf("\n%s Created integration branch\n", style.Bold.Render("✓"))
+	fmt.Printf("  Epic:   %s\n", epicID)
+	fmt.Printf("  Branch: %s\n", branchName)
+	fmt.Printf("  From:   %s\n", baseBranchDisplay)
+	fmt.Printf("\n  Future MRs for this epic's children can target:\n")
+	fmt.Printf("    gt mq submit --epic %s\n", epicID)
+
+	return nil
+}
+
+// createIntegrationBranchForEpic validates, creates, pushes an integration branch and
+// updates the epic's metadata. Returns the (possibly updated) description.
+// baseBranch may be empty (defaults to "main").
+func createIntegrationBranchForEpic(bd *beads.Beads, g *git.Git, epicID, branchName, baseBranch, epicDesc string) (string, error) {
+	// Validate the branch name
+	if err := validateBranchName(branchName); err != nil {
+		return epicDesc, fmt.Errorf("invalid branch name: %w", err)
+	}
+
 	// Check if integration branch already exists locally
 	exists, err := g.BranchExists(branchName)
 	if err != nil {
-		return fmt.Errorf("checking branch existence: %w", err)
+		return epicDesc, fmt.Errorf("checking branch existence: %w", err)
 	}
 	if exists {
-		return fmt.Errorf("integration branch '%s' already exists locally", branchName)
+		return epicDesc, fmt.Errorf("integration branch '%s' already exists locally", branchName)
 	}
 
 	// Check if branch exists on remote
@@ -228,58 +252,48 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  %s\n", style.Dim.Render("(could not check remote, continuing)"))
 	}
 	if remoteExists {
-		return fmt.Errorf("integration branch '%s' already exists on origin", branchName)
+		return epicDesc, fmt.Errorf("integration branch '%s' already exists on origin", branchName)
 	}
 
 	// Ensure we have latest refs
 	fmt.Printf("Fetching latest from origin...\n")
 	if err := g.Fetch("origin"); err != nil {
-		return fmt.Errorf("fetching from origin: %w", err)
+		return epicDesc, fmt.Errorf("fetching from origin: %w", err)
 	}
 
-	// 2. Create branch from base (default: origin/main)
-	baseBranch := "origin/main"
+	// Create branch from base (default: origin/main)
+	originBase := "origin/main"
 	baseBranchDisplay := "main"
-	if mqIntegrationCreateBaseBranch != "" {
-		baseBranch = "origin/" + strings.TrimPrefix(mqIntegrationCreateBaseBranch, "origin/")
-		baseBranchDisplay = strings.TrimPrefix(baseBranch, "origin/")
+	if baseBranch != "" {
+		originBase = "origin/" + strings.TrimPrefix(baseBranch, "origin/")
+		baseBranchDisplay = strings.TrimPrefix(originBase, "origin/")
 	}
 	fmt.Printf("Creating branch '%s' from %s...\n", branchName, baseBranchDisplay)
-	if err := g.CreateBranchFrom(branchName, baseBranch); err != nil {
-		return fmt.Errorf("creating branch: %w", err)
+	if err := g.CreateBranchFrom(branchName, originBase); err != nil {
+		return epicDesc, fmt.Errorf("creating branch: %w", err)
 	}
 
-	// 3. Push to origin
+	// Push to origin
 	fmt.Printf("Pushing to origin...\n")
 	if err := g.Push("origin", branchName, false); err != nil {
 		// Clean up local branch on push failure (best-effort cleanup)
 		_ = g.DeleteBranch(branchName, true)
-		return fmt.Errorf("pushing to origin: %w", err)
+		return epicDesc, fmt.Errorf("pushing to origin: %w", err)
 	}
 
-	// 4. Store integration branch info in epic metadata
-	// Update the epic's description to include the integration branch info
-	newDesc := addIntegrationBranchField(epic.Description, branchName)
-	// Also store base_branch if non-main was used (for land to know where to merge back)
-	if mqIntegrationCreateBaseBranch != "" {
+	// Store integration branch info in epic metadata
+	newDesc := addIntegrationBranchField(epicDesc, branchName)
+	if baseBranch != "" {
 		newDesc = beads.AddBaseBranchField(newDesc, baseBranchDisplay)
 	}
-	if newDesc != epic.Description {
+	if newDesc != epicDesc {
 		if err := bd.Update(epicID, beads.UpdateOptions{Description: &newDesc}); err != nil {
 			// Non-fatal - branch was created, just metadata update failed
 			fmt.Printf("  %s\n", style.Dim.Render("(warning: could not update epic metadata)"))
 		}
 	}
 
-	// Success output
-	fmt.Printf("\n%s Created integration branch\n", style.Bold.Render("✓"))
-	fmt.Printf("  Epic:   %s\n", epicID)
-	fmt.Printf("  Branch: %s\n", branchName)
-	fmt.Printf("  From:   %s\n", baseBranchDisplay)
-	fmt.Printf("\n  Future MRs for this epic's children can target:\n")
-	fmt.Printf("    gt mq submit --epic %s\n", epicID)
-
-	return nil
+	return newDesc, nil
 }
 
 // addIntegrationBranchField wraps beads.AddIntegrationBranchField for local callers.
