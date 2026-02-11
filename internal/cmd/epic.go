@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/steveyegge/gastown/internal/beads"
-	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/style"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
@@ -99,15 +97,8 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("%s Created epic %s: %s\n", style.Bold.Render("✓"), epic.ID, title)
 
-	// Check if integration branch should be created
+	// Create integration branch unless opted out
 	if epicCreateNoIntegrationBranch {
-		return nil
-	}
-
-	settingsPath := filepath.Join(r.Path, "settings", "config.json")
-	settings, err := config.LoadRigSettings(settingsPath)
-	if err != nil || settings.MergeQueue == nil || !settings.MergeQueue.IsIntegrationBranchEnabled() {
-		// Integration branches not enabled — done
 		return nil
 	}
 
