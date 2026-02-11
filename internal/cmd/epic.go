@@ -41,6 +41,11 @@ Requires integration_branch_enabled: true in rig settings/config.json.
 The branch is named integration/<kebab-case-title>. Use --no-integration-branch
 to skip branch creation (epic only).
 
+When --parent points to an epic with an integration branch, the new branch
+is forked from the parent's integration branch (not main). If the parent
+epic has no integration branch, the command errors with instructions to
+create one first. Use --base-branch to override this behavior.
+
 Examples:
   gt epic create "User Authentication"
   gt epic create "API v2 Migration" --parent gt-abc
@@ -111,6 +116,35 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 	// Initialize beads for the rig
 	bd := beads.New(r.Path)
 
+	// Resolve base branch for the integration branch.
+	// Priority: --base-branch flag > parent epic's integration branch > rig default_branch.
+	// When --parent points to an epic, we require it to have an integration branch
+	// (unless --base-branch is explicitly set or --no-integration-branch is used).
+	baseBranch := epicCreateBaseBranch
+	if baseBranch == "" && epicCreateParent != "" && !epicCreateNoIntegrationBranch {
+		parent, err := bd.Show(epicCreateParent)
+		if err != nil {
+			return fmt.Errorf("looking up parent '%s': %w", epicCreateParent, err)
+		}
+		if parent.Type == "epic" {
+			parentBranch := beads.GetIntegrationBranchField(parent.Description)
+			if parentBranch == "" {
+				return fmt.Errorf("parent epic '%s' (%s) has no integration branch\n\n"+
+					"  Create one first:\n"+
+					"    gt mq integration create %s\n\n"+
+					"  Then re-run:\n"+
+					"    gt epic create %q --parent %s",
+					epicCreateParent, parent.Title,
+					epicCreateParent,
+					title, epicCreateParent)
+			}
+			baseBranch = parentBranch
+		}
+	}
+	if baseBranch == "" {
+		baseBranch = r.DefaultBranch()
+	}
+
 	// Create epic bead
 	createOpts := beads.CreateOptions{
 		Title:       title,
@@ -152,16 +186,11 @@ func runEpicCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("initializing git: %w", err)
 	}
 
-	baseBranch := epicCreateBaseBranch
-	if baseBranch == "" {
-		baseBranch = r.DefaultBranch()
-	}
 	if _, err := createIntegrationBranchForEpic(bd, g, epic.ID, branchName, baseBranch, epic.Description); err != nil {
 		return err
 	}
 
-	baseBranchDisplay := baseBranch
-	fmt.Printf("%s Created integration branch: %s (from %s)\n", style.Bold.Render("✓"), branchName, baseBranchDisplay)
+	fmt.Printf("%s Created integration branch: %s (from %s)\n", style.Bold.Render("✓"), branchName, baseBranch)
 
 	return nil
 }
