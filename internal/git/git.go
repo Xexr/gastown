@@ -3,6 +3,7 @@ package git
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -682,13 +683,24 @@ func (g *Git) BranchExists(name string) (bool, error) {
 	return true, nil
 }
 
-// RemoteBranchExists checks if a branch exists on the remote.
-func (g *Git) RemoteBranchExists(remote, branch string) (bool, error) {
-	_, err := g.run("ls-remote", "--heads", remote, branch)
+// RefExists checks if a ref exists (works for any ref including origin/<branch>).
+func (g *Git) RefExists(ref string) (bool, error) {
+	_, err := g.run("rev-parse", "--verify", ref)
 	if err != nil {
+		// rev-parse --verify exits non-zero when ref doesn't exist.
+		// The GitError wraps stderr (e.g. "fatal: Needed a single revision")
+		// which indicates the ref is simply missing, not an infrastructure failure.
+		var gitErr *GitError
+		if errors.As(err, &gitErr) {
+			return false, nil
+		}
 		return false, err
 	}
-	// ls-remote returns empty if branch doesn't exist, need to check output
+	return true, nil
+}
+
+// RemoteBranchExists checks if a branch exists on the remote.
+func (g *Git) RemoteBranchExists(remote, branch string) (bool, error) {
 	out, err := g.run("ls-remote", "--heads", remote, branch)
 	if err != nil {
 		return false, err

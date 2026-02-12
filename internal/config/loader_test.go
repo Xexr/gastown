@@ -195,9 +195,6 @@ func TestRigSettingsRoundTrip(t *testing.T) {
 	if !loaded.MergeQueue.Enabled {
 		t.Error("MergeQueue.Enabled = false, want true")
 	}
-	if loaded.MergeQueue.TargetBranch != "main" {
-		t.Errorf("MergeQueue.TargetBranch = %q, want 'main'", loaded.MergeQueue.TargetBranch)
-	}
 }
 
 func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
@@ -210,12 +207,12 @@ func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
 		Version: 1,
 		MergeQueue: &MergeQueueConfig{
 			Enabled:              true,
-			TargetBranch:         "develop",
-			IntegrationBranches:  false,
+			IntegrationBranchPolecatEnabled:  boolPtr(false),
+			IntegrationBranchRefineryEnabled: boolPtr(false),
 			OnConflict:           OnConflictAutoRebase,
-			RunTests:             true,
+			RunTests:             boolPtr(true),
 			TestCommand:          "make test",
-			DeleteMergedBranches: false,
+			DeleteMergedBranches: boolPtr(false),
 			RetryFlakyTests:      3,
 			PollInterval:         "1m",
 			MaxConcurrent:        2,
@@ -232,9 +229,6 @@ func TestRigSettingsWithCustomMergeQueue(t *testing.T) {
 	}
 
 	mq := loaded.MergeQueue
-	if mq.TargetBranch != "develop" {
-		t.Errorf("TargetBranch = %q, want 'develop'", mq.TargetBranch)
-	}
 	if mq.OnConflict != OnConflictAutoRebase {
 		t.Errorf("OnConflict = %q, want %q", mq.OnConflict, OnConflictAutoRebase)
 	}
@@ -364,23 +358,23 @@ func TestDefaultMergeQueueConfig(t *testing.T) {
 	if !cfg.Enabled {
 		t.Error("Enabled should be true by default")
 	}
-	if cfg.TargetBranch != "main" {
-		t.Errorf("TargetBranch = %q, want 'main'", cfg.TargetBranch)
+	if !cfg.IsPolecatIntegrationEnabled() {
+		t.Error("IsPolecatIntegrationEnabled should be true by default")
 	}
-	if !cfg.IntegrationBranches {
-		t.Error("IntegrationBranches should be true by default")
+	if !cfg.IsRefineryIntegrationEnabled() {
+		t.Error("IsRefineryIntegrationEnabled should be true by default")
 	}
 	if cfg.OnConflict != OnConflictAssignBack {
 		t.Errorf("OnConflict = %q, want %q", cfg.OnConflict, OnConflictAssignBack)
 	}
-	if !cfg.RunTests {
-		t.Error("RunTests should be true by default")
+	if !cfg.IsRunTestsEnabled() {
+		t.Error("IsRunTestsEnabled should be true by default")
 	}
 	if cfg.TestCommand != "go test ./..." {
 		t.Errorf("TestCommand = %q, want 'go test ./...'", cfg.TestCommand)
 	}
-	if !cfg.DeleteMergedBranches {
-		t.Error("DeleteMergedBranches should be true by default")
+	if !cfg.IsDeleteMergedBranchesEnabled() {
+		t.Error("IsDeleteMergedBranchesEnabled should be true by default")
 	}
 	if cfg.RetryFlakyTests != 1 {
 		t.Errorf("RetryFlakyTests = %d, want 1", cfg.RetryFlakyTests)
@@ -1510,8 +1504,9 @@ func TestResolveRoleAgentConfigFromRigSettings(t *testing.T) {
 
 	settings := NewRigSettings()
 	settings.Runtime = &RuntimeConfig{
-		Command: "aider",
-		Args:    []string{"--no-git", "--model", "claude-3"},
+		Command:  "aider",
+		Provider: "aider",
+		Args:     []string{"--no-git", "--model", "claude-3"},
 	}
 	if err := SaveRigSettings(filepath.Join(settingsDir, "config.json"), settings); err != nil {
 		t.Fatalf("saving settings: %v", err)

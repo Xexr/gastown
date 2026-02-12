@@ -367,6 +367,14 @@ func (m *Manager) AddRig(opts AddRigOptions) (*Rig, error) {
 			defaultBranch = bareGit.DefaultBranch()
 		}
 	}
+	// Validate user-provided branch exists on remote (auto-detected branches are inherently valid)
+	if opts.DefaultBranch != "" {
+		ref := fmt.Sprintf("origin/%s", defaultBranch)
+		if exists, err := bareGit.RefExists(ref); err == nil && !exists {
+			return nil, fmt.Errorf("branch %q does not exist on remote (ref %s not found in bare repo)", defaultBranch, ref)
+		}
+	}
+
 	rigConfig.DefaultBranch = defaultBranch
 	// Re-save config with default branch
 	if err := m.saveRigConfig(rigPath, rigConfig); err != nil {
@@ -1236,10 +1244,13 @@ See docs/deacon-plugins.md for full documentation.
 		return fmt.Errorf("creating rig plugins directory: %w", err)
 	}
 
-	// Add plugins/ and .repo.git/ to rig .gitignore
+	// Add plugins/, .repo.git/, and .land-worktree/ to rig .gitignore
 	gitignorePath := filepath.Join(rigPath, ".gitignore")
 	if err := m.ensureGitignoreEntry(gitignorePath, "plugins/"); err != nil {
 		return err
 	}
-	return m.ensureGitignoreEntry(gitignorePath, ".repo.git/")
+	if err := m.ensureGitignoreEntry(gitignorePath, ".repo.git/"); err != nil {
+		return err
+	}
+	return m.ensureGitignoreEntry(gitignorePath, ".land-worktree/")
 }

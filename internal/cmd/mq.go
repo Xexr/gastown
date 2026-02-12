@@ -51,7 +51,8 @@ var (
 	mqIntegrationStatusJSON bool
 
 	// Integration create flags
-	mqIntegrationCreateBranch string
+	mqIntegrationCreateBranch     string
+	mqIntegrationCreateBaseBranch string
 )
 
 var mqCmd = &cobra.Command{
@@ -84,8 +85,8 @@ Auto-detection:
   - Priority: inherited from source issue
 
 Target branch auto-detection:
-  1. If --epic is specified: target integration/<epic>
-  2. If source issue has a parent epic with integration/<epic> branch: target it
+  1. If --epic is specified: target the integration branch for <epic> (using configured template)
+  2. If source issue has a parent epic with an integration branch: target it
   3. Otherwise: target main
 
 This ensures batch work on epics automatically flows to integration branches.
@@ -199,14 +200,18 @@ Creates a branch from main and pushes it to origin. Future MRs for this
 epic's children can target this branch.
 
 Branch naming:
-  Default: integration/<epic-id>
+  Default: integration/<sanitized-title> (e.g., integration/add-user-auth)
   Config:  Set merge_queue.integration_branch_template in rig settings
   Override: Use --branch flag for one-off customization
 
 Template variables:
+  {title}  - Sanitized epic title (e.g., "add-user-authentication")
   {epic}   - Full epic ID (e.g., "RA-123")
   {prefix} - Epic prefix before first hyphen (e.g., "RA")
   {user}   - Git user.name (e.g., "klauern")
+
+If two epics produce the same branch name, a numeric suffix from the
+epic ID is appended automatically (e.g., integration/add-auth-123).
 
 Actions:
   1. Verify epic exists
@@ -216,7 +221,7 @@ Actions:
 
 Examples:
   gt mq integration create gt-auth-epic
-  # Creates integration/gt-auth-epic (default)
+  # Creates integration/add-user-authentication (from epic title)
 
   gt mq integration create RA-123 --branch "klauern/PROJ-1234/{epic}"
   # Creates klauern/PROJ-1234/RA-123`,
@@ -305,7 +310,8 @@ func init() {
 	mqCmd.AddCommand(mqStatusCmd)
 
 	// Integration branch subcommands
-	mqIntegrationCreateCmd.Flags().StringVar(&mqIntegrationCreateBranch, "branch", "", "Override branch name template (supports {epic}, {prefix}, {user})")
+	mqIntegrationCreateCmd.Flags().StringVar(&mqIntegrationCreateBranch, "branch", "", "Override branch name template (supports {title}, {epic}, {prefix}, {user})")
+	mqIntegrationCreateCmd.Flags().StringVar(&mqIntegrationCreateBaseBranch, "base-branch", "", "Create integration branch from this branch instead of main")
 	mqIntegrationCmd.AddCommand(mqIntegrationCreateCmd)
 
 	// Integration land flags
