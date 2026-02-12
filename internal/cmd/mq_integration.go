@@ -237,13 +237,13 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("fetching from origin: %w", err)
 	}
 
-	// 2. Create branch from base (default: origin/main)
-	baseBranch := "origin/main"
-	baseBranchDisplay := "main"
+	// 2. Create branch from base (default: rig's default_branch)
+	baseBranchName := r.DefaultBranch()
 	if mqIntegrationCreateBaseBranch != "" {
-		baseBranch = "origin/" + strings.TrimPrefix(mqIntegrationCreateBaseBranch, "origin/")
-		baseBranchDisplay = strings.TrimPrefix(baseBranch, "origin/")
+		baseBranchName = strings.TrimPrefix(mqIntegrationCreateBaseBranch, "origin/")
 	}
+	baseBranch := "origin/" + baseBranchName
+	baseBranchDisplay := baseBranchName
 	fmt.Printf("Creating branch '%s' from %s...\n", branchName, baseBranchDisplay)
 	if err := g.CreateBranchFrom(branchName, baseBranch); err != nil {
 		return fmt.Errorf("creating branch: %w", err)
@@ -260,10 +260,8 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 	// 4. Store integration branch info in epic metadata
 	// Update the epic's description to include the integration branch info
 	newDesc := addIntegrationBranchField(epic.Description, branchName)
-	// Also store base_branch if non-main was used (for land to know where to merge back)
-	if mqIntegrationCreateBaseBranch != "" {
-		newDesc = beads.AddBaseBranchField(newDesc, baseBranchDisplay)
-	}
+	// Always store base_branch so land knows where to merge back
+	newDesc = beads.AddBaseBranchField(newDesc, baseBranchDisplay)
 	if newDesc != epic.Description {
 		if err := bd.Update(epicID, beads.UpdateOptions{Description: &newDesc}); err != nil {
 			// Non-fatal - branch was created, just metadata update failed
@@ -338,10 +336,10 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 	}
 
 	// Read base_branch from epic metadata (where to merge back)
-	// Default to "main" if not stored (backward compat with pre-base-branch epics)
+	// Fall back to rig's default_branch for backward compat with pre-base-branch epics
 	targetBranch := beads.GetBaseBranchField(epic.Description)
 	if targetBranch == "" {
-		targetBranch = "main"
+		targetBranch = r.DefaultBranch()
 	}
 
 	fmt.Printf("Landing integration branch for epic: %s\n", epicID)
