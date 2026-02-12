@@ -139,7 +139,7 @@ func (m *Manager) Start(foreground bool, agentOverride string) error {
 		Recipient: fmt.Sprintf("%s/refinery", m.rig.Name),
 		Sender:    "deacon",
 		Topic:     "patrol",
-	}, "Check your hook and begin patrol.")
+	}, "Run `gt prime --hook` and begin patrol.")
 
 	var command string
 	if agentOverride != "" {

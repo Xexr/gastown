@@ -54,6 +54,7 @@ Cleanup checks (fixable):
 Clone divergence checks:
   - persistent-role-branches Detect crew/witness/refinery not on main
   - clone-divergence         Detect clones significantly behind origin/main
+  - default-branch-all-rigs  Verify default_branch exists on remote for all rigs
 
 Crew workspace checks:
   - crew-state               Validate crew worker state.json files (fixable)
@@ -157,6 +158,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	d.Register(doctor.NewBeadsSyncOrphanCheck())
 	d.Register(doctor.NewBeadsSyncWorktreeCheck())
 	d.Register(doctor.NewCloneDivergenceCheck())
+	d.Register(doctor.NewDefaultBranchAllRigsCheck())
 	d.Register(doctor.NewIdentityCollisionCheck())
 	d.Register(doctor.NewLinkedPaneCheck())
 	d.Register(doctor.NewThemeCheck())

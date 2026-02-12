@@ -535,6 +535,102 @@ func TestCloneBareHasOriginRefs(t *testing.T) {
 	}
 }
 
+func TestRefExists_ValidRef(t *testing.T) {
+	dir := initTestRepo(t)
+	g := NewGit(dir)
+
+	// HEAD should exist
+	exists, err := g.RefExists("HEAD")
+	if err != nil {
+		t.Fatalf("RefExists(HEAD): %v", err)
+	}
+	if !exists {
+		t.Error("expected HEAD to exist")
+	}
+}
+
+func TestRefExists_InvalidRef(t *testing.T) {
+	dir := initTestRepo(t)
+	g := NewGit(dir)
+
+	// A ref that doesn't exist
+	exists, err := g.RefExists("refs/heads/nonexistent-branch")
+	if err != nil {
+		t.Fatalf("RefExists: %v", err)
+	}
+	if exists {
+		t.Error("expected nonexistent ref to not exist")
+	}
+}
+
+func TestRefExists_OriginRef(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a remote repo
+	remoteDir := filepath.Join(tmp, "remote")
+	if err := os.MkdirAll(remoteDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	cmd := exec.Command("git", "init")
+	cmd.Dir = remoteDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git init: %v", err)
+	}
+	cmd = exec.Command("git", "config", "user.email", "test@test.com")
+	cmd.Dir = remoteDir
+	_ = cmd.Run()
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = remoteDir
+	_ = cmd.Run()
+	if err := os.WriteFile(filepath.Join(remoteDir, "README.md"), []byte("# Test\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	cmd = exec.Command("git", "add", ".")
+	cmd.Dir = remoteDir
+	_ = cmd.Run()
+	cmd = exec.Command("git", "commit", "-m", "initial")
+	cmd.Dir = remoteDir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git commit: %v", err)
+	}
+
+	// Get main branch name
+	cmd = exec.Command("git", "branch", "--show-current")
+	cmd.Dir = remoteDir
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("git branch: %v", err)
+	}
+	mainBranch := strings.TrimSpace(string(out))
+
+	// Clone bare
+	bareDir := filepath.Join(tmp, "bare.git")
+	g := NewGit(tmp)
+	if err := g.CloneBare(remoteDir, bareDir); err != nil {
+		t.Fatalf("CloneBare: %v", err)
+	}
+
+	bareGit := NewGitWithDir(bareDir, "")
+
+	// origin/<main> should exist
+	exists, err := bareGit.RefExists("origin/" + mainBranch)
+	if err != nil {
+		t.Fatalf("RefExists(origin/%s): %v", mainBranch, err)
+	}
+	if !exists {
+		t.Errorf("expected origin/%s to exist", mainBranch)
+	}
+
+	// origin/nonexistent should not exist
+	exists, err = bareGit.RefExists("origin/nonexistent")
+	if err != nil {
+		t.Fatalf("RefExists(origin/nonexistent): %v", err)
+	}
+	if exists {
+		t.Error("expected origin/nonexistent to not exist")
+	}
+}
+
 func stringContains(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
