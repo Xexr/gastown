@@ -80,6 +80,7 @@ Routing checks (fixable):
 Session hook checks:
   - session-hooks            Check settings.local.json use session-start.sh
   - claude-settings          Check Claude settings.local.json match templates (fixable)
+  - deprecated-merge-queue-keys  Detect stale deprecated keys in merge_queue config (fixable)
 
 Patrol checks:
   - patrol-molecules-exist   Verify patrol molecules exist
@@ -184,6 +185,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	d.Register(doctor.NewRuntimeGitignoreCheck())
 	d.Register(doctor.NewLegacyGastownCheck())
 	d.Register(doctor.NewClaudeSettingsCheck())
+	d.Register(doctor.NewDeprecatedMergeQueueKeysCheck())
 
 	// Sparse checkout migration (runs across all rigs, not just --rig mode)
 	d.Register(doctor.NewSparseCheckoutCheck())
