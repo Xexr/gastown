@@ -156,7 +156,115 @@ The merge step in production is Claude running `git rebase` + `git merge --ff-on
 
 ---
 
-## 3. Existing Test Infrastructure
+## 3. Formula vs Engineer: Divergences and LLM-Dependent Weak Points
+
+### Merge strategy divergence
+
+The formula and the Engineer's unused merge methods implement **different merge strategies**:
+
+| | Formula (production) | Engineer (unused) |
+|---|---|---|
+| **Strategy** | `rebase` + `merge --ff-only` | `merge --squash` |
+| **History** | Linear — original commits preserved | Single squash commit |
+| **Conflict detection** | Side effect of rebase attempt | Separate pre-flight `CheckConflicts()` (test merge with `--no-commit --no-ff`, inspect, abort) |
+| **Branch handling** | Creates `temp` branch from `origin/<branch>` | Works with local branch directly |
+| **Target update** | Implicit via `git fetch` | Explicit `e.git.Pull("origin", target)` |
+
+These produce **different commit histories** on the same inputs.
+
+### Conflict resolution lifecycle divergence
+
+When a merge conflict is detected, the two paths diverge significantly:
+
+**Formula (production):**
+1. Rebase fails → `git rebase --abort`
+2. Claude runs `bd create --type=task ...` to create a conflict resolution task
+3. Skip MR, move to next branch
+4. **No dependency created** between MR and conflict task
+5. Next patrol cycle → `gt mq list` shows MR still "open" → Claude tries rebase again
+6. If branch was force-pushed with resolution → rebase succeeds
+7. If not → Claude hits same conflict, potentially creates **duplicate** conflict task
+
+**Engineer (unused):**
+1. `doMerge` returns `Conflict: true`
+2. `HandleMRInfoFailure()` creates conflict task AND calls `e.beads.AddDependency(mr.ID, taskID)` — **blocks the MR on the task**
+3. Merge slot acquired — serializes conflict resolution (only one at a time)
+4. `ListReadyMRs()` filters out blocked MRs — refinery won't retry until task is closed
+5. When someone closes the task → MR unblocks → appears in `gt refinery ready` again
+
+| Behavior | Formula | Engineer |
+|----------|---------|----------|
+| MR blocked until resolution? | No — retries every patrol cycle | Yes — blocked via beads dependency |
+| Duplicate conflict tasks? | Possible on each retry | No — MR is blocked, won't be reprocessed |
+| Serialized resolution? | No | Yes — merge slot |
+| Retry trigger | Next patrol cycle (time-based) | Task closure (event-based) |
+
+### Who resolves the conflict task?
+
+**Neither path addresses this.** The task is created as a regular bead (`type: task`) that appears in `bd ready`. Its description contains prose instructions:
+
+```
+1. Check out the branch
+2. Rebase onto target: git rebase origin/main
+3. Resolve conflicts
+4. Force push: git push -f origin <branch>
+5. Close this task when done
+```
+
+Step 3 — "resolve conflicts" — is inherently a judgment call. There is no automatic dispatch mechanism. The task sits in `bd ready` until:
+- A human notices it and assigns it
+- The witness or another agent slungs it to a polecat
+- Someone manually picks it up
+
+After resolution, the polecat/person must:
+1. Force-push the resolved branch
+2. Close the task bead (`bd close <task-id>`)
+3. (Engineer path only) MR unblocks automatically
+4. (Formula path) MR gets retried on next patrol cycle regardless
+
+**This is an untested lifecycle with no deterministic guarantee of completion.**
+
+### LLM-dependent weak points in the formula
+
+Every step in the formula is prose that Claude must follow correctly. With different LLM models configured for refineries, behavior becomes uncertain at these points:
+
+| Formula Step | What Claude must do | Failure mode with weaker model |
+|---|---|---|
+| **inbox-check** | Parse MERGE_READY mail, extract and **remember** branch, issue, polecat name, MR bead ID across multiple later steps | Forgets polecat name → MERGED notification fails → polecat worktrees accumulate indefinitely |
+| **process-branch** | Substitute correct branch names into git commands, detect conflict state from exit codes | Wrong branch name → merges wrong code or loses work |
+| **handle-failures** | Diagnose whether test failure is a branch regression vs pre-existing on target branch | Wrong diagnosis → merges broken code OR rejects good code |
+| **merge-push** | Verify SHA match after push, send MERGED mail with correct polecat name, close correct MR bead, archive correct message — all in sequence | Any dropped step → silent lifecycle breakage (orphaned worktrees, orphaned beads, inbox bloat) |
+| **check-integration-branches** | Read `auto_land` config value, respect FORBIDDEN directive | Ignores FORBIDDEN → lands integration branch autonomously when it shouldn't |
+| **conflict handling** | Create properly formatted conflict task with all metadata fields | Missing metadata → conflict task is useless. Duplicate tasks on retry cycles. |
+
+**The pre-push hook is the ONE deterministic guardrail** — it's code that runs regardless of what the LLM does. Everything else in the merge pipeline is prose-dependent.
+
+### Where deterministic Go code could replace LLM prose
+
+The Engineer's unused merge methods already implement most of the merge-push sequence deterministically. A command like `gt refinery process-next` that wires in the Engineer's merge logic would make the critical path code-deterministic:
+
+| Current (LLM-dependent) | Potential (deterministic) |
+|---|---|
+| Claude remembers polecat name across steps | Go struct carries `MRInfo` through the pipeline |
+| Claude constructs git commands from prose | `doMerge()` calls `e.git.*` methods |
+| Claude decides whether to send MERGED mail | `HandleMRInfoSuccess()` always sends notification |
+| Claude creates conflict task from prose template | `createConflictResolutionTaskForMR()` with dependency blocking |
+| Claude diagnoses test failure cause | Could be codified: run tests on target first, then on merge, compare |
+
+The LLM's role would shrink from **executing the merge mechanics** to **orchestrating the patrol loop** (when to process, whether to continue or hand off) — a much smaller surface area for model-dependent behavior.
+
+### Implications for e2e testing
+
+These findings affect what we can and should test:
+
+1. **Formula FORBIDDEN directives are untestable in Go** — they're Claude-level guardrails. The pre-push hook is the testable enforcement layer.
+2. **Conflict resolution lifecycle is untested end-to-end** — no test covers: conflict detected → task created → task dispatched → conflict resolved → MR retried → merge succeeds.
+3. **The formula's retry-without-blocking approach risks duplicate conflict tasks** — this is a testable scenario.
+4. **If `gt refinery process-next` existed**, the entire merge pipeline would be deterministically testable without simulating Claude's behavior.
+
+---
+
+## 4. Existing Test Infrastructure
 
 ### Test helpers already available
 
@@ -183,7 +291,7 @@ The merge step in production is Claude running `git rebase` + `git merge --ff-on
 
 ---
 
-## 4. Proposed Architecture
+## 5. Proposed Architecture
 
 ### New build tag: `e2e`
 
@@ -241,7 +349,7 @@ jobs:
 
 ---
 
-## 5. Challenges & Mitigations
+## 6. Challenges & Mitigations
 
 ### Challenge 1: Beads (`bd`) dependency
 
@@ -324,7 +432,7 @@ Tests needed:
 
 ---
 
-## 6. Test Coverage Mapping
+## 7. Test Coverage Mapping
 
 ### Julian's 28 tests → Automated tests
 
@@ -358,7 +466,7 @@ test our actual code paths.
 
 ---
 
-## 7. Open Questions
+## 8. Open Questions
 
 1. **Mock bd vs real bd?** Mock is simpler and faster. Real bd tests more but needs either flat-file backend or dolt. Recommend starting with mock.
 
@@ -372,7 +480,7 @@ test our actual code paths.
 
 ---
 
-## 8. References
+## 9. References
 
 - Julian's manual test plan: https://gist.github.com/julianknutsen/04217bd547d382ce5c6e37f44d3700bf
 - Xexr's adapted test plan: https://gist.github.com/Xexr/f6c6902fe818aad7ccdf645d21e08a49
