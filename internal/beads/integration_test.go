@@ -2,7 +2,6 @@ package beads
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 )
 
@@ -472,7 +471,7 @@ func TestDetectIntegrationBranch(t *testing.T) {
 		}
 	})
 
-	t.Run("BranchExists error propagates when remote also fails", func(t *testing.T) {
+	t.Run("BranchExists error is swallowed when remote also fails (best-effort)", func(t *testing.T) {
 		shower := &mockIssueShower{issues: map[string]*Issue{
 			"gt-task": {ID: "gt-task", Type: "task", Parent: "gt-epic"},
 			"gt-epic": {ID: "gt-epic", Type: "epic", Description: "integration_branch: custom/branch"},
@@ -482,12 +481,13 @@ func TestDetectIntegrationBranch(t *testing.T) {
 			localErr:  fmt.Errorf("git repo corrupted"),
 		}
 
-		_, err := DetectIntegrationBranch(shower, checker, "gt-task")
-		if err == nil {
-			t.Fatal("expected error from BranchExists, got nil")
+		// Detection is best-effort: both paths swallow errors and return ""
+		result, err := DetectIntegrationBranch(shower, checker, "gt-task")
+		if err != nil {
+			t.Fatalf("expected no error (best-effort detection), got: %v", err)
 		}
-		if !strings.Contains(err.Error(), "checking local branch") {
-			t.Errorf("expected 'checking local branch' in error, got: %v", err)
+		if result != "" {
+			t.Errorf("expected empty result when both checks fail, got %q", result)
 		}
 	})
 

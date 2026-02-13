@@ -199,15 +199,13 @@ func DetectIntegrationBranch(bd IssueShower, checker BranchChecker, issueID stri
 				integrationBranch = BuildIntegrationBranchName("", issue.ID, issue.Title)
 			}
 
-			// Check remote first (authoritative — local refs can be stale
+			// Check remote first (authoritative -- local refs can be stale
 			// if the remote branch was deleted without pruning)
 			exists, err := checker.RemoteBranchExists("origin", integrationBranch)
 			if err != nil {
-				// Remote check failed (network issue) — fall back to local
-				localExists, localErr := checker.BranchExists(integrationBranch)
-				if localErr != nil {
-					return "", fmt.Errorf("checking local branch: %w", localErr)
-				}
+				// Remote check failed (network issue) -- fall back to local.
+				// Swallow local errors: detection is best-effort.
+				localExists, _ := checker.BranchExists(integrationBranch)
 				if localExists {
 					return integrationBranch, nil
 				}
