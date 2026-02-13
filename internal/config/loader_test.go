@@ -3835,3 +3835,124 @@ func TestBuildStartupCommandWithAgentOverride_NoGTAgentWhenNoOverride(t *testing
 		t.Errorf("expected no GT_AGENT in command when no override, got: %q", cmd)
 	}
 }
+
+// TestMergeQueueConfig_PartialJSON_BoolDefaults verifies that omitted *bool fields
+// in a partial merge_queue JSON config deserialize to nil (not false), and that the
+// nil-safe accessor methods return the correct defaults.
+//
+// This is a regression test for: "Partial merge_queue config silently disables
+// refinery tests — omitted booleans deserialize to Go zero values (false)".
+// The *bool pointer approach prevents this, and this test locks in that guarantee.
+func TestMergeQueueConfig_PartialJSON_BoolDefaults(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		json string
+		// Expected accessor results when *bool fields are omitted (nil)
+		wantRunTests               bool
+		wantDeleteMerged           bool
+		wantPolecatIntegration     bool
+		wantRefineryIntegration    bool
+		wantAutoLand               bool
+	}{
+		{
+			name: "minimal config — all *bool fields omitted",
+			json: `{"enabled": true, "on_conflict": "assign_back"}`,
+			// nil *bool → accessor defaults
+			wantRunTests:            true,
+			wantDeleteMerged:        true,
+			wantPolecatIntegration:  true,
+			wantRefineryIntegration: true,
+			wantAutoLand:            false,
+		},
+		{
+			name: "explicit false — should be respected",
+			json: `{
+				"enabled": true,
+				"on_conflict": "assign_back",
+				"run_tests": false,
+				"delete_merged_branches": false,
+				"integration_branch_polecat_enabled": false,
+				"integration_branch_refinery_enabled": false,
+				"integration_branch_auto_land": false
+			}`,
+			wantRunTests:            false,
+			wantDeleteMerged:        false,
+			wantPolecatIntegration:  false,
+			wantRefineryIntegration: false,
+			wantAutoLand:            false,
+		},
+		{
+			name: "explicit true — should be respected",
+			json: `{
+				"enabled": true,
+				"on_conflict": "assign_back",
+				"run_tests": true,
+				"delete_merged_branches": true,
+				"integration_branch_polecat_enabled": true,
+				"integration_branch_refinery_enabled": true,
+				"integration_branch_auto_land": true
+			}`,
+			wantRunTests:            true,
+			wantDeleteMerged:        true,
+			wantPolecatIntegration:  true,
+			wantRefineryIntegration: true,
+			wantAutoLand:            true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var cfg MergeQueueConfig
+			if err := json.Unmarshal([]byte(tt.json), &cfg); err != nil {
+				t.Fatalf("json.Unmarshal: %v", err)
+			}
+
+			if got := cfg.IsRunTestsEnabled(); got != tt.wantRunTests {
+				t.Errorf("IsRunTestsEnabled() = %v, want %v", got, tt.wantRunTests)
+			}
+			if got := cfg.IsDeleteMergedBranchesEnabled(); got != tt.wantDeleteMerged {
+				t.Errorf("IsDeleteMergedBranchesEnabled() = %v, want %v", got, tt.wantDeleteMerged)
+			}
+			if got := cfg.IsPolecatIntegrationEnabled(); got != tt.wantPolecatIntegration {
+				t.Errorf("IsPolecatIntegrationEnabled() = %v, want %v", got, tt.wantPolecatIntegration)
+			}
+			if got := cfg.IsRefineryIntegrationEnabled(); got != tt.wantRefineryIntegration {
+				t.Errorf("IsRefineryIntegrationEnabled() = %v, want %v", got, tt.wantRefineryIntegration)
+			}
+			if got := cfg.IsIntegrationBranchAutoLandEnabled(); got != tt.wantAutoLand {
+				t.Errorf("IsIntegrationBranchAutoLandEnabled() = %v, want %v", got, tt.wantAutoLand)
+			}
+		})
+	}
+}
+
+// TestMergeQueueConfig_PartialJSON_NilPointers verifies that omitted *bool fields
+// deserialize to nil, not to a pointer to false. This is the underlying mechanism
+// that makes the accessor defaults work.
+func TestMergeQueueConfig_PartialJSON_NilPointers(t *testing.T) {
+	t.Parallel()
+
+	partialJSON := `{"enabled": true, "on_conflict": "assign_back"}`
+	var cfg MergeQueueConfig
+	if err := json.Unmarshal([]byte(partialJSON), &cfg); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	if cfg.RunTests != nil {
+		t.Errorf("RunTests should be nil when omitted, got %v", *cfg.RunTests)
+	}
+	if cfg.DeleteMergedBranches != nil {
+		t.Errorf("DeleteMergedBranches should be nil when omitted, got %v", *cfg.DeleteMergedBranches)
+	}
+	if cfg.IntegrationBranchPolecatEnabled != nil {
+		t.Errorf("IntegrationBranchPolecatEnabled should be nil when omitted, got %v", *cfg.IntegrationBranchPolecatEnabled)
+	}
+	if cfg.IntegrationBranchRefineryEnabled != nil {
+		t.Errorf("IntegrationBranchRefineryEnabled should be nil when omitted, got %v", *cfg.IntegrationBranchRefineryEnabled)
+	}
+	if cfg.IntegrationBranchAutoLand != nil {
+		t.Errorf("IntegrationBranchAutoLand should be nil when omitted, got %v", *cfg.IntegrationBranchAutoLand)
+	}
+}
