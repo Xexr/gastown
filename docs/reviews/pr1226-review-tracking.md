@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `6b12bbd7` (21 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 13 fixes + 2 docs) |
+| **PR branch HEAD** | `637c4167` (26 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 14 fixes + 6 docs) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -64,7 +64,7 @@
 
 | # | Finding | Severity | Status | Fork PR | Notes |
 |---|---------|----------|--------|---------|-------|
-| MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Folded** (code hygiene only) | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | Cherry-picked as code hygiene. Our review found the fix is a **behavioral no-op** -- `beads.List` already translates Type to `--label`. If 0-MRs symptom was real, root cause is elsewhere. See `gt-6ck`. |
+| MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Fixed** | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | PR #3 cherry-picked as code hygiene (behavioral no-op). **Actual root cause** found in `gt-6ck`: `Status:""` excluded closed MRs + `--limit=50` truncation + mock divergence. All three fixed in `637c4167`. |
 | MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Open** | -- | Lifecycle timing issue. Design decision needed: delay auto-close, re-open during land, or decouple. `gt-2rz`. |
 | MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Open** (Draft PR reviewed) | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) | Three-layer enforcement architecture reviewed and validated. Blocked on core.hooksPath gap in WorktreeAddExisting() — Layer 2 ineffective on fresh rigs. Need infrastructure fix before folding. `gt-58j`, `gt-627`. |
 | MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Fixed** | -- | Existence check + `--force` flag added. Commit `0044b172`. |
@@ -87,7 +87,7 @@
 
 | # | Finding | Source | Severity | Status | Bead | Notes |
 |---|---------|--------|----------|--------|------|-------|
-| F-1 | MT-1 root cause unresolved -- PR #3 fix is behavioral no-op, 0-MRs symptom may persist | PR #3 review | Minor | **Open** | `gt-6ck` | If symptom was real, root cause is elsewhere (DB routing, bd version, env setup) |
+| F-1 | MT-1 root cause found -- `Status:""` excluded closed MRs, `--limit=50` default truncated, mock hid both bugs | PR #3 review | Major | **Fixed** | `gt-6ck` | Three bugs: (1) `Status:""` → open-only (not all), (2) no `--limit=0` → silent truncation at 50, (3) mock divergence hid bug in tests. Commit `637c4167`. |
 | F-2 | Incomplete Type→Label migration -- 4 query-side callsites still use deprecated pattern | PR #3 review | Minor | **Fixed** | `gt-4sk` | mq_list.go:31, mq_next.go:63, status.go:1180, refinery/manager.go:224. Commit `c1ee17ec`. |
 | F-3 | Mock beads.List filters Type and Label independently, real impl treats as mutually exclusive | PR #3 review | Low | **Fixed** | `gt-p9m` | Mock now matches real behavior. Commit `a562e15a`. |
 | F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Fixed** | `gt-bvx` | Exported from config package. Commit `d1e36649`. |
@@ -137,7 +137,7 @@
 ### Does not block squash
 
 11. ~~**`gt-4sk`** (F-2) -- Complete Type→Label migration across 4 remaining callsites~~ **DONE** (`c1ee17ec`)
-12. **`gt-6ck`** (F-1) -- Investigate 0-MRs root cause (may be transient)
+12. ~~**`gt-6ck`** (F-1) -- Investigate 0-MRs root cause~~ **DONE** (`637c4167`) -- Three bugs: Status filter, limit truncation, mock divergence
 13. ~~**`gt-p9m`** (F-3) -- Fix mock beads.List mutual-exclusivity inconsistency~~ **DONE** (`a562e15a`)
 
 ### Open — needs design decision or infrastructure work
