@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `e635931f` (15 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 9 fixes) |
+| **PR branch HEAD** | `a562e15a` (17 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 11 fixes) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -21,7 +21,7 @@
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
 | **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | R4-7 (`.land-worktree/` doctor check), Q2 answer, MT-3 (blocked on infra) |
+| **Pending before squash** | Q2 answer, MT-3 (blocked on infra) |
 
 ---
 
@@ -80,7 +80,7 @@
 | R4-4 | `RefExists` masks infrastructure failures as "ref missing" -- `GitError` -> `false, nil` for all errors | Major | **Fixed** | -- | Narrowed to "Needed a single revision" pattern only. Commit `77ccdaa2`. |
 | R4-5 | Inconsistent error handling in `DetectIntegrationBranch` -- metadata path hard-errors, legacy path swallows | Minor | **Fixed** | -- | Both paths now swallow consistently (best-effort). Commit `e635931f`. |
 | R4-6 | Missing compile-time interface assertion `var _ BranchChecker = (*git.Git)(nil)` | Minor | **Fixed** | -- | Added in `git/interface_test.go`. Commit `1e7cc81f`. |
-| R4-7 | `.land-worktree/` not in `.gitignore` for existing rigs -- only added during rig init | Minor | **Open** | -- | Needs a `gt doctor` check. `gt-58n`. |
+| R4-7 | `.land-worktree/` not in `.gitignore` for existing rigs -- only added during rig init | Minor | **Fixed** | -- | Fixable doctor check added. Commit `35a8ac3e`. |
 | R4-8 | Validation error message omits newly rejected `?`, `*`, `[` characters | Nit | **Fixed** | -- | Error message now includes `?`, `*`, `[`. Commit `1e7cc81f`. |
 
 ### Our Review Findings (from fork PR code review, 2026-02-13)
@@ -89,7 +89,7 @@
 |---|---------|--------|----------|--------|------|-------|
 | F-1 | MT-1 root cause unresolved -- PR #3 fix is behavioral no-op, 0-MRs symptom may persist | PR #3 review | Minor | **Open** | `gt-6ck` | If symptom was real, root cause is elsewhere (DB routing, bd version, env setup) |
 | F-2 | Incomplete Type→Label migration -- 4 query-side callsites still use deprecated pattern | PR #3 review | Minor | **Fixed** | `gt-4sk` | mq_list.go:31, mq_next.go:63, status.go:1180, refinery/manager.go:224. Commit `c1ee17ec`. |
-| F-3 | Mock beads.List filters Type and Label independently, real impl treats as mutually exclusive | PR #3 review | Low | **Open** | `gt-p9m` | No current caller passes both fields. Does not block squash. |
+| F-3 | Mock beads.List filters Type and Label independently, real impl treats as mutually exclusive | PR #3 review | Low | **Fixed** | `gt-p9m` | Mock now matches real behavior. Commit `a562e15a`. |
 | F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Fixed** | `gt-bvx` | Exported from config package. Commit `d1e36649`. |
 | F-5 | No multi-rig test for DeprecatedMergeQueueKeysCheck | PR #7 review | Minor | **Fixed** | `gt-e7w` | Multi-rig test added (clean + dirty rig). Commit `543ecd23`. |
 | F-6 | `removeDeprecatedKeys` hardcodes 0o644 file permissions | PR #7 review | Low | **Open** | -- | Matches SaveRigSettings behavior. Not filed as bead. |
@@ -129,7 +129,7 @@
 4. ~~**`gt-61l`** (R4-4) -- `RefExists` error masking~~ **DONE** (`77ccdaa2`)
 5. ~~**`gt-03t`** (R4-5) -- Consistent error handling in `DetectIntegrationBranch`~~ **DONE** (`e635931f`)
 6. ~~**`gt-52j`** (R4-6) -- Compile-time interface assertion~~ **DONE** (`1e7cc81f`)
-7. **`gt-58n`** (R4-7) -- `.land-worktree/` doctor check for existing rigs
+7. ~~**`gt-58n`** (R4-7) -- `.land-worktree/` doctor check for existing rigs~~ **DONE** (`35a8ac3e`)
 8. ~~**`gt-w0h`** (R4-8) -- Validation error message update~~ **DONE** (`1e7cc81f`)
 9. **`gt-p7i`** (Q2) -- Answer formula workflow change question
 10. ~~**`gt-4fd`** -- Check formula version increments (+1 verified, refinery-patrol bumped 5→6)~~ **DONE** (`1e7cc81f`)
@@ -138,7 +138,7 @@
 
 11. ~~**`gt-4sk`** (F-2) -- Complete Type→Label migration across 4 remaining callsites~~ **DONE** (`c1ee17ec`)
 12. **`gt-6ck`** (F-1) -- Investigate 0-MRs root cause (may be transient)
-13. **`gt-p9m`** (F-3) -- Fix mock beads.List mutual-exclusivity inconsistency
+13. ~~**`gt-p9m`** (F-3) -- Fix mock beads.List mutual-exclusivity inconsistency~~ **DONE** (`a562e15a`)
 
 ### Open — needs design decision or infrastructure work
 
@@ -159,7 +159,7 @@
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `e635931f` (15 commits: original + 5 fork PR cherry-picks + 9 fixes) |
+| **PR branch HEAD** | `a562e15a` (17 commits: original + 5 fork PR cherry-picks + 11 fixes) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
 | **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
 | **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
