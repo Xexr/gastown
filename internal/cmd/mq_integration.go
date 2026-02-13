@@ -22,7 +22,7 @@ import (
 var defaultIntegrationBranchTemplate = beads.DefaultIntegrationBranchTemplate
 
 // invalidBranchCharsRegex matches characters that are invalid in git branch names.
-// Git branch names cannot contain: ~ ^ : \ space, .., @{, or end with .lock
+// Git branch names cannot contain: ~ ^ : \ ? * [ space, .., @{, or end with .lock
 var invalidBranchCharsRegex = regexp.MustCompile(`[~^:\s\\?*\[]|\.\.|\.\.|@\{`)
 
 // buildIntegrationBranchName wraps beads.BuildIntegrationBranchName for local callers.
@@ -52,7 +52,7 @@ func validateBranchName(branchName string) error {
 
 	// Check for invalid characters
 	if invalidBranchCharsRegex.MatchString(branchName) {
-		return fmt.Errorf("branch name %q contains invalid characters (~ ^ : \\ space, .., or @{)", branchName)
+		return fmt.Errorf("branch name %q contains invalid characters (~ ^ : \\ ? * [ space, .., or @{)", branchName)
 	}
 
 	// Check for .lock suffix
