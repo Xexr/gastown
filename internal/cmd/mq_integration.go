@@ -472,22 +472,26 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking branch existence: %w", err)
 	}
 
-	// Also check remote if local doesn't exist
+	// Check remote — land uses origin/ refs throughout, so the branch must be pushed
+	remoteExists, err := g.RemoteBranchExists("origin", branchName)
+	if err != nil {
+		return fmt.Errorf("checking remote branch: %w", err)
+	}
+
+	if !exists && !remoteExists {
+		return fmt.Errorf("integration branch '%s' does not exist (locally or on origin)", branchName)
+	}
+	if exists && !remoteExists {
+		return fmt.Errorf("integration branch '%s' exists locally but not on origin — push it first", branchName)
+	}
 	if !exists {
-		remoteExists, err := g.RemoteBranchExists("origin", branchName)
-		if err != nil {
-			return fmt.Errorf("checking remote branch: %w", err)
-		}
-		if !remoteExists {
-			return fmt.Errorf("integration branch '%s' does not exist (locally or on origin)", branchName)
-		}
-		// Fetch and create local tracking branch
+		// Remote-only: fetch and create local tracking branch
 		fmt.Printf("Fetching integration branch from origin...\n")
 		if err := g.FetchBranch("origin", branchName); err != nil {
 			return fmt.Errorf("fetching branch: %w", err)
 		}
 	}
-	fmt.Printf("  %s Branch exists\n", style.Bold.Render("✓"))
+	fmt.Printf("  %s Branch exists (local and remote)\n", style.Bold.Render("✓"))
 
 	// 3. Verify all MRs targeting this integration branch are merged
 	fmt.Printf("Checking open merge requests...\n")
