@@ -13,9 +13,9 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `c09686e8` (29 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 17 fixes + 6 docs) |
+| **PR branch HEAD** | `c7c4ba54` (34 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 18 fixes + 6 docs + 4 MT-3) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
-| **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
+| **origin/main HEAD** | `efffaac7` (upstream + cherry-picks including MT-3 + hooks-path doctor check) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
 | **Build** | `make build` clean, `go test ./...` all pass on both branches |
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
@@ -66,7 +66,7 @@
 |---|---------|----------|--------|---------|-------|
 | MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Fixed** | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | PR #3 cherry-picked as code hygiene (behavioral no-op). **Actual root cause** found in `gt-6ck`: `Status:""` excluded closed MRs + `--limit=50` truncation + mock divergence. All three fixed in `637c4167`. |
 | MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Fixed** (symptom of MT-3) | -- | Investigation proved `bd close` does NOT auto-close parent epics. Root cause: refinery AI (MT-3) explicitly ran `bd close` after unauthorized landing. Resilience improvement: land command warns on pre-closed epics, skips redundant close. `gt-2rz`. |
-| MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Fixed** | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) (superseded) | Three-layer defense implemented directly on PR branch. Layer 1: FORBIDDEN directives in formula + role template. Layer 2: ancestry-based pre-push hook blocks integration content on default branch. Layer 3: `PushWithEnv(GT_INTEGRATION_LAND=1)` bypass for `gt mq integration land`. Infrastructure: `ConfigureHooksPath()` on worktree creation. [Plan](https://github.com/Xexr/gastown/blob/feat/integration-branch-enhancement/docs/reviews/pr-1226-mt3-guardrails-plan.md). `gt-58j`, `gt-627`. |
+| MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Fixed** | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) (superseded) | Three-layer defense implemented directly on PR branch. Layer 1: FORBIDDEN directives in formula + role template. Layer 2: ancestry-based pre-push hook blocks integration content on default branch. Layer 3: `PushWithEnv(GT_INTEGRATION_LAND=1)` bypass for `gt mq integration land`. Infrastructure: `ConfigureHooksPath()` on worktree creation + global `hooks-path-all-rigs` doctor check (`c7c4ba54`). [Plan](https://github.com/Xexr/gastown/blob/feat/integration-branch-enhancement/docs/reviews/pr-1226-mt3-guardrails-plan.md). `gt-58j`, `gt-627`. |
 | MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Fixed** | -- | Existence check + `--force` flag added. Commit `0044b172`. |
 | MT-5 | PR reverts wisp hooking fix from #1372 in refinery + witness formulas | Minor | **Resolved** | -- | Fixed by rebasing onto upstream/main which includes #1372. |
 
@@ -163,11 +163,11 @@
 |------|-------|
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `d92e2f35` (19 commits: original + 5 fork PR cherry-picks + 13 fixes) |
+| **origin/main HEAD** | `efffaac7` (upstream + cherry-picks including MT-3 + hooks-path doctor check) |
+| **PR branch HEAD** | `c7c4ba54` (34 commits: original + 5 fork PRs + 18 fixes + 6 docs + 4 MT-3) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
-| **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
-| **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
+| **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all on main |
+| **Binary rebuilt** | `v0.5.0-864-gb1b8109f` (from main with MT-3 cherry-picks) |
 | **Formulas synced** | `gt doctor --fix` ran, 32 formulas up-to-date |
 
 **Key upstream changes absorbed**: Mayor daemon supervision, agent startup race fix, startup normalization, GT_ROOT config fix, refinery rejection reopen, nuke closes MRs, beads path fix, rig layout detection, deacon patrol restore, session lifecycle unification, stale polecat branch cleanup
