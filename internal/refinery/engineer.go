@@ -184,14 +184,15 @@ func (e *Engineer) LoadConfig() error {
 	// Parse merge_queue section into our config struct
 	// We need special handling for poll_interval (string -> Duration)
 	var mqRaw struct {
-		Enabled    *bool   `json:"enabled"`
-		OnConflict *string `json:"on_conflict"`
-		RunTests                         *bool   `json:"run_tests"`
-		TestCommand                      *string `json:"test_command"`
-		DeleteMergedBranches             *bool   `json:"delete_merged_branches"`
-		RetryFlakyTests                  *int    `json:"retry_flaky_tests"`
-		PollInterval                     *string `json:"poll_interval"`
-		MaxConcurrent                    *int    `json:"max_concurrent"`
+		Enabled              *bool   `json:"enabled"`
+		OnConflict           *string `json:"on_conflict"`
+		RunTests             *bool   `json:"run_tests"`
+		TestCommand          *string `json:"test_command"`
+		DeleteMergedBranches *bool   `json:"delete_merged_branches"`
+		RetryFlakyTests      *int    `json:"retry_flaky_tests"`
+		PollInterval         *string `json:"poll_interval"`
+		MaxConcurrent        *int    `json:"max_concurrent"`
+		MergeStrategy        *string `json:"merge_strategy"`
 	}
 
 	if err := json.Unmarshal(rawConfig.MergeQueue, &mqRaw); err != nil {
@@ -226,6 +227,9 @@ func (e *Engineer) LoadConfig() error {
 			return fmt.Errorf("invalid poll_interval %q: %w", *mqRaw.PollInterval, err)
 		}
 		e.config.PollInterval = dur
+	}
+	if mqRaw.MergeStrategy != nil {
+		e.config.MergeStrategy = *mqRaw.MergeStrategy
 	}
 
 	return nil
@@ -671,20 +675,22 @@ func (e *Engineer) ProcessMRInfo(ctx context.Context, mr *MRInfo) ProcessResult 
 func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 	// Release merge slot if this was a conflict resolution
 	// The slot is held while conflict resolution is in progress
-	holder := e.rig.Name + "/refinery"
-	if err := e.beads.MergeSlotRelease(holder); err != nil {
-		// Not an error if slot wasn't held - it's optional
-		// Only log if it seems like an actual issue
-		errStr := err.Error()
-		if !strings.Contains(errStr, "not held") && !strings.Contains(errStr, "not found") {
-			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to release merge slot: %v\n", err)
+	if e.beads != nil {
+		holder := e.rig.Name + "/refinery"
+		if err := e.beads.MergeSlotRelease(holder); err != nil {
+			// Not an error if slot wasn't held - it's optional
+			// Only log if it seems like an actual issue
+			errStr := err.Error()
+			if !strings.Contains(errStr, "not held") && !strings.Contains(errStr, "not found") {
+				_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to release merge slot: %v\n", err)
+			}
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Released merge slot\n")
 		}
-	} else {
-		_, _ = fmt.Fprintf(e.output, "[Engineer] Released merge slot\n")
 	}
 
 	// Update and close the MR bead
-	if mr.ID != "" {
+	if e.beads != nil && mr.ID != "" {
 		// Fetch the MR bead to update its fields
 		mrBead, err := e.beads.Show(mr.ID)
 		if err != nil {
@@ -717,17 +723,19 @@ func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 	if mr.SourceIssue != "" {
 		defaultBranch := e.rig.DefaultBranch()
 		if mr.Target == defaultBranch {
-			closeReason := fmt.Sprintf("Merged in %s", mr.ID)
-			if err := e.beads.CloseWithReason(closeReason, mr.SourceIssue); err != nil {
-				_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close source issue %s: %v\n", mr.SourceIssue, err)
-			} else {
-				_, _ = fmt.Fprintf(e.output, "[Engineer] Closed source issue: %s\n", mr.SourceIssue)
+			if e.beads != nil {
+				closeReason := fmt.Sprintf("Merged in %s", mr.ID)
+				if err := e.beads.CloseWithReason(closeReason, mr.SourceIssue); err != nil {
+					_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close source issue %s: %v\n", mr.SourceIssue, err)
+				} else {
+					_, _ = fmt.Fprintf(e.output, "[Engineer] Closed source issue: %s\n", mr.SourceIssue)
 
-				// Redundant convoy observer: check if merged issue is tracked by a convoy
-				logger := func(format string, args ...interface{}) {
-					_, _ = fmt.Fprintf(e.output, "[Engineer] "+format+"\n", args...)
+					// Redundant convoy observer: check if merged issue is tracked by a convoy
+					logger := func(format string, args ...interface{}) {
+						_, _ = fmt.Fprintf(e.output, "[Engineer] "+format+"\n", args...)
+					}
+					convoy.CheckConvoysForIssue(e.rig.Path, mr.SourceIssue, "refinery", logger)
 				}
-				convoy.CheckConvoysForIssue(e.rig.Path, mr.SourceIssue, "refinery", logger)
 			}
 		} else {
 			_, _ = fmt.Fprintf(e.output, "[Engineer] Source issue %s left open (merged to integration branch %s)\n",
@@ -736,7 +744,7 @@ func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 	}
 
 	// 1.5. Clear agent bead's active_mr reference (traceability cleanup)
-	if mr.AgentBead != "" {
+	if e.beads != nil && mr.AgentBead != "" {
 		if err := e.beads.UpdateAgentActiveMR(mr.AgentBead, ""); err != nil {
 			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to clear agent bead %s active_mr: %v\n", mr.AgentBead, err)
 		}

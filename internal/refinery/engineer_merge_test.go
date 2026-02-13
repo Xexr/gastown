@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/steveyegge/gastown/internal/git"
+	"github.com/steveyegge/gastown/internal/rig"
 )
 
 // testGitRepo sets up a bare "origin" repo and a working clone for Engineer tests.
@@ -88,15 +89,26 @@ func writeFile(t *testing.T, path, content string) {
 }
 
 // newTestEngineer creates an Engineer with real git and test config.
+// Sets rig to a temp-dir-backed Rig so DefaultBranch() returns "main".
 func newTestEngineer(t *testing.T, workDir string, strategy string) *Engineer {
 	t.Helper()
 	g := git.NewGit(workDir)
 	var buf bytes.Buffer
+	r := &rig.Rig{Name: "test-rig", Path: workDir}
 	return &Engineer{
 		git:    g,
+		rig:    r,
 		config: &MergeQueueConfig{MergeStrategy: strategy, DeleteMergedBranches: true},
 		output: &buf,
 	}
+}
+
+// engineerOutput returns the captured output from a test engineer.
+func engineerOutput(eng *Engineer) string {
+	if buf, ok := eng.output.(*bytes.Buffer); ok {
+		return buf.String()
+	}
+	return ""
 }
 
 // --- Rebase-FF strategy tests ---
@@ -303,5 +315,275 @@ func TestDoMerge_BranchNotFound(t *testing.T) {
 	}
 	if result.Conflict {
 		t.Fatal("should not be a conflict — branch doesn't exist")
+	}
+}
+
+// --- Multi-commit branch test ---
+
+func TestDoMerge_RebaseFF_MultiCommitBranch(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	// Create branch with multiple commits
+	run(t, workDir, "git", "checkout", "-b", "feature/multi")
+	writeFile(t, filepath.Join(workDir, "file1.go"), "package main // file1\n")
+	run(t, workDir, "git", "add", "file1.go")
+	run(t, workDir, "git", "commit", "-m", "feat: add file1")
+	writeFile(t, filepath.Join(workDir, "file2.go"), "package main // file2\n")
+	run(t, workDir, "git", "add", "file2.go")
+	run(t, workDir, "git", "commit", "-m", "feat: add file2")
+	writeFile(t, filepath.Join(workDir, "file3.go"), "package main // file3\n")
+	run(t, workDir, "git", "add", "file3.go")
+	run(t, workDir, "git", "commit", "-m", "feat: add file3")
+	run(t, workDir, "git", "push", "origin", "feature/multi")
+	run(t, workDir, "git", "checkout", "main")
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+	result := eng.doMerge(context.Background(), "feature/multi", "main", "issue-1")
+
+	if !result.Success {
+		t.Fatalf("expected success, got error: %s", result.Error)
+	}
+
+	// Verify all 3 files are on main
+	g := git.NewGit(workDir)
+	if err := g.Checkout("main"); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"file1.go", "file2.go", "file3.go"} {
+		if _, err := os.Stat(filepath.Join(workDir, f)); os.IsNotExist(err) {
+			t.Fatalf("%s not on main after merge", f)
+		}
+	}
+}
+
+func TestDoMerge_RebaseFF_MultiCommitConflictMidRebase(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	// Create branch with 2 commits, second one conflicts
+	run(t, workDir, "git", "checkout", "-b", "feature/multi-conflict")
+	writeFile(t, filepath.Join(workDir, "safe.go"), "package main // safe\n")
+	run(t, workDir, "git", "add", "safe.go")
+	run(t, workDir, "git", "commit", "-m", "feat: safe file")
+	writeFile(t, filepath.Join(workDir, "clash.txt"), "branch version\n")
+	run(t, workDir, "git", "add", "clash.txt")
+	run(t, workDir, "git", "commit", "-m", "feat: clashing file")
+	run(t, workDir, "git", "push", "origin", "feature/multi-conflict")
+	run(t, workDir, "git", "checkout", "main")
+
+	// Create conflict on main
+	createConflictingCommitOnMain(t, workDir, "clash.txt", "main version\n", "feat: main clash")
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+	result := eng.doMerge(context.Background(), "feature/multi-conflict", "main", "issue-1")
+
+	if result.Success {
+		t.Fatal("expected failure")
+	}
+	if !result.Conflict {
+		t.Fatalf("expected conflict flag, got error: %s", result.Error)
+	}
+}
+
+// --- Working directory state tests ---
+
+func TestDoMerge_RebaseFF_ConflictRestoresTargetBranch(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	createBranch(t, workDir, "feature/wd-test", "wd.txt", "branch\n", "feat: branch")
+	createConflictingCommitOnMain(t, workDir, "wd.txt", "main\n", "feat: main")
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+	result := eng.doMerge(context.Background(), "feature/wd-test", "main", "issue-1")
+
+	if !result.Conflict {
+		t.Fatal("expected conflict")
+	}
+
+	// Verify we're back on main, not stuck on feature branch
+	g := git.NewGit(workDir)
+	currentBranch, err := g.CurrentBranch()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if currentBranch != "main" {
+		t.Fatalf("expected working dir on 'main' after conflict, got %q", currentBranch)
+	}
+}
+
+// --- Unknown strategy test ---
+
+func TestDoMerge_UnknownStrategy_ReturnsError(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	createBranch(t, workDir, "feature/unknown", "x.go", "package main\n", "feat: x")
+
+	eng := newTestEngineer(t, workDir, "cherry-pick")
+	result := eng.doMerge(context.Background(), "feature/unknown", "main", "issue-1")
+
+	if result.Success {
+		t.Fatal("expected failure for unknown strategy")
+	}
+	if !strings.Contains(result.Error, "unknown merge strategy") {
+		t.Fatalf("expected 'unknown merge strategy' error, got: %s", result.Error)
+	}
+}
+
+// --- Config parsing test ---
+
+func TestLoadConfig_MergeStrategy(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "engineer-config-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	config := `{
+		"type": "rig",
+		"version": 1,
+		"name": "test-rig",
+		"merge_queue": {
+			"enabled": true,
+			"merge_strategy": "squash"
+		}
+	}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.json"), []byte(config), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	r := &rig.Rig{Name: "test-rig", Path: tmpDir}
+	e := NewEngineer(r)
+	if err := e.LoadConfig(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if e.config.MergeStrategy != "squash" {
+		t.Errorf("expected MergeStrategy 'squash', got %q", e.config.MergeStrategy)
+	}
+}
+
+func TestLoadConfig_MergeStrategy_DefaultsToRebaseFF(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "engineer-config-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Config without merge_strategy — should use default
+	config := `{
+		"type": "rig",
+		"version": 1,
+		"merge_queue": {
+			"enabled": true
+		}
+	}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.json"), []byte(config), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	r := &rig.Rig{Name: "test-rig", Path: tmpDir}
+	e := NewEngineer(r)
+	if err := e.LoadConfig(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if e.config.MergeStrategy != "rebase-ff" {
+		t.Errorf("expected default MergeStrategy 'rebase-ff', got %q", e.config.MergeStrategy)
+	}
+}
+
+// --- Push failure test ---
+
+func TestDoMerge_RebaseFF_PushFailure(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	createBranch(t, workDir, "feature/push-fail", "pf.go", "package main\n", "feat: push-fail")
+
+	// Install a pre-receive hook on the bare repo that rejects all pushes.
+	// This allows fetch to work but push will fail.
+	bareDir := filepath.Join(filepath.Dir(workDir), "origin.git")
+	hookDir := filepath.Join(bareDir, "hooks")
+	os.MkdirAll(hookDir, 0755)
+	hookPath := filepath.Join(hookDir, "pre-receive")
+	os.WriteFile(hookPath, []byte("#!/bin/sh\nexit 1\n"), 0755)
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+	result := eng.doMerge(context.Background(), "feature/push-fail", "main", "issue-1")
+
+	// Rebase and ff-merge succeed locally, but push is rejected by hook
+	if result.Success {
+		t.Fatal("expected failure from push")
+	}
+	if result.Conflict {
+		t.Fatal("should not be a conflict")
+	}
+	if result.TestsFailed {
+		t.Fatal("should not be a test failure")
+	}
+	if !strings.Contains(result.Error, "failed to push") {
+		t.Fatalf("expected push error, got: %s", result.Error)
+	}
+}
+
+// --- HandleMRInfoSuccess integration branch logic ---
+
+func TestHandleMRInfoSuccess_IntegrationBranch_OutputMessage(t *testing.T) {
+	// Test the branch comparison logic without needing full beads.
+	// We verify the output message contains the expected integration branch text.
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+	// rig.DefaultBranch() returns "main" (no config file)
+
+	// Simulate: MR targeting integration branch
+	mr := &MRInfo{
+		ID:          "gt-test",
+		Branch:      "feature/int",
+		Target:      "integration/l0g1x", // NOT "main"
+		SourceIssue: "gt-issue",
+	}
+	result := ProcessResult{Success: true, MergeCommit: "abc12345"}
+
+	// HandleMRInfoSuccess will fail on beads calls (no real beads),
+	// but the source-issue logic runs after beads — check output for
+	// the integration branch message.
+	eng.HandleMRInfoSuccess(mr, result)
+
+	output := engineerOutput(eng)
+	if !strings.Contains(output, "left open (merged to integration branch integration/l0g1x)") {
+		t.Fatalf("expected integration branch message in output, got:\n%s", output)
+	}
+	if strings.Contains(output, "Closed source issue") {
+		t.Fatal("source issue should NOT be closed for integration branch merge")
+	}
+}
+
+func TestHandleMRInfoSuccess_DefaultBranch_DoesNotLeaveOpen(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+
+	// MR targeting default branch
+	mr := &MRInfo{
+		ID:          "gt-test",
+		Branch:      "feature/default",
+		Target:      "main", // matches DefaultBranch()
+		SourceIssue: "gt-issue",
+	}
+	result := ProcessResult{Success: true, MergeCommit: "abc12345"}
+
+	eng.HandleMRInfoSuccess(mr, result)
+
+	output := engineerOutput(eng)
+	// With nil beads, the close is skipped (no beads to call), but crucially
+	// it must NOT take the "left open" integration branch path.
+	if strings.Contains(output, "left open") {
+		t.Fatal("source issue should NOT be 'left open' for default branch merge")
 	}
 }
