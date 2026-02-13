@@ -699,19 +699,27 @@ func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 		}
 	}
 
-	// 1. Close source issue with reference to MR
+	// 1. Close source issue — only when merging to the default branch.
+	//    When merging to an integration branch, the source issue stays open
+	//    until the integration branch lands to the default branch.
 	if mr.SourceIssue != "" {
-		closeReason := fmt.Sprintf("Merged in %s", mr.ID)
-		if err := e.beads.CloseWithReason(closeReason, mr.SourceIssue); err != nil {
-			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close source issue %s: %v\n", mr.SourceIssue, err)
-		} else {
-			_, _ = fmt.Fprintf(e.output, "[Engineer] Closed source issue: %s\n", mr.SourceIssue)
+		defaultBranch := e.rig.DefaultBranch()
+		if mr.Target == defaultBranch {
+			closeReason := fmt.Sprintf("Merged in %s", mr.ID)
+			if err := e.beads.CloseWithReason(closeReason, mr.SourceIssue); err != nil {
+				_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close source issue %s: %v\n", mr.SourceIssue, err)
+			} else {
+				_, _ = fmt.Fprintf(e.output, "[Engineer] Closed source issue: %s\n", mr.SourceIssue)
 
-			// Redundant convoy observer: check if merged issue is tracked by a convoy
-			logger := func(format string, args ...interface{}) {
-				_, _ = fmt.Fprintf(e.output, "[Engineer] "+format+"\n", args...)
+				// Redundant convoy observer: check if merged issue is tracked by a convoy
+				logger := func(format string, args ...interface{}) {
+					_, _ = fmt.Fprintf(e.output, "[Engineer] "+format+"\n", args...)
+				}
+				convoy.CheckConvoysForIssue(e.rig.Path, mr.SourceIssue, "refinery", logger)
 			}
-			convoy.CheckConvoysForIssue(e.rig.Path, mr.SourceIssue, "refinery", logger)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Source issue %s left open (merged to integration branch %s)\n",
+				mr.SourceIssue, mr.Target)
 		}
 	}
 
@@ -722,12 +730,17 @@ func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 		}
 	}
 
-	// 2. Delete source branch if configured (local only)
+	// 2. Delete source branch if configured (local + remote)
 	if e.config.DeleteMergedBranches && mr.Branch != "" {
 		if err := e.git.DeleteBranch(mr.Branch, true); err != nil {
-			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to delete branch %s: %v\n", mr.Branch, err)
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to delete local branch %s: %v\n", mr.Branch, err)
 		} else {
 			_, _ = fmt.Fprintf(e.output, "[Engineer] Deleted local branch: %s\n", mr.Branch)
+		}
+		if err := e.git.DeleteRemoteBranch("origin", mr.Branch); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to delete remote branch %s: %v\n", mr.Branch, err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Deleted remote branch: origin/%s\n", mr.Branch)
 		}
 	}
 
