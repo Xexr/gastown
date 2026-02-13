@@ -208,6 +208,32 @@ Examples:
 var refineryReadyJSON bool
 var refineryReadyAll bool
 
+var refineryProcessNextCmd = &cobra.Command{
+	Use:   "process-next [rig]",
+	Short: "Process the next ready MR in the merge queue",
+	Long: `Deterministically processes the next unclaimed, unblocked MR.
+
+Performs: rebase → test → merge → push → notify → close bead.
+On conflict: creates resolution task, blocks MR, notifies witness.
+On test failure: rejects MR, notifies witness, reopens source issue.
+
+The target branch comes from the MR bead's Target field (set at MR creation).
+This command never assumes "main" — the target may be an integration branch.
+
+Exit codes:
+  0: merged successfully
+  1: conflict (task created)
+  2: test failure (MR rejected)
+  3: queue empty (nothing to process)
+  4: error (infrastructure failure)
+
+Examples:
+  gt refinery process-next
+  gt refinery process-next gastown`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runRefineryProcessNext,
+}
+
 var refineryBlockedCmd = &cobra.Command{
 	Use:   "blocked [rig]",
 	Short: "List MRs blocked by open tasks",
@@ -264,6 +290,7 @@ func init() {
 	refineryCmd.AddCommand(refineryUnclaimedCmd)
 	refineryCmd.AddCommand(refineryReadyCmd)
 	refineryCmd.AddCommand(refineryBlockedCmd)
+	refineryCmd.AddCommand(refineryProcessNextCmd)
 
 	rootCmd.AddCommand(refineryCmd)
 }
@@ -855,4 +882,75 @@ func runRefineryBlocked(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// ProcessExitError wraps a process result with an exit code.
+// The cobra RunE handler returns this so deferred cleanup (ReleaseMR) runs before exit.
+type ProcessExitError struct {
+	ExitCode int
+	Message  string
+}
+
+func (e *ProcessExitError) Error() string { return e.Message }
+
+func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
+	rigName := ""
+	if len(args) > 0 {
+		rigName = args[0]
+	}
+
+	_, r, rigName, err := getRefineryManager(rigName)
+	if err != nil {
+		return err
+	}
+
+	eng := refinery.NewEngineer(r)
+	if err := eng.LoadConfig(); err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// Find next ready MR
+	ready, err := eng.ListReadyMRs()
+	if err != nil {
+		return fmt.Errorf("listing ready MRs: %w", err)
+	}
+	if len(ready) == 0 {
+		fmt.Println("Queue empty — nothing to process")
+		return &ProcessExitError{ExitCode: 3, Message: "queue empty"}
+	}
+	mr := ready[0]
+
+	// Claim it
+	workerID := getWorkerID()
+	if err := eng.ClaimMR(mr.ID, workerID); err != nil {
+		return fmt.Errorf("claiming MR %s: %w", mr.ID, err)
+	}
+	defer func() {
+		if releaseErr := eng.ReleaseMR(mr.ID); releaseErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to release MR %s: %v\n", mr.ID, releaseErr)
+		}
+	}()
+
+	fmt.Printf("Processing MR %s: %s → %s\n", mr.ID, mr.Branch, mr.Target)
+
+	// Process it
+	ctx := cmd.Context()
+	result := eng.ProcessMRInfo(ctx, mr)
+
+	// Handle result
+	if result.Success {
+		eng.HandleMRInfoSuccess(mr, result)
+		fmt.Printf("Done: merged at %s\n", result.MergeCommit)
+		return nil // exit 0
+	}
+
+	eng.HandleMRInfoFailure(mr, result)
+
+	if result.Conflict {
+		return &ProcessExitError{ExitCode: 1, Message: fmt.Sprintf("conflict — %s", result.Error)}
+	}
+	if result.TestsFailed {
+		return &ProcessExitError{ExitCode: 2, Message: fmt.Sprintf("test failure — %s", result.Error)}
+	}
+	return &ProcessExitError{ExitCode: 4, Message: fmt.Sprintf("error — %s", result.Error)}
 }
