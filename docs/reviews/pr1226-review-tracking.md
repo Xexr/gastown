@@ -13,15 +13,15 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `637c4167` (26 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 14 fixes + 6 docs) |
+| **PR branch HEAD** | `c09686e8` (29 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 17 fixes + 6 docs) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
 | **Build** | `make build` clean, `go test ./...` all pass on both branches |
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
-| **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | MT-3 (blocked on infra), test plan runs (`gt-tsl`, `gt-dmt`), review doc cleanup |
+| **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 superseded (implemented directly). All closed. |
+| **Pending before squash** | Test plan runs (`gt-tsl`, `gt-dmt`), review doc cleanup |
 
 ---
 
@@ -66,7 +66,7 @@
 |---|---------|----------|--------|---------|-------|
 | MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Fixed** | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | PR #3 cherry-picked as code hygiene (behavioral no-op). **Actual root cause** found in `gt-6ck`: `Status:""` excluded closed MRs + `--limit=50` truncation + mock divergence. All three fixed in `637c4167`. |
 | MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Fixed** (symptom of MT-3) | -- | Investigation proved `bd close` does NOT auto-close parent epics. Root cause: refinery AI (MT-3) explicitly ran `bd close` after unauthorized landing. Resilience improvement: land command warns on pre-closed epics, skips redundant close. `gt-2rz`. |
-| MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Open** (Draft PR reviewed) | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) | Three-layer enforcement architecture reviewed and validated. Blocked on core.hooksPath gap in WorktreeAddExisting() — Layer 2 ineffective on fresh rigs. Need infrastructure fix before folding. `gt-58j`, `gt-627`. |
+| MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Fixed** | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) (superseded) | Three-layer defense implemented directly on PR branch. Layer 1: FORBIDDEN directives in formula + role template. Layer 2: ancestry-based pre-push hook blocks integration content on default branch. Layer 3: `PushWithEnv(GT_INTEGRATION_LAND=1)` bypass for `gt mq integration land`. Infrastructure: `ConfigureHooksPath()` on worktree creation. [Plan](https://github.com/Xexr/gastown/blob/feat/integration-branch-enhancement/docs/reviews/pr-1226-mt3-guardrails-plan.md). `gt-58j`, `gt-627`. |
 | MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Fixed** | -- | Existence check + `--force` flag added. Commit `0044b172`. |
 | MT-5 | PR reverts wisp hooking fix from #1372 in refinery + witness formulas | Minor | **Resolved** | -- | Fixed by rebasing onto upstream/main which includes #1372. |
 
@@ -106,7 +106,7 @@
 | [#5](https://github.com/Xexr/gastown/pull/5) | test: regression test for empty/invalid epic titles | R3-3 | **Closed** | `2c642569` → `4782384d` | Clean cherry-pick. Excellent regression test. |
 | [#6](https://github.com/Xexr/gastown/pull/6) | test: regression test for partial merge_queue config *bool defaults | R3-2 | **Closed** | `55316d22` → `fef09f64` | Conflict resolved (additive). Thorough regression test. |
 | [#7](https://github.com/Xexr/gastown/pull/7) | fix: add gt doctor check for deprecated merge_queue config keys | R4-1 | **Closed** | `1d63e0c8` → `27cb2df9` | Clean cherry-pick. 2 follow-up fixes block squash (`gt-bvx`, `gt-e7w`). |
-| [#8](https://github.com/Xexr/gastown/pull/8) | fix: add refinery formula guardrails for integration branch auto_land | MT-3 | **Open (Draft)** | -- | Deferred. core.hooksPath gap unfixed. |
+| [#8](https://github.com/Xexr/gastown/pull/8) | fix: add refinery formula guardrails for integration branch auto_land | MT-3 | **Closed** (superseded) | -- | Superseded by direct implementation on PR branch with improved approach: ancestry-based detection (not merge-commit scanning), dynamic default branch, infrastructure fix included. |
 
 ---
 
@@ -143,7 +143,7 @@
 ### Open — needs design decision or infrastructure work
 
 14. ~~**`gt-2rz`** (MT-2) -- Epic auto-closed before integration land~~ **DONE** — Root cause is MT-3 (refinery bypassing guard). `bd` does NOT auto-close epics. Resilience improvement added to land command.
-15. **`gt-58j`** / **`gt-627`** (MT-3) -- Refinery formula guardrails for auto_land. Fork PR #8 reviewed, architecture validated. Blocked on core.hooksPath not set in WorktreeAddExisting(). Need infra fix before folding.
+15. ~~**`gt-58j`** / **`gt-627`** (MT-3) -- Refinery formula guardrails for auto_land~~ **DONE** — Three-layer defense implemented directly on PR branch (supersedes fork PR #8). Ancestry-based pre-push hook, PushWithEnv bypass, ConfigureHooksPath infra fix, 10-scenario hook test suite. Commits `01ff7d57`, `bad71db6`, `c09686e8`.
 16. ~~**`gt-dgt`** (MT-4) -- Duplicate `mq integration create` guard~~ **DONE** (`0044b172`)
 
 ### Blocks squash — test plan runs
