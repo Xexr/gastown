@@ -15,7 +15,7 @@ The integration branch lifecycle is a multi-component pipeline:
 gt mq integration create <epic>     → creates branch off main, pushes to origin
 gt sling <bead> <rig>               → dispatches work to polecat
 gt done                              → polecat submits MR (target: integration branch)
-Engineer.ProcessMRInfo()             → refinery merges polecat branch → integration branch
+Refinery (Claude + formula)          → merges polecat branch → integration branch
 gt mq integration land <epic>        → merges integration branch → main (with guardrails)
 ```
 
@@ -29,7 +29,7 @@ Julian's test plan has 28 tests across 6 parts:
 
 ---
 
-## 2. Key Architectural Insight: Why No Tmux, Daemon, or Claude Sessions
+## 2. Production Architecture: How the Refinery Actually Works
 
 ### The production stack (5 layers)
 
@@ -57,7 +57,7 @@ Layer 4: Formula (mol-refinery-patrol.formula.toml)
 
 Layer 5: Shell commands (what Claude actually executes)
   └─ git fetch --prune origin
-  └─ gt mq list <rig>
+  └─ gt refinery ready <rig>          ← uses Engineer.ListReadyMRs()
   └─ git checkout -b temp origin/<polecat-branch>
   └─ git rebase origin/main
   └─ git merge --ff-only temp
@@ -66,71 +66,93 @@ Layer 5: Shell commands (what Claude actually executes)
   └─ gt mail send <rig>/witness -s "MERGED <polecat>"
 ```
 
-**Critical insight: In production, Claude (the LLM) runs raw git commands following formula instructions. It does NOT call `Engineer.ProcessMRInfo()`.** The formula IS the control plane — it tells Claude what to do step by step, and Claude executes shell commands.
+The merge itself — the rebase, merge, and push — is performed by **Claude executing raw git commands**, following the formula's step-by-step instructions. The formula IS the control plane.
 
-### Where Engineer.ProcessMRInfo() fits
+### The Engineer struct: two roles, only one used in production
 
-`Engineer.ProcessMRInfo()` is a Go library function that encapsulates the **same merge logic** as the formula's git commands:
+The `Engineer` struct (`internal/refinery/engineer.go`) contains two categories of methods:
+
+**Query/state methods — USED in production** (called by CLI commands that the formula tells Claude to run):
+
+| Method | Called by | What it does |
+|--------|----------|-------------|
+| `ListReadyMRs()` | `gt refinery ready` | Lists unclaimed, unblocked MRs |
+| `ListBlockedMRs()` | `gt refinery blocked` | Lists MRs blocked by open tasks |
+| `ListQueueAnomalies()` | `gt refinery ready` | Detects stale claims, orphaned branches |
+| `ClaimMR()` | `gt refinery claim` | Assigns MR to a worker |
+| `ReleaseMR()` | `gt refinery release` | Returns MR to queue |
+
+**Merge execution methods — ZERO callers anywhere in the codebase:**
+
+| Method | Callers | Status |
+|--------|---------|--------|
+| `ProcessMR()` | None | Dead code |
+| `ProcessMRInfo()` | None | Dead code |
+| `doMerge()` | Only by ProcessMR/ProcessMRInfo (internal) | Dead code |
+| `handleSuccess()` | None | Dead code |
+| `HandleMRInfoSuccess()` | None | Dead code |
+| `HandleMRInfoFailure()` | None | Dead code |
+
+There is no `gt refinery process` or `gt refinery merge` command. No CLI command calls any of the merge execution methods. The formula tells Claude to run git commands directly — it never invokes the Engineer's merge logic.
+
+### Why the merge methods exist but aren't used
+
+The Engineer's merge methods appear to be a **Go library API** that encapsulates the same merge logic as the formula's git commands:
 
 ```go
-// engineer.go — doMerge() is the core, called by ProcessMR and ProcessMRInfo
+// engineer.go — doMerge() mirrors the formula's process-branch + merge-push steps
 func (e *Engineer) doMerge(ctx, branch, target, sourceIssue) ProcessResult {
-    e.git.BranchExists(branch)       // ≈ git branch --list
-    e.git.Checkout(target)           // ≈ git checkout main
-    e.git.Pull("origin", target)     // ≈ git pull origin main
-    e.git.CheckConflicts(branch, target) // ≈ git merge-tree
-    e.git.MergeSquash(branch, msg)   // ≈ git merge --squash
-    e.git.Push("origin", target)     // ≈ git push origin main
+    e.git.BranchExists(branch)           // formula: git branch -r | grep <branch>
+    e.git.Checkout(target)               // formula: git checkout main
+    e.git.Pull("origin", target)         // formula: (implicit in git fetch)
+    e.git.CheckConflicts(branch, target) // formula: git rebase detects conflicts
+    e.git.MergeSquash(branch, msg)       // formula: git merge --ff-only temp
+    e.git.Push("origin", target)         // formula: git push origin main
 }
 ```
 
-Each `e.git.*` call is a thin wrapper around `exec.Command("git", ...)`. The Engineer struct does not depend on tmux, daemon, Claude, or formulas — it only depends on:
+But these methods are never wired into any command or production path. The production refinery relies entirely on Claude following formula instructions. The Go library API was likely either:
+- Built as a programmatic foundation that was superseded by the formula-driven approach
+- Intended for a future `gt refinery process` command that was never created
+- A testable encapsulation of merge logic that predates the current formula architecture
 
-| Dependency | What it is | Test equivalent |
-|-----------|-----------|-----------------|
-| `rig.Rig{Name, Path}` | A rig directory with subdirectories | `t.TempDir()` with scaffolded dirs |
-| `git.Git` (via `git.NewGit(dir)`) | Runs git commands in a working directory | Same — works against local bare repos |
-| `beads.Beads` (via `beads.New(path)`) | Runs `bd` CLI for issue CRUD | `mockBdCommand(t)` puts fake `bd` on PATH |
-| `mail.Router` | Sends inter-agent messages | Can be ignored (non-fatal warnings on failure) |
+**The formula and the Engineer's merge methods are NOT "two parallel implementations" — the formula is the only implementation used in production. The Engineer's merge methods are unused code.**
 
-### Why this is the right test boundary
+### Implications for e2e testing
 
-The production refinery has two parallel implementations of merge logic:
+This is a critical finding for test design. We have three options for testing the merge step:
 
-1. **Formula-driven** (layers 1-5): Claude follows TOML instructions → runs shell commands
-2. **Go library** (`Engineer`): Same logic as Go functions → calls `exec.Command("git", ...)`
+| Approach | What it tests | Fidelity |
+|----------|-------------|----------|
+| **A: Call `Engineer.ProcessMRInfo()` directly** | The Go merge logic (squash merge via `e.git.*`) | Tests code that is never called in production |
+| **B: Simulate what Claude does (raw git commands)** | The actual production merge path | Tests what actually runs, but just tests git itself |
+| **C: Test the CLI commands the formula references** | `gt refinery ready`, `gt refinery claim`, etc. | Tests the query/state layer that IS used in production |
 
-For e2e testing, we care about:
-- Does `gt mq integration create` correctly create branches? → **Test the CLI** (subprocess)
-- Does the merge logic work (conflict detection, squash merge, branch targeting)? → **Test the Engineer** (Go calls)
-- Does `gt mq integration land` correctly merge to main with guardrails? → **Test the CLI** (subprocess)
+**Option A** (what the original investigation proposed) tests the unused Go library path. While this validates the merge mechanics work correctly, it's testing dead code — if the merge methods had a bug, production wouldn't be affected because production doesn't call them.
 
-We do NOT need to test "can Claude follow formula instructions" — that's a Claude capability test, not a code test. By calling `Engineer.ProcessMRInfo()` directly, we test the actual merge mechanics without 4 layers of orchestration overhead:
+**Option B** would essentially be testing `git rebase` and `git merge` — we'd be testing git, not our code.
 
-```go
-// What we're testing                              // What we're NOT testing
-e := refinery.NewEngineer(r)                       // ✗ Daemon heartbeat loop
-result := e.ProcessMRInfo(ctx, &MRInfo{            // ✗ Tmux session management
-    Branch: "polecat/nux",                         // ✗ Claude Code startup
-    Target: "integration/gt-abc",                  // ✗ Formula parsing
-    SourceIssue: "gt-task123",                     // ✗ Claude's ability to follow steps
-})                                                 // ✓ Git merge mechanics
-e.HandleMRInfoSuccess(mr, result)                  // ✓ Branch targeting
-                                                   // ✓ Conflict detection
-                                                   // ✓ Bead state management
-```
+**Option C** tests the parts of the Engineer that production actually uses: queue listing, MR claiming, anomaly detection.
 
-### The hybrid approach
+**Recommended approach for Part C lifecycle tests:**
+- Use **subprocess calls** for the entire lifecycle: `gt mq integration create`, simulate polecat work with git commands, simulate the merge with git commands (mimicking what Claude does), then `gt mq integration land`
+- Use **Option C** to test that `gt refinery ready` correctly lists MRs targeting integration branches
+- Reserve **Option A** only if the merge methods are ever wired into a production command
 
-For the full Part C lifecycle test, we combine both:
+### What we're really testing (revised)
 
-| Step | Approach | Why |
-|------|----------|-----|
-| `gt mq integration create` | Subprocess (built `gt` binary) | Tests CLI branch creation, epic validation |
-| Polecat work simulation | Raw git commands in test | No need for polecat/witness/sling infrastructure |
-| MR bead creation | Mock `bd` or `gt done` subprocess | Tests MR field format, target detection |
-| Merge: polecat → integration | `Engineer.ProcessMRInfo()` direct Go call | Tests merge logic without agent overhead |
-| `gt mq integration land` | Subprocess (built `gt` binary) | Tests guardrails, pre-push hook, `--no-ff` merge |
+The e2e tests for integration branches should focus on what our code actually does:
+
+| What we're testing | How | Our code involved |
+|-------------------|-----|-------------------|
+| Branch creation | `gt mq integration create` subprocess | `runMqIntegrationCreate()` |
+| Target detection | `gt done` subprocess or `detectIntegrationBranch()` | `mq_submit.go` |
+| MR listing for integration branch | `gt refinery ready` subprocess | `Engineer.ListReadyMRs()` |
+| Integration status reporting | `gt mq integration status` subprocess | `runMqIntegrationStatus()` |
+| Landing with guardrails | `gt mq integration land` subprocess | `runMqIntegrationLand()` |
+| The merge itself | Raw git commands in test (simulating Claude/formula) | None — git does this, not our code |
+
+The merge step in production is Claude running `git rebase` + `git merge --ff-only` + `git push`. Our code doesn't participate in the merge execution — it only sets up the branches (create), detects the target (done/submit), lists the queue (refinery ready), and tears down afterward (land). **Those are the boundaries we should test.**
 
 ---
 
@@ -288,9 +310,10 @@ The land command pushes to main, which triggers the pre-push hook. The hook chec
 The `integration_branch_auto_land` config controls whether the refinery can autonomously land integration branches. Default is `false`. The formula FORBIDDEN directives and pre-push hook enforce this.
 
 Tests needed:
-- `auto_land=false` (default) → refinery formula blocks autonomous landing
-- `auto_land=true` → refinery is allowed to land when all epic children closed
-- Interplay between `auto_land` config, pre-push hook `GT_INTEGRATION_LAND` env var, and formula FORBIDDEN directives
+- `auto_land=false` (default) → `gt mq integration status` reports auto-land disabled
+- `auto_land=true` → `gt mq integration status` reports auto-land enabled, `ready_to_land` reflects epic state
+- Interplay between `auto_land` config and pre-push hook `GT_INTEGRATION_LAND` env var
+- Note: The formula's FORBIDDEN directives are Claude-level guardrails — they can't be tested in Go code. The pre-push hook is the enforceable guardrail we can test.
 
 ### Challenge 7: Local vs CI runability
 
@@ -318,15 +341,20 @@ Tests needed:
 
 ```
 TestIntegrationBranchLifecycle(t *testing.T):
-  1. SetupTestTown(t)               → town with rig, bare git remote
-  2. gt mq integration create <epic> → creates integration branch
-  3. Simulate polecat work           → git worktree, commit, push branch
+  1. SetupTestTown(t)                  → town with rig, bare git remote
+  2. gt mq integration create <epic>   → creates integration branch (OUR CODE)
+  3. Simulate polecat work             → git worktree, commit, push branch
   4. Create MR bead (target: integration/...)
-  5. Engineer.ProcessMRInfo()        → merges polecat → integration branch
-  6. Verify: integration branch has the commit
-  7. gt mq integration land          → merges integration → main
-  8. Verify: main has the commit, integration branch deleted
+  5. gt refinery ready                 → verify MR appears in queue (OUR CODE)
+  6. Simulate merge (raw git commands) → rebase + merge + push (MIMICS CLAUDE)
+  7. Verify: integration branch has the commit
+  8. gt mq integration land            → merges integration → main (OUR CODE)
+  9. Verify: main has the commit, integration branch deleted
 ```
+
+Note: Step 6 uses raw git commands (what Claude would do following the formula), not
+`Engineer.ProcessMRInfo()` which has zero callers in production. Steps 2, 5, and 8
+test our actual code paths.
 
 ---
 
@@ -334,11 +362,13 @@ TestIntegrationBranchLifecycle(t *testing.T):
 
 1. **Mock bd vs real bd?** Mock is simpler and faster. Real bd tests more but needs either flat-file backend or dolt. Recommend starting with mock.
 
-2. **Subprocess vs direct Go calls for Part C?** Recommend **hybrid**: use subprocess for `gt mq integration create/land` (tests the CLI path), use direct Go calls for `Engineer.ProcessMRInfo` (avoids needing a running refinery agent).
+2. **How to handle the merge step in Part C?** The production merge is Claude running git commands — our code doesn't participate. Recommend simulating the merge with raw git commands in the test (rebase + merge + push), same as what Claude does. This tests the full lifecycle end-to-end while focusing our assertions on the code boundaries we own (create, target detection, queue listing, land).
 
 3. **New `e2e.yml` workflow vs existing `ci.yml`?** New workflow with path filters — e2e tests only run when integration-related code changes.
 
 4. **Should `testutil` fixtures live in the e2e package or be shared?** Start in `internal/e2e/testutil/`. If other packages need them later, promote to `internal/testutil/`.
+
+5. **What to do about Engineer's unused merge methods?** `ProcessMR()`, `ProcessMRInfo()`, `doMerge()`, `handleSuccess()`, `HandleMRInfoSuccess()`, `HandleMRInfoFailure()` have zero callers in the entire codebase. Options: (a) leave as-is (harmless dead code), (b) wire them into a `gt refinery process` command so the production path has a programmatic option, (c) remove them. If (b), then e2e tests could call the command instead of simulating git operations. This is a design question for the upstream maintainers.
 
 ---
 
