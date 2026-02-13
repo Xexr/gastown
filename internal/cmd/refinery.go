@@ -208,31 +208,72 @@ Examples:
 var refineryReadyJSON bool
 var refineryReadyAll bool
 
-var refineryProcessNextCmd = &cobra.Command{
-	Use:   "process-next [rig]",
-	Short: "Process the next ready MR in the merge queue",
-	Long: `Deterministically processes the next unclaimed, unblocked MR.
+var refineryPrepareCmd = &cobra.Command{
+	Use:   "prepare [rig]",
+	Short: "Claim next MR, rebase, and run quality gates",
+	Long: `Claims the next ready MR, rebases it onto its target, and runs quality gates.
 
-Performs: rebase → test → merge → push → notify → close bead.
-On conflict: creates resolution task, blocks MR, notifies witness.
-On test failure: rejects MR, notifies witness, reopens source issue.
+Quality gates run in order: setup → typecheck → lint → build → test.
+Each is configured in the rig's config.json merge_queue section.
 
-The target branch comes from the MR bead's Target field (set at MR creation).
-This command never assumes "main" — the target may be an integration branch.
+On conflict: creates resolution task, blocks MR, sends MERGE_FAILED — handled internally.
+On quality gate failure: outputs which gate failed — formula must diagnose (branch regression
+vs. pre-existing on target) then call 'gt refinery merge' or 'gt refinery reject'.
 
 Exit codes:
-  0: merged successfully
-  1: conflict (task created)
-  2: test failure (MR rejected)
+  0: all quality gates passed — ready for 'gt refinery merge <mr-id>'
+  1: conflict (task created, MR blocked — no further action needed)
+  2: quality gate failed — formula must diagnose, then merge or reject
   3: queue empty (nothing to process)
   4: error (infrastructure failure)
 
+Output includes the MR ID for use with merge/reject commands.
+
 Examples:
-  gt refinery process-next
-  gt refinery process-next gastown`,
+  gt refinery prepare
+  gt refinery prepare gastown`,
 	Args: cobra.MaximumNArgs(1),
-	RunE: runRefineryProcessNext,
+	RunE: runRefineryPrepare,
 }
+
+var refineryMergeCmd = &cobra.Command{
+	Use:   "merge <mr-id> [rig]",
+	Short: "Complete merge for a prepared MR",
+	Long: `Completes the merge for an MR that was prepared with 'gt refinery prepare'.
+
+Performs: ff-merge into target → push → verify push → send MERGED → close MR bead →
+close source issue → delete branch.
+
+Call this after 'prepare' exits 0 (all gates pass), or after formula diagnoses a
+pre-existing failure and decides to merge anyway.
+
+GUARD: Refuses to merge if the source branch is an integration branch (integration/*).
+Integration branches may only be landed to the default branch via 'gt mq integration land'.
+
+Examples:
+  gt refinery merge gt-abc123
+  gt refinery merge gt-abc123 gastown`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: runRefineryMerge,
+}
+
+var refineryRejectCmd = &cobra.Command{
+	Use:   "reject <mr-id> [rig]",
+	Short: "Reject an MR after diagnosis",
+	Long: `Rejects an MR after the formula diagnoses a branch-caused quality gate failure.
+
+Performs: reopen source issue → send MERGE_FAILED → close MR (rejected) → delete branch.
+
+The source issue is reopened so it returns to the ready queue for a new polecat to rework.
+
+Examples:
+  gt refinery reject gt-abc123 --reason "lint: 3 new ESLint errors introduced by branch"
+  gt refinery reject gt-abc123 gastown --reason "test: TestAuth failing only on branch"`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: runRefineryReject,
+}
+
+var refineryRejectReason string
 
 var refineryBlockedCmd = &cobra.Command{
 	Use:   "blocked [rig]",
@@ -290,7 +331,11 @@ func init() {
 	refineryCmd.AddCommand(refineryUnclaimedCmd)
 	refineryCmd.AddCommand(refineryReadyCmd)
 	refineryCmd.AddCommand(refineryBlockedCmd)
-	refineryCmd.AddCommand(refineryProcessNextCmd)
+	refineryCmd.AddCommand(refineryPrepareCmd)
+	refineryCmd.AddCommand(refineryMergeCmd)
+	refineryRejectCmd.Flags().StringVar(&refineryRejectReason, "reason", "", "Reason for rejection (required)")
+	_ = refineryRejectCmd.MarkFlagRequired("reason")
+	refineryCmd.AddCommand(refineryRejectCmd)
 
 	rootCmd.AddCommand(refineryCmd)
 }
@@ -884,13 +929,13 @@ func runRefineryBlocked(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
+func runRefineryPrepare(cmd *cobra.Command, args []string) error {
 	rigName := ""
 	if len(args) > 0 {
 		rigName = args[0]
 	}
 
-	_, r, rigName, err := getRefineryManager(rigName)
+	_, r, _, err := getRefineryManager(rigName)
 	if err != nil {
 		return err
 	}
@@ -900,58 +945,105 @@ func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Find next ready MR
-	ready, err := eng.ListReadyMRs()
-	if err != nil {
-		return fmt.Errorf("listing ready MRs: %w", err)
+	ctx := cmd.Context()
+	result := eng.Prepare(ctx)
+
+	if result.MR != nil {
+		// Output MR ID for use with merge/reject commands
+		fmt.Printf("MR: %s\n", result.MR.ID)
 	}
-	if len(ready) == 0 {
+
+	if result.Error == "queue empty" {
 		fmt.Println("Queue empty — nothing to process")
 		return NewSilentExit(3)
 	}
-	mr := ready[0]
-
-	// Claim it — release on failure paths only.
-	// On success, HandleMRInfoSuccess closes the MR bead, so releasing
-	// (clearing assignee) would error on the closed bead.
-	workerID := getWorkerID()
-	if err := eng.ClaimMR(mr.ID, workerID); err != nil {
-		return fmt.Errorf("claiming MR %s: %w", mr.ID, err)
-	}
-	merged := false
-	defer func() {
-		if merged {
-			return // MR bead is closed — don't try to update it
-		}
-		if releaseErr := eng.ReleaseMR(mr.ID); releaseErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to release MR %s: %v\n", mr.ID, releaseErr)
-		}
-	}()
-
-	fmt.Printf("Processing MR %s: %s → %s\n", mr.ID, mr.Branch, mr.Target)
-
-	// Process it
-	ctx := cmd.Context()
-	result := eng.ProcessMRInfo(ctx, mr)
-
-	// Handle result — print status, then return SilentExitError for exit code
-	if result.Success {
-		eng.HandleMRInfoSuccess(mr, result)
-		merged = true
-		fmt.Printf("Done: merged at %s\n", result.MergeCommit)
-		return nil // exit 0
-	}
-
-	eng.HandleMRInfoFailure(mr, result)
 
 	if result.Conflict {
-		fmt.Printf("Done: conflict — %s\n", result.Error)
+		fmt.Printf("Conflict: %s\n", result.Error)
 		return NewSilentExit(1)
 	}
-	if result.TestsFailed {
-		fmt.Printf("Done: test failure — %s\n", result.Error)
+
+	if result.GateFailed != "" {
+		fmt.Printf("Gate failed: %s\n", result.GateFailed)
+		fmt.Printf("Error: %s\n", result.GateError)
 		return NewSilentExit(2)
 	}
-	fmt.Fprintf(os.Stderr, "Error: %s\n", result.Error)
-	return NewSilentExit(4)
+
+	if !result.Success {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", result.Error)
+		return NewSilentExit(4)
+	}
+
+	fmt.Println("All quality gates passed — ready for 'gt refinery merge'")
+	return nil // exit 0
+}
+
+func runRefineryMerge(cmd *cobra.Command, args []string) error {
+	mrID := args[0]
+	rigName := ""
+	if len(args) > 1 {
+		rigName = args[1]
+	}
+
+	_, r, _, err := getRefineryManager(rigName)
+	if err != nil {
+		return err
+	}
+
+	eng := refinery.NewEngineer(r)
+	if err := eng.LoadConfig(); err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// Look up the MR by ID
+	mr, err := eng.FindMR(mrID)
+	if err != nil {
+		return fmt.Errorf("finding MR %s: %w", mrID, err)
+	}
+
+	ctx := cmd.Context()
+	result, err := eng.MergeMR(ctx, mr)
+	if err != nil {
+		// Guard error (e.g., integration branch)
+		return err
+	}
+
+	if !result.Success {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", result.Error)
+		return NewSilentExit(4)
+	}
+
+	fmt.Printf("Done: merged at %s\n", result.MergeCommit)
+	return nil // exit 0
+}
+
+func runRefineryReject(cmd *cobra.Command, args []string) error {
+	mrID := args[0]
+	rigName := ""
+	if len(args) > 1 {
+		rigName = args[1]
+	}
+
+	_, r, _, err := getRefineryManager(rigName)
+	if err != nil {
+		return err
+	}
+
+	eng := refinery.NewEngineer(r)
+	if err := eng.LoadConfig(); err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// Look up the MR by ID
+	mr, err := eng.FindMR(mrID)
+	if err != nil {
+		return fmt.Errorf("finding MR %s: %w", mrID, err)
+	}
+
+	if err := eng.RejectMR(mr, refineryRejectReason); err != nil {
+		return fmt.Errorf("rejecting MR %s: %w", mrID, err)
+	}
+
+	fmt.Printf("Done: rejected %s\n", mrID)
+	return nil // exit 0
 }

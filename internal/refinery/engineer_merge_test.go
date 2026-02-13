@@ -563,6 +563,123 @@ func TestHandleMRInfoSuccess_IntegrationBranch_OutputMessage(t *testing.T) {
 	}
 }
 
+// --- Integration branch guard tests (MergeMR) ---
+
+func TestIsIntegrationBranch(t *testing.T) {
+	tests := []struct {
+		branch string
+		want   bool
+	}{
+		{"integration/l0g1x", true},
+		{"integration/wolf", true},
+		{"integration/", true}, // edge case: prefix match still true
+		{"feature/integration", false},
+		{"main", false},
+		{"polecat/alpha", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		got := IsIntegrationBranch(tt.branch)
+		if got != tt.want {
+			t.Errorf("IsIntegrationBranch(%q) = %v, want %v", tt.branch, got, tt.want)
+		}
+	}
+}
+
+func TestMergeMR_RefusesIntegrationBranch(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+
+	// Attempt to merge an integration branch — should be refused
+	mr := &MRInfo{
+		ID:     "gt-test",
+		Branch: "integration/l0g1x",
+		Target: "main",
+	}
+
+	_, err := eng.MergeMR(context.Background(), mr)
+	if err == nil {
+		t.Fatal("expected error when merging integration branch, got nil")
+	}
+	if !strings.Contains(err.Error(), "refusing to merge integration branch") {
+		t.Fatalf("expected 'refusing to merge integration branch' error, got: %s", err)
+	}
+	if !strings.Contains(err.Error(), "gt mq integration land") {
+		t.Fatalf("error should suggest 'gt mq integration land', got: %s", err)
+	}
+}
+
+func TestMergeMR_AllowsFeatureBranchTargetingIntegration(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	// Create integration branch
+	run(t, workDir, "git", "checkout", "-b", "integration/l0g1x")
+	run(t, workDir, "git", "push", "origin", "integration/l0g1x")
+	run(t, workDir, "git", "checkout", "main")
+
+	// Create feature branch targeting integration
+	createBranch(t, workDir, "polecat/alpha", "feature.go", "package main\n", "feat: alpha work")
+
+	// Rebase branch onto integration target (simulates what Prepare does)
+	g := git.NewGit(workDir)
+	_ = g.Checkout("polecat/alpha")
+	_ = g.Rebase("origin/integration/l0g1x")
+	_ = g.Checkout("integration/l0g1x")
+	_ = g.MergeFFOnly("polecat/alpha") // won't actually push — we just test the guard doesn't fire
+
+	// Reset — test via MergeMR
+	_ = g.Checkout("main")
+	run(t, workDir, "git", "branch", "-D", "integration/l0g1x")
+	run(t, workDir, "git", "checkout", "-b", "integration/l0g1x", "origin/integration/l0g1x")
+	run(t, workDir, "git", "checkout", "main")
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+
+	mr := &MRInfo{
+		ID:     "gt-test",
+		Branch: "polecat/alpha",                    // NOT an integration branch
+		Target: "integration/l0g1x",                // targeting integration is fine
+	}
+
+	// MergeMR should NOT refuse — the guard checks the source branch, not the target.
+	// It will fail at some point (push, etc.) since this is a bare test, but
+	// the integration branch guard should NOT fire.
+	result, err := eng.MergeMR(context.Background(), mr)
+	if err != nil {
+		t.Fatalf("MergeMR returned guard error for feature branch targeting integration: %v", err)
+	}
+	// The actual merge may or may not succeed (depends on git state), but the guard didn't fire.
+	_ = result
+}
+
+func TestMergeMR_AllowsFeatureBranchTargetingMain(t *testing.T) {
+	workDir, cleanup := testGitRepo(t)
+	defer cleanup()
+
+	createBranch(t, workDir, "polecat/beta", "beta.go", "package main\n", "feat: beta work")
+
+	eng := newTestEngineer(t, workDir, "rebase-ff")
+
+	mr := &MRInfo{
+		ID:     "gt-test",
+		Branch: "polecat/beta",
+		Target: "main",
+	}
+
+	// Should not return a guard error
+	result, err := eng.MergeMR(context.Background(), mr)
+	if err != nil {
+		t.Fatalf("MergeMR returned guard error for feature→main: %v", err)
+	}
+	// The actual merge should succeed (clean feature branch)
+	if !result.Success {
+		t.Fatalf("expected success for feature→main merge, got error: %s", result.Error)
+	}
+}
+
 func TestHandleMRInfoSuccess_DefaultBranch_DoesNotLeaveOpen(t *testing.T) {
 	workDir, cleanup := testGitRepo(t)
 	defer cleanup()

@@ -1,37 +1,55 @@
 description = """
 Merge queue processor patrol loop.
 
-The Refinery is the Engineer in the engine room. You process polecat branches, merging them to main one at a time with sequential rebasing.
+The Refinery is the Engineer in the engine room. You process polecat branches, merging them to the target branch one at a time with sequential rebasing.
 
 **The Scotty Test**: Before proceeding past any failure, ask yourself: "Would Scotty walk past a warp core leak because it existed before his shift?"
 
 ## Merge Flow
 
-The Refinery receives MERGE_READY mail from Witnesses when polecats complete work:
+The Refinery receives MERGE_READY mail from Witnesses when polecats complete work.
+Merge mechanics use a three-command pipeline — you do NOT run raw git commands.
 
 ```
-Witness                    Refinery                      Git
-   │                          │                           │
-   │ MERGE_READY              │                           │
-   │─────────────────────────>│                           │
-   │                          │                           │
-   │                    (verify branch)                   │
-   │                          │ fetch & rebase            │
-   │                          │──────────────────────────>│
-   │                          │                           │
-   │                    (run tests)                       │
-   │                          │                           │
-   │                    (if pass)                         │
-   │                          │ merge & push              │
-   │                          │──────────────────────────>│
-   │                          │                           │
-   │ MERGED                   │                           │
-   │<─────────────────────────│                           │
-   │                          │                           │
+Witness                    Refinery (you)                         Git
+   │                          │                                    │
+   │ MERGE_READY              │                                    │
+   │─────────────────────────>│                                    │
+   │                          │                                    │
+   │                    gt refinery prepare                        │
+   │                          │ (claim, rebase, quality gates)     │
+   │                          │───────────────────────────────────>│
+   │                          │                                    │
+   │                    [YOU: diagnose failure if gate failed]      │
+   │                          │                                    │
+   │                    gt refinery merge <mr-id>   (on pass)      │
+   │                          │ (ff-merge, push, notify, cleanup)  │
+   │                          │───────────────────────────────────>│
+   │                          │                                    │
+   │                    — OR —                                      │
+   │                    gt refinery reject <mr-id>  (on fail)      │
+   │                          │ (reopen, notify, close, cleanup)   │
+   │                          │───────────────────────────────────>│
+   │                          │                                    │
+   │ MERGED/MERGE_FAILED      │                                    │
+   │<─────────────────────────│                                    │
+   │                          │                                    │
 ```
 
-After successful merge, Refinery sends MERGED mail back to Witness so it can
-complete cleanup (nuke the polecat worktree).
+**Your role**: patrol orchestration + failure diagnosis. The commands handle all
+git mechanics, notifications, and bead updates. You decide whether a quality gate
+failure is caused by the branch (reject) or pre-existing on target (merge anyway).
+
+## Merge Configuration
+
+Quality gates and merge settings are configured in the rig's `config.json` under
+the `merge_queue` section — NOT in formula variables.
+
+Available config keys:
+- `setup_command`, `typecheck_command`, `lint_command`, `build_command`: quality gate pipeline
+- `test_command`, `run_tests`, `retry_flaky_tests`: test configuration
+- `merge_strategy`: "rebase-ff" (default) or "squash"
+- `delete_merged_branches`: branch cleanup after merge
 
 ## CRITICAL: Read Step Instructions Before Acting
 
@@ -49,27 +67,23 @@ source of truth.
 | wisp_type | patrol | Type of wisp created for this molecule |
 | integration_branch_refinery_enabled | true | Whether refinery merges to integration branches |
 | integration_branch_auto_land | false | Whether to auto-land integration branches when epic children all closed |
-| run_tests | true | Whether to run tests before merging |
-| setup_command | (empty) | Setup/install command (e.g., `pnpm install`). Empty = skip. |
-| typecheck_command | (empty) | Type check command (e.g., `tsc --noEmit`). Empty = skip. |
-| lint_command | (empty) | Lint command (e.g., `eslint .`). Empty = skip. |
-| test_command | go test ./... | Test command to run (if run_tests is true) |
-| build_command | (empty) | Build command (e.g., `go build ./...`). Empty = skip. |
-| target_branch | main | Default target branch for merges |
-| delete_merged_branches | true | Whether to delete source branches after merge |
 
 ## FORBIDDEN Actions
 
 - FORBIDDEN: Landing integration branches to the default branch via raw git commands (`git merge`, `git push`).
   Integration branches may ONLY be landed via `gt mq integration land <epic-id>`.
-  This applies regardless of `auto_land` configuration. The pre-push hook enforces this.
+  This applies regardless of `auto_land` configuration. `gt refinery merge` enforces this guard.
+- FORBIDDEN: Running raw git merge/rebase/push commands for processing MRs.
+  Use `gt refinery prepare` + `gt refinery merge` / `gt refinery reject` instead.
+- FORBIDDEN: Sending MERGED or MERGE_FAILED mail manually. The merge/reject commands do this.
+- FORBIDDEN: Closing MR beads or source issues manually. The merge/reject commands do this.
 
 ## Step Execution Order
 
 You MUST process steps in strict DAG order. Walk through each step sequentially,
 unless you are explicitly told to skip to a step."""
 formula = "mol-refinery-patrol"
-version = 6
+version = 8
 
 [vars]
 [vars.wisp_type]
@@ -83,38 +97,6 @@ default = "true"
 [vars.integration_branch_auto_land]
 description = "Whether to auto-land integration branches when epic children are all closed"
 default = "false"
-
-[vars.run_tests]
-description = "Whether to run tests before merging"
-default = "true"
-
-[vars.setup_command]
-description = "Setup/install command (e.g., pnpm install). Empty = skip."
-default = "none"
-
-[vars.typecheck_command]
-description = "Type check command (e.g., tsc --noEmit). Empty = skip."
-default = "none"
-
-[vars.lint_command]
-description = "Lint command (e.g., eslint .). Empty = skip."
-default = "none"
-
-[vars.test_command]
-description = "Test command to run (if run_tests is true)"
-default = "go test ./..."
-
-[vars.build_command]
-description = "Build command (e.g., go build ./...). Empty = skip."
-default = "none"
-
-[vars.target_branch]
-description = "Default target branch for merges"
-default = "main"
-
-[vars.delete_merged_branches]
-description = "Whether to delete source branches after merge"
-default = "true"
 
 [[steps]]
 id = "inbox-check"
@@ -146,11 +128,11 @@ A polecat's work is ready for merge. Extract details and track for processing.
 # - MR bead ID (REQUIRED for closing after merge)
 ```
 
-**IMPORTANT**: You MUST track the polecat name, MR bead ID, AND message ID - you will need them
-in merge-push step to send MERGED notification, close the MR bead, and archive the mail.
+**IMPORTANT**: You MUST track the message ID — you will need it to archive the mail
+after the prepare/merge/reject pipeline processes the MR.
 
-Mark as read. The work will be processed in queue-scan/process-branch.
-**Do NOT archive yet** - archive after merge/reject decision in merge-push step.
+Mark as read. The work will be processed in queue-scan/prepare-mr.
+**Do NOT archive yet** - archive after merge/reject completes (or prepare exits 1/3).
 
 **PATROL: Wake up**:
 Witness detected MRs waiting but refinery idle. Acknowledge and archive:
@@ -204,314 +186,141 @@ If branch doesn't exist for a queued MR:
 Track verified MR list for this cycle."""
 
 [[steps]]
-id = "process-branch"
-title = "Mechanical rebase"
+id = "prepare-mr"
+title = "Prepare next MR (rebase + quality gates)"
 needs = ["queue-scan"]
 description = """
-Pick next branch from queue. Attempt mechanical rebase on current main.
-
-**Config: target_branch = {{target_branch}}**
-
-**Step 1: Checkout and attempt rebase**
-```bash
-git checkout -b temp origin/<polecat-branch>
-git rebase origin/{{target_branch}}
-```
-
-**Step 2: Check rebase result**
-
-The rebase exits with:
-- Exit code 0: Success - proceed to run-tests
-- Exit code 1 (conflicts): Conflict detected - proceed to Step 3
-
-To detect conflict state after rebase fails:
-```bash
-# Check if we're in a conflicted rebase state
-ls .git/rebase-merge 2>/dev/null && echo "CONFLICT_STATE"
-```
-
-**Step 3: Handle conflicts (if any)**
-
-If rebase SUCCEEDED (exit code 0):
-- Skip to run-tests step (continue normal merge flow)
-
-If rebase FAILED with conflicts:
-
-1. **Abort the rebase** (DO NOT leave repo in conflicted state):
-```bash
-git rebase --abort
-```
-
-2. **Record conflict metadata**:
-```bash
-# Capture main SHA for reference
-MAIN_SHA=$(git rev-parse origin/main)
-BRANCH_SHA=$(git rev-parse origin/<polecat-branch>)
-```
-
-3. **Create conflict-resolution task**:
-```bash
-bd create --type=task --priority=1 \
-  --title="Resolve merge conflicts: <original-issue-title>" \
-  --description="## Conflict Resolution Required
-
-Original MR: <mr-bead-id>
-Branch: <polecat-branch>
-Original Issue: <issue-id>
-Conflict with main at: ${MAIN_SHA}
-Branch SHA: ${BRANCH_SHA}
-
-## Instructions
-1. Clone/checkout the branch
-2. Rebase on current main: git rebase origin/main
-3. Resolve conflicts
-4. Force push: git push -f origin <branch>
-5. Close this task when done
-
-The MR will be re-queued for processing after conflicts are resolved."
-```
-
-4. **Skip this MR** (do NOT delete branch or close MR bead):
-- Leave branch intact for conflict resolution
-- Leave MR bead open (will be re-processed after resolution)
-- Continue to loop-check for next branch
-
-**CRITICAL**: Never delete a branch that has conflicts. The branch contains
-the original work and must be preserved for conflict resolution.
-
-Track: rebase result (success/conflict), conflict task ID if created."""
-
-[[steps]]
-id = "run-tests"
-title = "Run quality checks and tests"
-needs = ["process-branch"]
-description = """
-**Config: run_tests = {{run_tests}}**
-**Config: test_command = {{test_command}}**
-**Config: setup_command = {{setup_command}}**
-**Config: typecheck_command = {{typecheck_command}}**
-**Config: lint_command = {{lint_command}}**
-**Config: build_command = {{build_command}}**
-
-**1. Run quality checks (skip any that are not configured):**
-
-If setup_command is set: `{{setup_command}}`
-If typecheck_command is set: `{{typecheck_command}}`
-If lint_command is set: `{{lint_command}}`
-If build_command is set: `{{build_command}}`
+Claim the next MR, rebase onto target, and run quality gates:
 
 ```bash
-{{setup_command}}           # Make sure all newly added dependencies are installed (if command set)
-{{typecheck_command}}       # Check for type errors (if command set)
-{{lint_command}}            # Check for lint errors (if command set)
-{{build_command}}           # Make sure it builds (if command set)
+gt refinery prepare
 ```
 
-Empty commands mean "not configured for this project" — skip silently.
+This command:
+- Claims the next ready MR from the queue
+- Fetches the target branch and rebases the feature branch onto it
+- Runs quality gates in order: setup → typecheck → lint → build → test
+  (each configured in rig config.json merge_queue section)
+- On conflict: creates resolution task, blocks MR, sends MERGE_FAILED (all automatic)
 
-**2. If quality checks fail:**
+**Read the exit code and output** — the MR ID is printed for use with merge/reject:
 
-Proceed to handle-failures step. Track which specific check failed
-(setup/typecheck/lint/build) for the failure diagnosis.
+- **Exit 0**: All quality gates passed. The MR ID is in the output.
+  Proceed to **merge-or-reject** step to complete the merge.
 
-**3. Run the test suite:**
+- **Exit 1**: Rebase conflict detected. Resolution task created automatically.
+  The MR is blocked until the task is resolved. Note the task ID from output.
+  Archive the MERGE_READY mail, then skip to **loop-check**.
 
-If run_tests = "false": Skip this step entirely. Proceed to handle-failures.
+- **Exit 2**: Quality gate failed. The output shows which gate and the error.
+  The MR is NOT rejected yet — YOU must diagnose the failure first.
+  Proceed to **merge-or-reject** step (the diagnosis happens there).
 
-If run_tests = "true":
+- **Exit 3**: Queue empty. Skip to **check-integration-branches**.
 
-```bash
-{{test_command}}            # Run tests (configured per-rig)
-```
+- **Exit 4**: Infrastructure error (fetch/push/checkout failure). Log the error.
+  Do NOT archive the MERGE_READY mail — the MR was not processed. Skip to **loop-check**.
 
-Track results: pass count, fail count, specific failures."""
-
-[[steps]]
-id = "handle-failures"
-title = "Handle quality check or test failures"
-needs = ["run-tests"]
-description = """
-**VERIFICATION GATE**: This step enforces the Beads Promise.
-
-If all checks and tests PASSED: This step auto-completes. Proceed to merge.
-
-If any check or test FAILED:
-1. Diagnose: Is this a branch regression or pre-existing on the target branch?
-2. If branch caused it:
-   - Abort merge
-   - **REOPEN the source issue** so it returns to the ready queue:
-     ```bash
-     bd update <issue-id> --status=open --assignee=""
-     bd sync
-     ```
-   - Notify witness of rejection using the MERGE_FAILED protocol:
-     ```bash
-     gt mail send <rig>/witness -s "MERGE_FAILED <polecat-name>" -m "Branch: <branch>
-     Issue: <issue-id>
-     Polecat: <polecat-name>
-     Rig: <rig>
-     FailureType: quality-check
-     Error: <failure description>"
-     ```
-   - Close the MR bead as rejected:
-     ```bash
-     bd close <mr-bead-id> --reason "Rejected: <failure description>"
-     ```
-   - Delete the rejected branch (a new polecat will create a fresh one):
-     ```bash
-     git push origin --delete <polecat-branch>
-     ```
-   - Archive the MERGE_READY message
-   - Skip to loop-check
-3. If pre-existing on the target branch:
-   - File a bead: bd create --type=bug --priority=1 --title="..."
-   - FORBIDDEN: Writing code to fix quality check or test failures. You merge branches, you do not develop.
-   - Proceed with the merge if the failure is pre-existing (not caused by the branch).
-
-**REJECTION CHECKLIST** (all required before skipping to loop-check):
-- [ ] Source issue reopened (bd update <issue-id> --status=open --assignee="")
-- [ ] MERGE_FAILED notification sent to witness
-- [ ] MR bead closed with rejection reason
-- [ ] Rejected branch deleted from remote
-- [ ] MERGE_READY message archived
-
-**GATE REQUIREMENT**: You CANNOT proceed to merge-push without:
-- All quality checks and tests passing, OR
-- Bead filed for the pre-existing failure
-
-FORBIDDEN: Writing application code, exploring polecat implementations, or
-re-implementing fixes. You are a mechanical merge processor.
-
-This is non-negotiable. Never disavow. Never "note and proceed." """
-
-[[steps]]
-id = "merge-push"
-title = "Merge and push"
-needs = ["handle-failures"]
-description = """
-Merge and push. CRITICAL: Notifications come IMMEDIATELY after push.
-
-**Config: integration_branch_refinery_enabled = {{integration_branch_refinery_enabled}}**
-**Config: target_branch = {{target_branch}}**
-**Config: delete_merged_branches = {{delete_merged_branches}}**
-
-When integration_branch_refinery_enabled = "true", the MR's target branch
-may be an integration branch (not just {{target_branch}}). Check the MR's target field and use
-that as the merge destination. Only fall back to {{target_branch}} if no explicit target is set.
-
-**Step 1: Merge and Push**
-Determine the merge target: use the MR's target field if set, otherwise {{target_branch}}.
-```bash
-git checkout <merge-target>
-git merge --ff-only temp
-git push origin <merge-target>
-```
-
-**Step 1.5: VERIFY PUSH SUCCEEDED (CRITICAL - PATCH-003)**
-
-Push can fail silently (network, auth, hooks). IMMEDIATELY verify:
-```bash
-git fetch origin
-LOCAL_SHA=$(git rev-parse <merge-target>)
-REMOTE_SHA=$(git rev-parse origin/<merge-target>)
-echo "Local:  $LOCAL_SHA"
-echo "Remote: $REMOTE_SHA"
-```
-
-**If SHAs match**: Push succeeded. Continue to Step 2.
-
-**If SHAs differ**: STOP. Push failed silently.
-- DO NOT send MERGED notification
-- DO NOT close MR bead
-- DO NOT delete branch
-- Debug the push failure (check `git push` output, network, auth)
-- Retry push and verify again before proceeding
-
-⚠️ **STOP HERE - DO NOT PROCEED UNTIL STEPS 1.5 AND 2-3 COMPLETE**
-
-**Step 2: Send MERGED Notification (REQUIRED - DO THIS IMMEDIATELY)**
-
-RIGHT NOW, before any cleanup, send MERGED mail to Witness:
-
-```bash
-gt mail send <rig>/witness -s "MERGED <polecat-name>" -m "Branch: <branch>
-Issue: <issue-id>
-Merged-At: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-```
-
-This signals the Witness to nuke the polecat worktree. WITHOUT THIS NOTIFICATION,
-POLECAT WORKTREES ACCUMULATE INDEFINITELY AND THE LIFECYCLE BREAKS.
-
-**Step 3: Close MR Bead (REQUIRED - DO THIS IMMEDIATELY)**
-
-⚠️ **VERIFICATION BEFORE CLOSING**: Confirm the work is actually on the merge target:
-```bash
-# Get the commit message/issue from the branch
-git log origin/<merge-target> --oneline | grep "<issue-id>"
-# OR verify the commit SHA is on the target:
-git branch --contains <commit-sha> | grep <merge-target>
-```
-
-If work is NOT on the merge target, DO NOT close the MR bead. Investigate first.
-
-```bash
-bd close <mr-bead-id> --reason "Merged to <merge-target> at $(git rev-parse --short HEAD)"
-```
-
-The MR bead ID was in the MERGE_READY message or find via:
-```bash
-bd list --type=merge-request --status=open | grep <polecat-name>
-```
-
-**VALIDATION**: The MR bead's source_issue should be a valid bead ID (gt-xxxxx),
-not a branch name. If source_issue contains a branch name, flag for investigation.
-
-**Step 4: Archive the MERGE_READY mail (REQUIRED)**
+**Archive on exits 1 and 3:**
 ```bash
 gt mail archive <merge-ready-message-id>
 ```
-The message ID was tracked when you processed inbox-check.
+(Exits 0 and 2 archive after merge-or-reject. Exit 4 does NOT archive.)
 
-**Step 5: Cleanup (only after Steps 2-4 confirmed)**
+FORBIDDEN: Running raw git merge/rebase/push commands. The command does this.
+FORBIDDEN: Sending MERGED or MERGE_FAILED mail manually."""
+
+[[steps]]
+id = "merge-or-reject"
+title = "Diagnose failure (if any) and merge or reject"
+needs = ["prepare-mr"]
+description = """
+**Entry paths:**
+- prepare exited 0: all gates passed — merge the MR.
+- prepare exited 2: gate failed — diagnose first, then merge or reject.
+
+### Path A: All gates passed (prepare exit 0)
+
+Merge the prepared MR:
+
 ```bash
-git branch -d temp
+gt refinery merge <mr-id>
 ```
 
-delete_merged_branches (see config above) controls whether to delete the remote source branch.
+This command:
+- Fast-forward merges into the target branch
+- Pushes to origin (with post-push SHA verification)
+- Sends MERGED notification to witness (polecat worktree cleanup)
+- Closes the MR bead with merge commit SHA
+- Closes source issue (only for default branch merges — leaves open for integration branch)
+- Deletes source branch (local + remote, if configured)
 
-If delete_merged_branches is "true":
+Archive the MERGE_READY mail after successful merge:
 ```bash
-git push origin --delete <polecat-branch>
+gt mail archive <merge-ready-message-id>
 ```
 
-If delete_merged_branches is "false": Leave the remote branch intact.
+### Path B: Quality gate failed (prepare exit 2)
 
-**VERIFICATION GATE**: You CANNOT proceed to loop-check without:
-- [x] MERGED mail sent to witness
-- [x] MR bead closed
-- [x] MERGE_READY mail archived
+**YOU must diagnose whether the failure is a branch regression or pre-existing on target.**
 
-If you skipped notifications or archiving, GO BACK AND DO THEM NOW.
+The Scotty Test applies here. Pre-existing failures should not block the merge queue,
+but branch-introduced failures must be rejected and sent back.
 
-Target branch has moved. Any remaining branches need rebasing on new baseline."""
+**Diagnosis procedure:**
+
+1. Note which gate failed and the error from prepare output.
+2. Check out the target branch and run ONLY the failing gate:
+   ```bash
+   git checkout <target-branch>
+   # Run the specific failing command from config.json
+   ```
+3. Evaluate:
+   - **Same failure on target** → Pre-existing. The branch did not cause this.
+     Decision: merge anyway (the branch is not making things worse).
+     ```bash
+     git checkout <feature-branch>  # restore working dir
+     gt refinery merge <mr-id>
+     ```
+     Consider filing a bead for the pre-existing failure.
+   - **Target is clean** → Branch regression. The branch introduced the failure.
+     Decision: reject and send back for rework.
+     ```bash
+     gt refinery reject <mr-id> --reason "<gate>: <specific error description>"
+     ```
+
+4. Archive the MERGE_READY mail after either merge or reject:
+   ```bash
+   gt mail archive <merge-ready-message-id>
+   ```
+
+### What the commands handle (you do NOT):
+- `gt refinery merge`: ff-merge, push, MERGED notification, close MR bead, close source issue, delete branch
+- `gt refinery reject`: reopen source issue, MERGE_FAILED notification, close MR (rejected), delete branch
+
+FORBIDDEN: Running raw git merge/rebase/push commands. The commands do this.
+FORBIDDEN: Sending MERGED or MERGE_FAILED mail manually. The commands do this.
+FORBIDDEN: Closing MR beads or source issues manually. The commands do this."""
 
 [[steps]]
 id = "loop-check"
 title = "Check for more work"
-needs = ["merge-push"]
+needs = ["merge-or-reject"]
 description = """
-More branches to process?
+More MRs to process?
 
 **Entry paths:**
-- Normal: After successful merge-push
-- Conflict-skip: After process-branch created conflict-resolution task
+- MR merged successfully (merge command). Target branch moved — remaining MRs need rebasing.
+- MR rejected (reject command). Queue continues.
+- Conflict (prepare exit 1). MR blocked, task created. Queue continues.
 
-If yes: Return to process-branch with next branch.
-If no: Continue to generate-summary.
+If more MRs in queue: Return to **prepare-mr**.
+If queue empty: Continue to **generate-summary**.
 
 **Track for this cycle:**
-- branches_merged: count and names of successfully merged branches
-- branches_conflict: count and names of branches skipped due to conflicts
+- mrs_merged: count and IDs of successfully merged MRs
+- mrs_conflict: count and IDs of MRs blocked on conflict resolution
+- mrs_rejected: count and IDs of MRs rejected for quality gate failures
 - conflict_tasks: IDs of conflict-resolution tasks created
 
 This tracking feeds into generate-summary for the patrol digest."""
@@ -523,21 +332,17 @@ needs = ["loop-check"]
 description = """
 Summarize this patrol cycle.
 
-**VERIFICATION**: Before generating summary, confirm for each merged branch:
-- [ ] MERGED mail was sent to witness
-- [ ] MR bead was closed
-- [ ] MERGE_READY mail archived
+**VERIFICATION**: Before generating summary, confirm for each processed MR:
+- [ ] MERGE_READY mail archived (your responsibility — the only thing not automated)
 
-If any notifications or archiving were missed, do them now!
+If any archiving was missed, do it now!
 
 Include in summary:
-- Branches merged (count, names)
-- MERGED mails sent (count - should match branches merged)
-- MR beads closed (count - should match branches merged)
-- MERGE_READY mails archived (count - should match branches merged)
-- Test results (pass/fail)
-- Branches with conflicts (count, names)
-- Conflict-resolution tasks created (IDs)
+- MRs merged (count, IDs — from merge command output)
+- MRs blocked on conflicts (count, IDs, task IDs — from prepare exit 1 output)
+- MRs rejected (count, IDs, reasons — from reject command output)
+- Pre-existing failures merged anyway (count, IDs — note these for monitoring)
+- MERGE_READY mails archived (count — should match total MRs processed)
 - Issues filed (if any)
 - Any escalations sent
 

@@ -57,6 +57,14 @@ type MergeQueueConfig struct {
 	// "rebase-ff" matches the production formula: rebase onto target, then ff-only merge.
 	// "squash" is the original Engineer behavior: squash merge into single commit.
 	MergeStrategy string `json:"merge_strategy"`
+
+	// Quality gate pipeline: commands run in sequence before merge.
+	// Each is optional — empty string means skip. They run in order:
+	// setup → typecheck → lint → build → test
+	SetupCommand     string `json:"setup_command"`
+	TypecheckCommand string `json:"typecheck_command"`
+	LintCommand      string `json:"lint_command"`
+	BuildCommand     string `json:"build_command"`
 }
 
 // DefaultMergeQueueConfig returns sensible defaults for merge queue configuration.
@@ -193,6 +201,10 @@ func (e *Engineer) LoadConfig() error {
 		PollInterval         *string `json:"poll_interval"`
 		MaxConcurrent        *int    `json:"max_concurrent"`
 		MergeStrategy        *string `json:"merge_strategy"`
+		SetupCommand         *string `json:"setup_command"`
+		TypecheckCommand     *string `json:"typecheck_command"`
+		LintCommand          *string `json:"lint_command"`
+		BuildCommand         *string `json:"build_command"`
 	}
 
 	if err := json.Unmarshal(rawConfig.MergeQueue, &mqRaw); err != nil {
@@ -231,6 +243,18 @@ func (e *Engineer) LoadConfig() error {
 	if mqRaw.MergeStrategy != nil {
 		e.config.MergeStrategy = *mqRaw.MergeStrategy
 	}
+	if mqRaw.SetupCommand != nil {
+		e.config.SetupCommand = *mqRaw.SetupCommand
+	}
+	if mqRaw.TypecheckCommand != nil {
+		e.config.TypecheckCommand = *mqRaw.TypecheckCommand
+	}
+	if mqRaw.LintCommand != nil {
+		e.config.LintCommand = *mqRaw.LintCommand
+	}
+	if mqRaw.BuildCommand != nil {
+		e.config.BuildCommand = *mqRaw.BuildCommand
+	}
 
 	return nil
 }
@@ -247,6 +271,22 @@ type ProcessResult struct {
 	Error       string
 	Conflict    bool
 	TestsFailed bool
+}
+
+// PrepareResult contains the result of the prepare phase (rebase + quality gates).
+type PrepareResult struct {
+	// Success is true if rebase succeeded and all quality gates passed.
+	Success bool
+	// Conflict is true if the rebase had conflicts (handled internally — task created, MR blocked).
+	Conflict bool
+	// GateFailed is non-empty if a quality gate failed (e.g., "lint", "test").
+	GateFailed string
+	// GateError describes the quality gate failure.
+	GateError string
+	// Error is a general error message for infrastructure failures.
+	Error string
+	// MR is the MR that was prepared (for passing to Merge/Reject).
+	MR *MRInfo
 }
 
 // ProcessMR processes a single merge request from a beads issue.
@@ -539,6 +579,257 @@ func (e *Engineer) runTests(ctx context.Context) ProcessResult {
 	}
 }
 
+// QualityGateResult holds the result of running quality gates.
+type QualityGateResult struct {
+	// AllPassed is true if every configured gate passed (or was skipped).
+	AllPassed bool
+	// FailedGate is the name of the first gate that failed (e.g., "lint", "test").
+	FailedGate string
+	// Error describes the failure.
+	Error string
+	// TestsFailed is true specifically when the test gate failed (vs setup/lint/etc).
+	TestsFailed bool
+}
+
+// runQualityGates runs the quality gate pipeline in order: setup → typecheck → lint → build → test.
+// Stops at the first failure. Empty/unconfigured commands are skipped.
+func (e *Engineer) runQualityGates(ctx context.Context) QualityGateResult {
+	gates := []struct {
+		name    string
+		command string
+	}{
+		{"setup", e.config.SetupCommand},
+		{"typecheck", e.config.TypecheckCommand},
+		{"lint", e.config.LintCommand},
+		{"build", e.config.BuildCommand},
+	}
+
+	for _, gate := range gates {
+		if gate.command == "" || gate.command == "none" {
+			continue
+		}
+		_, _ = fmt.Fprintf(e.output, "[Engineer] Running %s: %s\n", gate.name, gate.command)
+		//nolint:gosec // G204: commands from trusted rig config.json
+		cmd := exec.CommandContext(ctx, "sh", "-c", gate.command)
+		cmd.Dir = e.workDir
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] %s FAILED: %v\n", gate.name, err)
+			return QualityGateResult{
+				AllPassed:  false,
+				FailedGate: gate.name,
+				Error:      fmt.Sprintf("%s failed: %v\n%s", gate.name, err, stderr.String()),
+			}
+		}
+		_, _ = fmt.Fprintf(e.output, "[Engineer] %s passed\n", gate.name)
+	}
+
+	// Run tests last (has its own retry logic)
+	if e.config.RunTests && e.config.TestCommand != "" {
+		_, _ = fmt.Fprintf(e.output, "[Engineer] Running tests: %s\n", e.config.TestCommand)
+		result := e.runTests(ctx)
+		if !result.Success {
+			return QualityGateResult{
+				AllPassed:   false,
+				FailedGate:  "test",
+				Error:       result.Error,
+				TestsFailed: true,
+			}
+		}
+		_, _ = fmt.Fprintln(e.output, "[Engineer] Tests passed")
+	}
+
+	return QualityGateResult{AllPassed: true}
+}
+
+// IsIntegrationBranch returns true if the branch name matches the integration branch pattern.
+func IsIntegrationBranch(branch string) bool {
+	return strings.HasPrefix(branch, "integration/")
+}
+
+// Prepare claims the next ready MR, rebases it onto its target, and runs quality gates.
+// On conflict: creates a resolution task, blocks the MR, sends MERGE_FAILED — returns Conflict=true.
+// On quality gate failure: returns GateFailed with the gate name — formula must diagnose.
+// On success: leaves rebased branch checked out, ready for MergeMR.
+func (e *Engineer) Prepare(ctx context.Context) PrepareResult {
+	// Find next ready MR
+	ready, err := e.ListReadyMRs()
+	if err != nil {
+		return PrepareResult{Error: fmt.Sprintf("listing ready MRs: %v", err)}
+	}
+	if len(ready) == 0 {
+		return PrepareResult{Error: "queue empty"}
+	}
+	mr := ready[0]
+
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Preparing MR %s: %s → %s\n", mr.ID, mr.Branch, mr.Target)
+
+	// Verify source branch exists
+	exists, err := e.git.BranchExists(mr.Branch)
+	if err != nil {
+		return PrepareResult{MR: mr, Error: fmt.Sprintf("failed to check branch %s: %v", mr.Branch, err)}
+	}
+	if !exists {
+		return PrepareResult{MR: mr, Error: fmt.Sprintf("branch %s not found locally", mr.Branch)}
+	}
+
+	// Fetch latest target from origin
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Fetching origin/%s...\n", mr.Target)
+	if err := e.git.FetchBranch("origin", mr.Target); err != nil {
+		return PrepareResult{MR: mr, Error: fmt.Sprintf("failed to fetch origin/%s: %v", mr.Target, err)}
+	}
+
+	// Rebase branch onto target
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Rebasing %s onto origin/%s...\n", mr.Branch, mr.Target)
+	if err := e.git.Checkout(mr.Branch); err != nil {
+		return PrepareResult{MR: mr, Error: fmt.Sprintf("failed to checkout branch %s: %v", mr.Branch, err)}
+	}
+	if err := e.git.Rebase("origin/" + mr.Target); err != nil {
+		_ = e.git.AbortRebase()
+		_ = e.git.Checkout(mr.Target)
+
+		// Handle conflict internally — create task, block MR, send MERGE_FAILED
+		conflictResult := ProcessResult{
+			Success:  false,
+			Conflict: true,
+			Error:    fmt.Sprintf("rebase conflict: %v", err),
+		}
+		e.HandleMRInfoFailure(mr, conflictResult)
+
+		return PrepareResult{MR: mr, Conflict: true, Error: conflictResult.Error}
+	}
+
+	// Run quality gates on the rebased branch
+	gateResult := e.runQualityGates(ctx)
+	if !gateResult.AllPassed {
+		return PrepareResult{
+			MR:         mr,
+			GateFailed: gateResult.FailedGate,
+			GateError:  gateResult.Error,
+		}
+	}
+
+	_, _ = fmt.Fprintf(e.output, "[Engineer] All quality gates passed for %s\n", mr.ID)
+	return PrepareResult{Success: true, MR: mr}
+}
+
+// MergeMR completes the merge for a prepared MR: ff-merge into target, push, send MERGED,
+// close beads, delete branch. Call this after Prepare returns Success=true (or after formula
+// diagnoses a pre-existing failure and decides to merge anyway).
+//
+// Guard: refuses to merge if the source branch is an integration branch. Integration branches
+// may only be landed to the default branch via gt mq integration land.
+func (e *Engineer) MergeMR(ctx context.Context, mr *MRInfo) (ProcessResult, error) {
+	// Guard: prevent accidental landing of integration branches
+	if IsIntegrationBranch(mr.Branch) {
+		return ProcessResult{}, fmt.Errorf(
+			"refusing to merge integration branch %q — use 'gt mq integration land' instead", mr.Branch)
+	}
+
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Merging %s into %s...\n", mr.Branch, mr.Target)
+
+	// Checkout target and ff-merge
+	if err := e.git.Checkout(mr.Target); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("failed to checkout target %s: %v", mr.Target, err),
+		}, nil
+	}
+	if err := e.git.MergeFFOnly(mr.Branch); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("ff-only merge failed (branch diverged?): %v", err),
+		}, nil
+	}
+
+	result := e.pushAndReturn(mr.Target)
+	if !result.Success {
+		return result, nil
+	}
+
+	// Post-merge verification: confirm our commit is on the target
+	if err := e.git.FetchBranch("origin", mr.Target); err != nil {
+		_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: post-push verify fetch failed: %v\n", err)
+	} else {
+		localSHA, _ := e.git.Rev("HEAD")
+		remoteSHA, _ := e.git.Rev("origin/" + mr.Target)
+		if localSHA != "" && remoteSHA != "" && localSHA != remoteSHA {
+			return ProcessResult{
+				Success: false,
+				Error:   fmt.Sprintf("push verification failed: local %s != remote %s", localSHA[:8], remoteSHA[:8]),
+			}, nil
+		}
+	}
+
+	// Success — handle notifications, close beads, delete branch
+	e.HandleMRInfoSuccess(mr, result)
+	return result, nil
+}
+
+// RejectMR rejects an MR after the formula diagnoses a branch-caused failure.
+// Reopens source issue, sends MERGE_FAILED, closes MR as rejected, deletes branch.
+func (e *Engineer) RejectMR(mr *MRInfo, reason string) error {
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Rejecting MR %s: %s\n", mr.ID, reason)
+
+	// Checkout target to clean up working directory
+	_ = e.git.Checkout(mr.Target)
+
+	// Reopen source issue so it returns to the ready queue
+	if e.beads != nil && mr.SourceIssue != "" {
+		openStatus := "open"
+		emptyAssignee := ""
+		if err := e.beads.Update(mr.SourceIssue, beads.UpdateOptions{Status: &openStatus, Assignee: &emptyAssignee}); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to reopen source issue %s: %v\n", mr.SourceIssue, err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Reopened source issue: %s\n", mr.SourceIssue)
+		}
+	}
+
+	// Send MERGE_FAILED to witness
+	if e.router != nil && mr.Worker != "" {
+		msg := protocol.NewMergeFailedMessage(e.rig.Name, mr.Worker, mr.Branch, mr.SourceIssue, mr.Target, "quality-check", reason)
+		if err := e.router.Send(msg); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to send MERGE_FAILED: %v\n", err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Sent MERGE_FAILED notification for %s\n", mr.Worker)
+		}
+	}
+
+	// Close MR bead as rejected
+	if e.beads != nil && mr.ID != "" {
+		closeReason := fmt.Sprintf("Rejected: %s", reason)
+		if err := e.beads.CloseWithReason(closeReason, mr.ID); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close MR %s: %v\n", mr.ID, err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Closed MR bead (rejected): %s\n", mr.ID)
+		}
+	}
+
+	// Delete branch
+	if e.config.DeleteMergedBranches && mr.Branch != "" {
+		if err := e.git.DeleteBranch(mr.Branch, true); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to delete local branch %s: %v\n", mr.Branch, err)
+		}
+		if err := e.git.DeleteRemoteBranch("origin", mr.Branch); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to delete remote branch %s: %v\n", mr.Branch, err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Deleted branch: %s\n", mr.Branch)
+		}
+	}
+
+	// Release MR claim
+	if e.beads != nil {
+		emptyAssignee := ""
+		if err := e.beads.Update(mr.ID, beads.UpdateOptions{Assignee: &emptyAssignee}); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to release MR %s: %v\n", mr.ID, err)
+		}
+	}
+
+	_, _ = fmt.Fprintf(e.output, "[Engineer] ✗ Rejected: %s — %s\n", mr.ID, reason)
+	return nil
+}
+
 // handleSuccess handles a successful merge completion.
 // Steps:
 // 1. Update MR with merge_commit SHA
@@ -714,6 +1005,16 @@ func (e *Engineer) HandleMRInfoSuccess(mr *MRInfo, result ProcessResult) {
 			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to close MR %s: %v\n", mr.ID, err)
 		} else {
 			_, _ = fmt.Fprintf(e.output, "[Engineer] Closed MR bead: %s\n", mr.ID)
+		}
+	}
+
+	// 0.5. Send MERGED notification to witness so polecat worktree gets cleaned up.
+	if e.router != nil && mr.Worker != "" {
+		msg := protocol.NewMergedMessage(e.rig.Name, mr.Worker, mr.Branch, mr.SourceIssue, mr.Target, result.MergeCommit)
+		if err := e.router.Send(msg); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: failed to send MERGED to witness: %v\n", err)
+		} else {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Sent MERGED notification for %s\n", mr.Worker)
 		}
 	}
 
@@ -1192,6 +1493,20 @@ func detectQueueAnomalies(
 	}
 
 	return anomalies
+}
+
+// FindMR looks up an MR bead by ID and returns it as *MRInfo.
+// Used by the merge/reject commands to resolve an MR ID from the prepare output.
+func (e *Engineer) FindMR(mrID string) (*MRInfo, error) {
+	issue, err := e.beads.Show(mrID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching MR bead %s: %w", mrID, err)
+	}
+	fields := beads.ParseMRFields(issue)
+	if fields == nil {
+		return nil, fmt.Errorf("bead %s has no MR fields", mrID)
+	}
+	return issueToMRInfo(issue, fields), nil
 }
 
 // ClaimMR claims an MR for processing by setting the assignee field.
