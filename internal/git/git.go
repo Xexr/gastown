@@ -85,6 +85,11 @@ func (g *Git) IsRepo() bool {
 
 // run executes a git command and returns stdout.
 func (g *Git) run(args ...string) (string, error) {
+	return g.runWithEnv(args, nil)
+}
+
+// runWithEnv executes a git command with optional extra environment variables.
+func (g *Git) runWithEnv(args []string, extraEnv []string) (string, error) {
 	// If gitDir is set (bare repo), prepend --git-dir flag
 	if g.gitDir != "" {
 		args = append([]string{"--git-dir=" + g.gitDir}, args...)
@@ -93,6 +98,9 @@ func (g *Git) run(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	if g.workDir != "" {
 		cmd.Dir = g.workDir
+	}
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
 	}
 
 	var stdout, stderr bytes.Buffer
@@ -359,6 +367,18 @@ func (g *Git) Push(remote, branch string, force bool) error {
 		args = append(args, "--force")
 	}
 	_, err := g.run(args...)
+	return err
+}
+
+// PushWithEnv pushes to the remote branch with additional environment variables.
+// Used by gt mq integration land to set GT_INTEGRATION_LAND=1, which the
+// pre-push hook checks to allow integration branch → main merges.
+func (g *Git) PushWithEnv(remote, branch string, force bool, env []string) error {
+	args := []string{"push", remote, branch}
+	if force {
+		args = append(args, "--force")
+	}
+	_, err := g.runWithEnv(args, env)
 	return err
 }
 

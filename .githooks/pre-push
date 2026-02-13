@@ -2,10 +2,14 @@
 # Block PRs by preventing pushes to arbitrary feature branches.
 # Gas Town agents push to main (crew) or polecat/* branches (polecats).
 # PRs are for external contributors only.
+#
+# Integration branch safety: merging integration/* to main is blocked unless
+# GT_INTEGRATION_LAND=1 is set (only by gt mq integration land).
 
 # Allowed patterns:
 #   main, beads-sync  - Direct work branches
 #   polecat/*         - Polecat working branches (Refinery merges these)
+#   integration/*     - Integration branches (Refinery merges polecat work here)
 
 while read local_ref local_sha remote_ref remote_sha; do
   # Skip tags - they're allowed for releases
@@ -16,7 +20,7 @@ while read local_ref local_sha remote_ref remote_sha; do
   branch="${remote_ref#refs/heads/}"
 
   case "$branch" in
-    main|beads-sync|polecat/*)
+    main|beads-sync|polecat/*|integration/*)
       # Allowed branches
       ;;
     *)
@@ -29,15 +33,45 @@ while read local_ref local_sha remote_ref remote_sha; do
         echo "Blocked push to: $branch"
         echo ""
         echo "Allowed branches:"
-        echo "  main        - Crew workers push here directly"
-        echo "  polecat/*   - Polecat working branches"
-        echo "  beads-sync  - Beads synchronization"
+        echo "  main           - Crew workers push here directly"
+        echo "  polecat/*      - Polecat working branches"
+        echo "  integration/*  - Integration branches"
+        echo "  beads-sync     - Beads synchronization"
         echo ""
         echo "Do NOT create PRs. Push to main or let Refinery merge polecat work."
         exit 1
       fi
       ;;
   esac
+
+  # Safety guardrail: block integration branch merges to main unless authorized.
+  # Only gt mq integration land sets GT_INTEGRATION_LAND=1 — raw git commands
+  # from AI agents will not have this env var, preventing accidental bypasses
+  # of the auto_land=false setting.
+  if [[ "$branch" == "main" ]] && [[ "$GT_INTEGRATION_LAND" != "1" ]]; then
+    # Skip check for zero SHA (branch deletion) or initial push
+    if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]] || \
+       [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
+      continue
+    fi
+
+    # Check if any merge commits in this push have parents on integration/* branches
+    for commit in $(git rev-list "$remote_sha".."$local_sha" --merges 2>/dev/null); do
+      for parent in $(git log -1 --format='%P' "$commit"); do
+        # Check if this parent is the tip of any origin/integration/* ref
+        if git for-each-ref --format='%(objectname)' refs/remotes/origin/integration/ | grep -q "^${parent}$"; then
+          echo "BLOCKED: Push to main includes merge from integration branch."
+          echo ""
+          echo "Integration branches can only be landed via:"
+          echo "  gt mq integration land <epic-id>"
+          echo ""
+          echo "This ensures tests are run and all epic children are verified closed."
+          echo "Direct merges of integration branches to main are not allowed."
+          exit 1
+        fi
+      done
+    done
+  fi
 done
 
 exit 0

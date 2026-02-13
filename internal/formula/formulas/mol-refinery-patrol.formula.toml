@@ -42,6 +42,16 @@ exact command — not your own assumption. Do NOT guess what a step requires
 based on the step title or your role knowledge. The step description is the
 source of truth.
 
+## SAFETY: Integration Branch Landing
+
+Integration branches (integration/*) may ONLY be landed to main via
+`gt mq integration land <epic-id>`. This command runs safety checks (all epic
+children closed, tests pass) and is the ONLY authorized code path.
+
+FORBIDDEN: Running `git merge` or `git push` to land integration branches to main
+yourself. Even if auto_land is true, the landing MUST go through the gt CLI command.
+The pre-push hook will block unauthorized integration→main merges.
+
 ## Variables
 
 | Variable | Default | Description |
@@ -458,6 +468,11 @@ If delete_merged_branches is "false": Leave the remote branch intact.
 
 If you skipped notifications or archiving, GO BACK AND DO THEM NOW.
 
+FORBIDDEN: Merging integration/* branches to main in this step. Integration branches
+are landed ONLY in the check-integration-branches step via `gt mq integration land`.
+Never run `git merge origin/integration/*` or `git push origin main` with integration
+branch content. The pre-push hook will block this.
+
 Target branch has moved. Any remaining branches need rebasing on new baseline."""
 
 [[steps]]
@@ -522,11 +537,15 @@ description = """
 Read the two config values above, then:
 
 - If integration_branch_refinery_enabled = "false": Say "Integration branches disabled." Close step.
-- If integration_branch_auto_land = "false": Say "Auto-land disabled, nothing to do." Close step.
+- If integration_branch_auto_land = "false": Say "Auto-land disabled, skipping integration landing." Close step.
+  FORBIDDEN: Landing integration branches when auto_land is false. Do not run
+  `gt mq integration land`, do not merge integration branches to main, do not
+  bypass this check for any reason. The human overseer will land manually.
 - If BOTH are "true":
   1. `bd list --type=epic --status=open` to find epics
   2. `gt mq integration status <epic-id>` for each epic
   3. If `ready_to_land: true`: run `gt mq integration land <epic-id>`
+     This is the ONLY authorized way to land. Never use raw git commands.
   4. If `ready_to_land: false`: do nothing, epic work is incomplete
   Never land partial epics — ALL children must be closed first."""
 
