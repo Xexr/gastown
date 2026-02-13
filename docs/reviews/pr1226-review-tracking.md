@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `d92e2f35` (19 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 13 fixes) |
+| **PR branch HEAD** | `6b12bbd7` (21 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 13 fixes + 2 docs) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -21,7 +21,7 @@
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
 | **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | Q2 answer, MT-3 (blocked on infra) |
+| **Pending before squash** | MT-2 (design decision), MT-3 (blocked on infra), review doc cleanup |
 
 ---
 
@@ -115,7 +115,7 @@
 | # | Question | From | Status | Notes |
 |---|----------|------|--------|-------|
 | Q1 | Polecat spawn base always uses `origin/main`, not integration branch -- child #2 won't see child #1's changes. Intentional? | @julianknutsen | **Answered** | Answered in PR comment -- spawn logic DOES use integration branch via `polecat_spawn.go:111-130` auto-detection. The `manager.go` code Julian referenced is the fallback path. Julian thumbs-up'd the response. |
-| Q2 | `mol-polecat-work.formula.toml` changes recommended command from `bd ready` to `gt hook` -- intentional workflow change? | @julianknutsen | **Needs answer** | Need to respond on PR. Was this intentional or swept up in the base_branch pass? `gt-p7i`. |
+| Q2 | `mol-polecat-work.formula.toml` changes recommended command from `bd ready` to `gt hook` -- intentional workflow change? | @julianknutsen | **Answered** | Intentional. Polecats are pre-assigned via sling — `bd ready` (discovery) is redundant when work is already hooked. `gt hook` (assignment check) is the correct primitive: local read, no DB query, matches actual startup flow. Answered on PR. |
 
 ---
 
@@ -131,7 +131,7 @@
 6. ~~**`gt-52j`** (R4-6) -- Compile-time interface assertion~~ **DONE** (`1e7cc81f`)
 7. ~~**`gt-58n`** (R4-7) -- `.land-worktree/` doctor check for existing rigs~~ **DONE** (`35a8ac3e`)
 8. ~~**`gt-w0h`** (R4-8) -- Validation error message update~~ **DONE** (`1e7cc81f`)
-9. **`gt-p7i`** (Q2) -- Answer formula workflow change question
+9. ~~**`gt-p7i`** (Q2) -- Answer formula workflow change question~~ **DONE** (answered on PR)
 10. ~~**`gt-4fd`** -- Check formula version increments (+1 verified, refinery-patrol bumped 5→6)~~ **DONE** (`1e7cc81f`)
 
 ### Does not block squash
