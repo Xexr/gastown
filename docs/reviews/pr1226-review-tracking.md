@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `27cb2df9` (6 commits on upstream/main: 1 original + 5 cherry-picked fork PRs) |
+| **PR branch HEAD** | `c1ee17ec` (10 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 4 fixes) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -21,7 +21,7 @@
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
 | **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | R4-3 through R4-8 code fixes, Q2 answer, formula version check, duplicate var fix (`gt-bvx`), multi-rig test (`gt-e7w`) |
+| **Pending before squash** | R4-3 through R4-8 code fixes, Q2 answer, formula version check |
 
 ---
 
@@ -88,10 +88,10 @@
 | # | Finding | Source | Severity | Status | Bead | Notes |
 |---|---------|--------|----------|--------|------|-------|
 | F-1 | MT-1 root cause unresolved -- PR #3 fix is behavioral no-op, 0-MRs symptom may persist | PR #3 review | Minor | **Open** | `gt-6ck` | If symptom was real, root cause is elsewhere (DB routing, bd version, env setup) |
-| F-2 | Incomplete Type→Label migration -- 4 query-side callsites still use deprecated pattern | PR #3 review | Minor | **Open** | `gt-4sk` | mq_list.go:31, mq_next.go:63, status.go:1180, refinery/manager.go:224. Does not block squash. |
+| F-2 | Incomplete Type→Label migration -- 4 query-side callsites still use deprecated pattern | PR #3 review | Minor | **Fixed** | `gt-4sk` | mq_list.go:31, mq_next.go:63, status.go:1180, refinery/manager.go:224. Commit `c1ee17ec`. |
 | F-3 | Mock beads.List filters Type and Label independently, real impl treats as mutually exclusive | PR #3 review | Low | **Open** | `gt-p9m` | No current caller passes both fields. Does not block squash. |
-| F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Open** | `gt-bvx` | Should export from config package. **Blocks squash.** |
-| F-5 | No multi-rig test for DeprecatedMergeQueueKeysCheck | PR #7 review | Minor | **Open** | `gt-e7w` | Aggregation path untested. **Blocks squash.** |
+| F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Fixed** | `gt-bvx` | Exported from config package. Commit `d1e36649`. |
+| F-5 | No multi-rig test for DeprecatedMergeQueueKeysCheck | PR #7 review | Minor | **Fixed** | `gt-e7w` | Multi-rig test added (clean + dirty rig). Commit `543ecd23`. |
 | F-6 | `removeDeprecatedKeys` hardcodes 0o644 file permissions | PR #7 review | Low | **Open** | -- | Matches SaveRigSettings behavior. Not filed as bead. |
 | F-7 | Land function doesn't fetch before `resolveEpicBranch` (stale refs) | PR #4 review | Low | **Noted** | -- | Pre-existing condition, not a regression from PR #4. |
 
@@ -123,8 +123,8 @@
 
 ### Blocks final squash (`gt-3tm`)
 
-1. **`gt-bvx`** -- Fix duplicate `deprecatedMergeQueueKeys` variable (export from config package)
-2. **`gt-e7w`** -- Add multi-rig test for DeprecatedMergeQueueKeysCheck
+1. ~~**`gt-bvx`** -- Fix duplicate `deprecatedMergeQueueKeys` variable~~ **DONE** (`d1e36649`)
+2. ~~**`gt-e7w`** -- Add multi-rig test for DeprecatedMergeQueueKeysCheck~~ **DONE** (`543ecd23`)
 3. **`gt-x1z`** (R4-3) -- `land` local-only branch validation
 4. **`gt-61l`** (R4-4) -- `RefExists` error masking
 5. **`gt-03t`** (R4-5) -- Consistent error handling in `DetectIntegrationBranch`
@@ -136,7 +136,7 @@
 
 ### Does not block squash
 
-11. **`gt-4sk`** (F-2) -- Complete Type→Label migration across 4 remaining callsites
+11. ~~**`gt-4sk`** (F-2) -- Complete Type→Label migration across 4 remaining callsites~~ **DONE** (`c1ee17ec`)
 12. **`gt-6ck`** (F-1) -- Investigate 0-MRs root cause (may be transient)
 13. **`gt-p9m`** (F-3) -- Fix mock beads.List mutual-exclusivity inconsistency
 
@@ -159,7 +159,7 @@
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `27cb2df9` (6 commits: original + 5 fork PR cherry-picks) |
+| **PR branch HEAD** | `c1ee17ec` (10 commits: original + 5 fork PR cherry-picks + 4 fixes) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
 | **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
 | **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
