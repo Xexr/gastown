@@ -10,6 +10,118 @@ import (
 	"github.com/steveyegge/gastown/internal/beads"
 )
 
+// mockBranchChecker implements beads.BranchChecker for testing.
+type mockBranchChecker struct {
+	localBranches  map[string]bool
+	remoteBranches map[string]bool // key: "remote/branch"
+}
+
+func (m *mockBranchChecker) BranchExists(name string) (bool, error) {
+	return m.localBranches[name], nil
+}
+
+func (m *mockBranchChecker) RemoteBranchExists(remote, name string) (bool, error) {
+	key := remote + "/" + name
+	return m.remoteBranches[key], nil
+}
+
+// TestResolveEpicBranch_LegacyFallback verifies that when an epic has no
+// integration_branch metadata and the {title} branch doesn't exist, the
+// resolver falls back to the legacy {epic} template.
+// This is the regression test for review item #3: legacy epics created before
+// the {epic}→{title} template change become undiscoverable in land/status.
+func TestResolveEpicBranch_LegacyFallback(t *testing.T) {
+	tests := []struct {
+		name           string
+		epic           *beads.Issue
+		localBranches  map[string]bool
+		remoteBranches map[string]bool
+		checker        beads.BranchChecker // nil means no checker
+		want           string
+	}{
+		{
+			name: "metadata takes precedence over all templates",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "integration_branch: custom/my-branch\nSome description",
+			},
+			want: "custom/my-branch",
+		},
+		{
+			name: "primary title branch exists",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "Some description",
+			},
+			remoteBranches: map[string]bool{"origin/integration/add-user-auth": true},
+			want:           "integration/add-user-auth",
+		},
+		{
+			name: "primary missing but legacy epic branch exists on remote",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "Some description",
+			},
+			remoteBranches: map[string]bool{"origin/integration/gt-abc": true},
+			want:           "integration/gt-abc",
+		},
+		{
+			name: "primary missing but legacy exists locally",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "Some description",
+			},
+			localBranches: map[string]bool{"integration/gt-abc": true},
+			want:          "integration/gt-abc",
+		},
+		{
+			name: "neither branch exists returns primary as best guess",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "Some description",
+			},
+			want: "integration/add-user-auth",
+		},
+		{
+			name: "nil checker returns primary without existence check",
+			epic: &beads.Issue{
+				ID:          "gt-abc",
+				Type:        "epic",
+				Title:       "Add User Auth",
+				Description: "Some description",
+			},
+			checker: nil, // explicitly nil
+			want:    "integration/add-user-auth",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checker := tt.checker
+			if checker == nil && (tt.localBranches != nil || tt.remoteBranches != nil) {
+				checker = &mockBranchChecker{
+					localBranches:  tt.localBranches,
+					remoteBranches: tt.remoteBranches,
+				}
+			}
+			got := resolveEpicBranch(tt.epic, "", checker)
+			if got != tt.want {
+				t.Errorf("resolveEpicBranch() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFilterMRsByTarget(t *testing.T) {
 	// Create test MRs with different targets
 	mrs := []*beads.Issue{

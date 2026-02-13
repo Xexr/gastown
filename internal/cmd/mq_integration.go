@@ -196,6 +196,8 @@ func resolveUniqueBranchName(g *git.Git, branchName, epicID string) (string, err
 // metadata, falling back to template computation if no metadata exists.
 // This is the correct way to resolve an epic's integration branch name from callers
 // that only have an epic ID (e.g., mq list --epic, mq submit --epic).
+// Note: without a BranchChecker, this cannot try the legacy fallback with existence
+// checking. Callers with git access should use resolveEpicBranch directly.
 func resolveIntegrationBranchName(bd *beads.Beads, rigPath, epicID string) string {
 	epic, err := bd.Show(epicID)
 	if err != nil {
@@ -204,13 +206,53 @@ func resolveIntegrationBranchName(bd *beads.Beads, rigPath, epicID string) strin
 		// (the {title} template with no title would fall back to epic ID anyway).
 		return buildIntegrationBranchName(beads.LegacyIntegrationBranchTemplate, epicID, "")
 	}
-	// Prefer stored metadata (set at create time)
+	// Delegate to resolveEpicBranch (nil checker = no existence check)
+	return resolveEpicBranch(epic, rigPath, nil)
+}
+
+// resolveEpicBranch resolves an epic's integration branch name.
+// Resolution order: metadata → configured template → legacy {epic} template.
+// When checker is non-nil, branch existence is verified and the legacy template
+// is tried as a fallback for epics created before the {title} default.
+func resolveEpicBranch(epic *beads.Issue, rigPath string, checker beads.BranchChecker) string {
+	// 1. Explicit metadata takes precedence
 	if branch := getIntegrationBranchField(epic.Description); branch != "" {
 		return branch
 	}
-	// Fall back to template computation
+
+	// 2. Compute from configured template
 	template := getIntegrationBranchTemplate(rigPath, "")
-	return buildIntegrationBranchName(template, epicID, epic.Title)
+	primaryBranch := buildIntegrationBranchName(template, epic.ID, epic.Title)
+
+	// 3. Without a checker, best-effort return the primary name
+	if checker == nil {
+		return primaryBranch
+	}
+
+	// 4. Check if primary branch exists
+	if branchExistsAnywhere(checker, primaryBranch) {
+		return primaryBranch
+	}
+
+	// 5. Try legacy {epic} template as fallback for pre-{title} epics
+	legacyBranch := buildIntegrationBranchName(beads.LegacyIntegrationBranchTemplate, epic.ID, epic.Title)
+	if legacyBranch != primaryBranch && branchExistsAnywhere(checker, legacyBranch) {
+		return legacyBranch
+	}
+
+	// 6. Nothing found — return primary name (callers handle "not found")
+	return primaryBranch
+}
+
+// branchExistsAnywhere checks if a branch exists on the remote or locally.
+func branchExistsAnywhere(checker beads.BranchChecker, name string) bool {
+	exists, err := checker.RemoteBranchExists("origin", name)
+	if err == nil && exists {
+		return true
+	}
+	// Remote not found or check failed — try local
+	localExists, _ := checker.BranchExists(name)
+	return localExists
 }
 
 // getIntegrationBranchTemplate returns the integration branch template to use.
@@ -409,12 +451,9 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("'%s' is a %s, not an epic", epicID, epic.Type)
 	}
 
-	// Get integration branch name from epic metadata (stored at create time)
-	// Fall back to default template for backward compatibility with old epics
-	branchName := getIntegrationBranchField(epic.Description)
-	if branchName == "" {
-		branchName = buildIntegrationBranchName(defaultIntegrationBranchTemplate, epicID, epic.Title)
-	}
+	// Get integration branch name — tries metadata, then {title} template,
+	// then legacy {epic} template with branch existence checking.
+	branchName := resolveEpicBranch(epic, r.Path, g)
 
 	// Read base_branch from epic metadata (where to merge back)
 	// Fall back to rig's default_branch for backward compat with pre-base-branch epics
@@ -726,8 +765,17 @@ func runMqIntegrationStatus(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Initialize beads for the rig
+	// Initialize beads and git for the rig
 	bd := beads.New(r.Path)
+	g, err := getRigGit(r.Path)
+	if err != nil {
+		return fmt.Errorf("initializing git: %w", err)
+	}
+
+	// Fetch from origin to ensure we have latest refs (needed for branch detection)
+	if err := g.Fetch("origin"); err != nil {
+		// Non-fatal, continue with local data
+	}
 
 	// Fetch epic to get stored branch name
 	epic, err := bd.Show(epicID)
@@ -738,29 +786,15 @@ func runMqIntegrationStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("fetching epic: %w", err)
 	}
 
-	// Get integration branch name from epic metadata (stored at create time)
-	// Fall back to default template for backward compatibility with old epics
-	branchName := getIntegrationBranchField(epic.Description)
-	if branchName == "" {
-		branchName = buildIntegrationBranchName(defaultIntegrationBranchTemplate, epicID, epic.Title)
-	}
+	// Get integration branch name — tries metadata, then {title} template,
+	// then legacy {epic} template with branch existence checking.
+	branchName := resolveEpicBranch(epic, r.Path, g)
 
 	// Read base_branch from epic metadata (where to merge back)
 	// Fall back to rig's default_branch for backward compat with pre-base-branch epics
 	baseBranch := beads.GetBaseBranchField(epic.Description)
 	if baseBranch == "" {
 		baseBranch = r.DefaultBranch()
-	}
-
-	// Initialize git for the rig
-	g, err := getRigGit(r.Path)
-	if err != nil {
-		return fmt.Errorf("initializing git: %w", err)
-	}
-
-	// Fetch from origin to ensure we have latest refs
-	if err := g.Fetch("origin"); err != nil {
-		// Non-fatal, continue with local data
 	}
 
 	// Check if integration branch exists (locally or remotely)
