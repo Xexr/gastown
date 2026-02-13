@@ -456,6 +456,12 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("'%s' is a %s, not an epic", epicID, epic.Type)
 	}
 
+	epicAlreadyClosed := epic.Status == "closed"
+	if epicAlreadyClosed {
+		fmt.Printf("  %s Epic is already closed (may have been landed by another process)\n",
+			style.Bold.Render("⚠"))
+	}
+
 	// Fetch early so resolveEpicBranch and subsequent branch-existence
 	// checks operate on up-to-date refs (matches status which also fetches first).
 	fmt.Printf("Fetching latest from origin...\n")
@@ -582,7 +588,7 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 	if err == nil && alreadyMerged {
 		fmt.Printf("  %s Integration branch already merged into %s — skipping to cleanup\n",
 			style.Bold.Render("✓"), targetBranch)
-		if warnings := cleanupIntegrationBranch(g, bd, epicID, branchName, targetBranch); len(warnings) > 0 {
+		if warnings := cleanupIntegrationBranch(g, bd, epicID, branchName, targetBranch, epicAlreadyClosed); len(warnings) > 0 {
 			return fmt.Errorf("landed but cleanup incomplete: %s", strings.Join(warnings, "; "))
 		}
 		return nil
@@ -651,7 +657,7 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("  %s Pushed to origin\n", style.Bold.Render("✓"))
 
-	if warnings := cleanupIntegrationBranch(g, bd, epicID, branchName, targetBranch); len(warnings) > 0 {
+	if warnings := cleanupIntegrationBranch(g, bd, epicID, branchName, targetBranch, epicAlreadyClosed); len(warnings) > 0 {
 		return fmt.Errorf("landed but cleanup incomplete: %s", strings.Join(warnings, "; "))
 	}
 	return nil
@@ -659,8 +665,9 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 
 // cleanupIntegrationBranch deletes the integration branch (local + remote) and closes the epic.
 // Shared by the normal merge path and the idempotency early-return path.
+// If epicAlreadyClosed is true, skips the bd.Close call (another process already closed it).
 // Returns a list of warnings for any cleanup steps that failed (non-fatal).
-func cleanupIntegrationBranch(g *git.Git, bd *beads.Beads, epicID, branchName, targetBranch string) []string {
+func cleanupIntegrationBranch(g *git.Git, bd *beads.Beads, epicID, branchName, targetBranch string, epicAlreadyClosed bool) []string {
 	var warnings []string
 
 	// Delete integration branch (use bare repo git — ref-only operations)
@@ -684,7 +691,9 @@ func cleanupIntegrationBranch(g *git.Git, bd *beads.Beads, epicID, branchName, t
 
 	// Update epic status
 	fmt.Printf("Updating epic status...\n")
-	if err := bd.Close(epicID); err != nil {
+	if epicAlreadyClosed {
+		fmt.Printf("  %s Epic was already closed (skipping)\n", style.Dim.Render("—"))
+	} else if err := bd.Close(epicID); err != nil {
 		warning := fmt.Sprintf("could not close epic: %v", err)
 		warnings = append(warnings, warning)
 		fmt.Printf("  %s\n", style.Dim.Render(fmt.Sprintf("(%s)", warning)))

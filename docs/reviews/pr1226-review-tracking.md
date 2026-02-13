@@ -21,7 +21,7 @@
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
 | **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | MT-2 (design decision), MT-3 (blocked on infra), review doc cleanup |
+| **Pending before squash** | MT-3 (blocked on infra), test plan runs (`gt-tsl`, `gt-dmt`), review doc cleanup |
 
 ---
 
@@ -65,7 +65,7 @@
 | # | Finding | Severity | Status | Fork PR | Notes |
 |---|---------|----------|--------|---------|-------|
 | MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Fixed** | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | PR #3 cherry-picked as code hygiene (behavioral no-op). **Actual root cause** found in `gt-6ck`: `Status:""` excluded closed MRs + `--limit=50` truncation + mock divergence. All three fixed in `637c4167`. |
-| MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Open** | -- | Lifecycle timing issue. Design decision needed: delay auto-close, re-open during land, or decouple. `gt-2rz`. |
+| MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Fixed** (symptom of MT-3) | -- | Investigation proved `bd close` does NOT auto-close parent epics. Root cause: refinery AI (MT-3) explicitly ran `bd close` after unauthorized landing. Resilience improvement: land command warns on pre-closed epics, skips redundant close. `gt-2rz`. |
 | MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Open** (Draft PR reviewed) | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) | Three-layer enforcement architecture reviewed and validated. Blocked on core.hooksPath gap in WorktreeAddExisting() — Layer 2 ineffective on fresh rigs. Need infrastructure fix before folding. `gt-58j`, `gt-627`. |
 | MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Fixed** | -- | Existence check + `--force` flag added. Commit `0044b172`. |
 | MT-5 | PR reverts wisp hooking fix from #1372 in refinery + witness formulas | Minor | **Resolved** | -- | Fixed by rebasing onto upstream/main which includes #1372. |
@@ -142,13 +142,18 @@
 
 ### Open — needs design decision or infrastructure work
 
-14. **`gt-2rz`** (MT-2) -- Epic auto-closed before integration land. Design decision: delay auto-close, re-open during land, or decouple lifecycle. Likely simplest: land re-opens if auto-closed.
+14. ~~**`gt-2rz`** (MT-2) -- Epic auto-closed before integration land~~ **DONE** — Root cause is MT-3 (refinery bypassing guard). `bd` does NOT auto-close epics. Resilience improvement added to land command.
 15. **`gt-58j`** / **`gt-627`** (MT-3) -- Refinery formula guardrails for auto_land. Fork PR #8 reviewed, architecture validated. Blocked on core.hooksPath not set in WorktreeAddExisting(). Need infra fix before folding.
 16. ~~**`gt-dgt`** (MT-4) -- Duplicate `mq integration create` guard~~ **DONE** (`0044b172`)
 
+### Blocks squash — test plan runs
+
+17. **`gt-tsl`** -- Rerun internal integration branch test plan (`docs/reviews/pr-1226-integration-branch-test-plan.md`)
+18. **`gt-dmt`** -- Run Julian's E2E test plan ([gist](https://gist.github.com/julianknutsen/04217bd547d382ce5c6e37f44d3700bf))
+
 ### Out of scope for this PR
 
-17. **`gt-efd`** (R2-4) -- Additional cmd/ unit test coverage (future-scoped)
+19. **`gt-efd`** (R2-4) -- Additional cmd/ unit test coverage (future-scoped)
 
 ---
 
