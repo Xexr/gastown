@@ -187,6 +187,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	d.Register(doctor.NewClaudeSettingsCheck())
 	d.Register(doctor.NewDeprecatedMergeQueueKeysCheck())
 	d.Register(doctor.NewLandWorktreeGitignoreCheck())
+	d.Register(doctor.NewHooksPathAllRigsCheck())
 
 	// Sparse checkout migration (runs across all rigs, not just --rig mode)
 	d.Register(doctor.NewSparseCheckoutCheck())
