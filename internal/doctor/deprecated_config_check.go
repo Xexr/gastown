@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-)
 
-// deprecatedMergeQueueKeys lists merge_queue config keys that have been removed.
-// target_branch was replaced by rig default_branch in config.json.
-// integration_branches was replaced by per-field *bool controls.
-var deprecatedMergeQueueKeys = []string{"target_branch", "integration_branches"}
+	"github.com/steveyegge/gastown/internal/config"
+)
 
 // DeprecatedMergeQueueKeysCheck detects stale deprecated keys in merge_queue config.
 // These keys are silently ignored by json.Unmarshal, so rigs with them may have
@@ -104,7 +101,7 @@ func findDeprecatedKeys(path string) []string {
 	}
 
 	var found []string
-	for _, key := range deprecatedMergeQueueKeys {
+	for _, key := range config.DeprecatedMergeQueueKeys {
 		if _, ok := raw.MergeQueue[key]; ok {
 			found = append(found, key)
 		}
