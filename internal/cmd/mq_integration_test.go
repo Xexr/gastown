@@ -571,6 +571,76 @@ func TestResolveEpicTarget(t *testing.T) {
 	}
 }
 
+// TestBuildIntegrationBranchName_NeverProducesInvalidRef verifies that
+// buildIntegrationBranchName never produces a branch name that ends with "/"
+// (an invalid git ref). This is the regression test for review item #5:
+// empty epic title with {title} template could produce "integration/".
+func TestBuildIntegrationBranchName_NeverProducesInvalidRef(t *testing.T) {
+	tests := []struct {
+		name      string
+		template  string
+		epicID    string
+		epicTitle string
+	}{
+		{
+			name:      "empty title with default template",
+			template:  "",
+			epicID:    "gt-99",
+			epicTitle: "",
+		},
+		{
+			name:      "empty title with explicit title template",
+			template:  "integration/{title}",
+			epicID:    "gt-99",
+			epicTitle: "",
+		},
+		{
+			name:      "special-chars-only title",
+			template:  "integration/{title}",
+			epicID:    "gt-42",
+			epicTitle: "!@#$%^&*()",
+		},
+		{
+			name:      "whitespace-only title",
+			template:  "integration/{title}",
+			epicID:    "gt-7",
+			epicTitle: "   ",
+		},
+		{
+			name:      "empty title with epic template (should always work)",
+			template:  "integration/{epic}",
+			epicID:    "gt-abc",
+			epicTitle: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildIntegrationBranchName(tt.template, tt.epicID, tt.epicTitle)
+
+			// Must never produce an invalid git ref
+			if err := validateBranchName(got); err != nil {
+				t.Errorf("buildIntegrationBranchName(%q, %q, %q) = %q, which is invalid: %v",
+					tt.template, tt.epicID, tt.epicTitle, got, err)
+			}
+
+			// Must never end with "/" (the specific bug case)
+			if strings.HasSuffix(got, "/") {
+				t.Errorf("buildIntegrationBranchName(%q, %q, %q) = %q ends with '/' (invalid git ref)",
+					tt.template, tt.epicID, tt.epicTitle, got)
+			}
+
+			// Must contain content after the last "/"
+			parts := strings.Split(got, "/")
+			lastPart := parts[len(parts)-1]
+			if lastPart == "" {
+				t.Errorf("buildIntegrationBranchName(%q, %q, %q) = %q has empty segment after last '/'",
+					tt.template, tt.epicID, tt.epicTitle, got)
+			}
+		})
+	}
+}
+
 func TestExtractEpicNumericSuffix(t *testing.T) {
 	tests := []struct {
 		epicID string
