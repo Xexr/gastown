@@ -694,11 +694,11 @@ func (g *Git) BranchExists(name string) (bool, error) {
 func (g *Git) RefExists(ref string) (bool, error) {
 	_, err := g.run("rev-parse", "--verify", ref)
 	if err != nil {
-		// rev-parse --verify exits non-zero when ref doesn't exist.
-		// The GitError wraps stderr (e.g. "fatal: Needed a single revision")
-		// which indicates the ref is simply missing, not an infrastructure failure.
+		// Only treat "ref missing" as false — propagate other failures
+		// (e.g. corrupted repo, permissions, disk I/O).
 		var gitErr *GitError
-		if errors.As(err, &gitErr) {
+		if errors.As(err, &gitErr) &&
+			strings.Contains(gitErr.Stderr, "Needed a single revision") {
 			return false, nil
 		}
 		return false, err
