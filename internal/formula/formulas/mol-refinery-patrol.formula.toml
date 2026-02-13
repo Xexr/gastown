@@ -206,7 +206,7 @@ This command:
 **Read the exit code and output** — the MR ID is printed for use with merge/reject:
 
 - **Exit 0**: All quality gates passed. The MR ID is in the output.
-  Proceed to **merge-or-reject** step to complete the merge.
+  Proceed to **accept-or-reject** step to complete the merge.
 
 - **Exit 1**: Rebase conflict detected. Resolution task created automatically.
   The MR is blocked until the task is resolved. Note the task ID from output.
@@ -214,7 +214,7 @@ This command:
 
 - **Exit 2**: Quality gate failed. The output shows which gate and the error.
   The MR is NOT rejected yet — YOU must diagnose the failure first.
-  Proceed to **merge-or-reject** step (the diagnosis happens there).
+  Proceed to **accept-or-reject** step (the diagnosis happens there).
 
 - **Exit 3**: Queue empty. Skip to **check-integration-branches**.
 
@@ -225,13 +225,13 @@ This command:
 ```bash
 gt mail archive <merge-ready-message-id>
 ```
-(Exits 0 and 2 archive after merge-or-reject. Exit 4 does NOT archive.)
+(Exits 0 and 2 archive after accept-or-reject. Exit 4 does NOT archive.)
 
 FORBIDDEN: Running raw git merge/rebase/push commands. The command does this.
 FORBIDDEN: Sending MERGED or MERGE_FAILED mail manually."""
 
 [[steps]]
-id = "merge-or-reject"
+id = "accept-or-reject"
 title = "Diagnose failure (if any) and merge or reject"
 needs = ["prepare-mr"]
 description = """
@@ -305,7 +305,7 @@ FORBIDDEN: Closing MR beads or source issues manually. The commands do this."""
 [[steps]]
 id = "loop-check"
 title = "Check for more work"
-needs = ["merge-or-reject"]
+needs = ["accept-or-reject"]
 description = """
 More MRs to process?
 
