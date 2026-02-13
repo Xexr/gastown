@@ -324,7 +324,151 @@ These findings affect what we can and should test:
 
 ---
 
-## 4. Existing Test Infrastructure
+## 4. Deep Investigation: Conflict Resolution Pipeline Gaps
+
+Section 3 identified the dispatch gap. This section reports a deeper investigation that uncovered **six interconnected gaps** in the conflict resolution pipeline — and confirmed that the entire pathway has **never been exercised in production**.
+
+### 4.1 Zero conflict tasks have ever been created
+
+A comprehensive search of the gastown beads database found:
+
+| Query | Results |
+|-------|---------|
+| `bd search "Resolve merge"` | No issues found |
+| `bd search "merge conflict"` | No issues found |
+| `bd list --type=merge-request --json` | `[]` (empty) |
+| `bd list --label=gt:merge-request --json` | `[]` (empty) |
+| `gt mq list gastown` | (empty) |
+
+No conflict resolution tasks have ever been created on this rig. No MR beads exist at all. **The entire conflict resolution pipeline is untested in practice — not just the dispatch, but the creation itself.**
+
+### 4.2 Format incompatibility between creation and consumption
+
+The `mol-polecat-conflict-resolve` formula expects structured metadata in the task description:
+
+```
+## Metadata
+- Original MR: <mr-id>
+- Branch: <branch>
+- Conflict with: <target>@<main-sha>
+- Original issue: <source-issue>
+- Retry count: <count>
+```
+
+But the refinery patrol formula (the only production path) creates a **different format**:
+
+```
+## Conflict Resolution Required
+
+Original MR: <mr-bead-id>
+Branch: <polecat-branch>
+Original Issue: <issue-id>
+Conflict with main at: ${MAIN_SHA}
+Branch SHA: ${BRANCH_SHA}
+```
+
+| Field | Conflict-resolve expects | Formula creates |
+|-------|-------------------------|-----------------|
+| Header | `## Metadata` | `## Conflict Resolution Required` |
+| MR field | `- Original MR: <id>` | `Original MR: <id>` (no list marker) |
+| SHA field | `- Conflict with: <target>@<sha>` | `Conflict with main at: <sha>` (different format) |
+| Retry count | `- Retry count: <N>` | Not included |
+| Branch field | `- Branch: <branch>` | `Branch: <branch>` (no list marker) |
+
+The conflict-resolve formula's load-task step tells the polecat to parse `## Metadata` with `- Field: value` syntax. The refinery formula creates prose without list markers and a different header. **Two different authors created incompatible formats.** A polecat following the conflict-resolve formula would fail to extract the metadata it needs.
+
+The Engineer's `createConflictResolutionTaskForMR()` (dead code) produces the structured `## Metadata` format that the conflict-resolve formula expects — but it's never called.
+
+### 4.3 Infinite retry loop / duplicate task creation
+
+The formula path **does not block the MR** on the conflict task. The Engineer's dead code calls `e.beads.AddDependency(mr.ID, taskID)` — the formula does not.
+
+Consequence on the next patrol cycle:
+1. Claude runs `gt mq list` → sees the MR still open (no blocker)
+2. Tries rebase again → hits the same conflict
+3. Creates **another** conflict resolution task
+4. Repeat every patrol cycle (default 30s interval)
+
+After 10 patrol cycles: 10 identical conflict tasks in `bd ready`, the MR still stuck, no resolution dispatched. The Engineer's dependency-blocking prevents this entirely — blocked MRs don't appear in `ListReadyMRs()`.
+
+### 4.4 No agent auto-dispatches conflict tasks
+
+Verified across every agent role in the system:
+
+| Agent | Role | Scans `bd ready`? | Dispatches conflict tasks? |
+|-------|------|-------------------|---------------------------|
+| **Witness** | Polecat monitor | No — reacts to mail only | No |
+| **Deacon** | Infrastructure health | No — dispatches gated molecules and convoy dogs | No |
+| **Boot** | Deacon watchdog | No — monitors Deacon health only | No |
+| **Refinery** | Merge processor | Creates task, stops there | No `gt sling` call |
+
+The deacon's `dispatch-gated-molecules` step dispatches gated molecules and stranded convoys. It has no awareness of conflict tasks. The witness's patrol only handles inbox mail (POLECAT_DONE, MERGE_FAILED, HELP). **No agent monitors `bd ready` for conflict tasks.**
+
+### 4.5 MERGE_FAILED protocol is silent on conflicts
+
+The refinery formula sends `MERGE_FAILED` mail to the witness **only for test/build failures**:
+
+```
+gt mail send <rig>/witness -s "MERGE_FAILED <polecat>" -m "...FailureType: quality-check..."
+```
+
+For **conflicts**, the formula just creates a task and skips — no mail is sent. The witness is never notified that a conflict occurred. This means:
+- No mail-based trigger exists for conflict resolution
+- The conflict task is created silently
+- Even if the witness had a conflict-dispatch handler, it would never fire because no conflict mail arrives
+
+### 4.6 Merge slot only exists in dead code
+
+The `mol-polecat-conflict-resolve` formula's step 2 (acquire-slot) tells the polecat to run `bd merge-slot acquire --wait`. This serializes resolution so only one polecat resolves conflicts at a time.
+
+But the merge slot **setup** happens in `createConflictResolutionTaskForMR()` (Engineer, dead code):
+
+```go
+// engineer.go:702-724
+slotID, err := e.beads.MergeSlotEnsureExists()
+status, err := e.beads.MergeSlotAcquire(holder, false)
+```
+
+The formula path doesn't call any merge-slot setup. If the formula created a conflict task and someone manually slung it with `mol-polecat-conflict-resolve`:
+1. Polecat would try `bd merge-slot acquire --wait`
+2. The slot may not exist yet (never created by `MergeSlotEnsureExists()`)
+3. The `bd merge-slot` command may handle this gracefully (auto-create on first acquire) or may error — **this has never been tested**
+
+### 4.7 Summary: six interconnected gaps
+
+```
+Gap 1: Format incompatibility
+  Formula creates prose → conflict-resolve formula expects structured ## Metadata
+  Result: polecat can't extract metadata from task description
+
+Gap 2: No MR blocking
+  Formula doesn't call AddDependency → MR stays in queue
+  Result: infinite retry loop, duplicate conflict tasks every patrol cycle
+
+Gap 3: No dispatch
+  No agent scans bd ready → conflict task sits indefinitely
+  Result: manual human intervention required
+
+Gap 4: No notification
+  Formula doesn't send MERGE_FAILED for conflicts → witness unaware
+  Result: no mail-based trigger for conflict resolution
+
+Gap 5: No merge-slot setup
+  Formula doesn't call MergeSlotEnsureExists → slot may not exist
+  Result: conflict-resolve polecat may error on slot acquisition
+
+Gap 6: Never exercised
+  Zero conflict tasks in beads DB → pipeline entirely theoretical
+  Result: all five gaps above are latent, none have been discovered via production use
+```
+
+These gaps compound: even if Gap 3 (dispatch) were fixed, Gaps 1 and 5 would prevent the polecat from succeeding. Even if all gaps were fixed in the formula, Gap 2 would still create duplicate tasks until the MR is resolved.
+
+**The Engineer's dead code addresses Gaps 1, 2, 4, and 5.** It creates structured metadata (Gap 1), blocks the MR (Gap 2), integrates with the MERGE_FAILED handler (Gap 4), and sets up the merge slot (Gap 5). Wiring it into a production command would close most of these gaps simultaneously.
+
+---
+
+## 5. Existing Test Infrastructure
 
 ### Test helpers already available
 
@@ -351,7 +495,7 @@ These findings affect what we can and should test:
 
 ---
 
-## 5. Proposed Architecture
+## 6. Proposed Architecture
 
 ### New build tag: `e2e`
 
@@ -409,7 +553,7 @@ jobs:
 
 ---
 
-## 6. Challenges & Mitigations
+## 7. Challenges & Mitigations
 
 ### Challenge 1: Beads (`bd`) dependency
 
@@ -492,7 +636,7 @@ Tests needed:
 
 ---
 
-## 7. Test Coverage Mapping
+## 8. Test Coverage Mapping
 
 ### Julian's 28 tests → Automated tests
 
@@ -526,7 +670,7 @@ test our actual code paths.
 
 ---
 
-## 8. Open Questions
+## 9. Open Questions
 
 1. **Mock bd vs real bd?** Mock is simpler and faster. Real bd tests more but needs either flat-file backend or dolt. Recommend starting with mock.
 
@@ -536,11 +680,15 @@ test our actual code paths.
 
 4. **Should `testutil` fixtures live in the e2e package or be shared?** Start in `internal/e2e/testutil/`. If other packages need them later, promote to `internal/testutil/`.
 
-5. **What to do about Engineer's unused merge methods?** `ProcessMR()`, `ProcessMRInfo()`, `doMerge()`, `handleSuccess()`, `HandleMRInfoSuccess()`, `HandleMRInfoFailure()` have zero callers in the entire codebase. Options: (a) leave as-is (harmless dead code), (b) wire them into a `gt refinery process` command so the production path has a programmatic option, (c) remove them. If (b), then e2e tests could call the command instead of simulating git operations. This is a design question for the upstream maintainers.
+5. **What to do about Engineer's unused merge methods?** `ProcessMR()`, `ProcessMRInfo()`, `doMerge()`, `handleSuccess()`, `HandleMRInfoSuccess()`, `HandleMRInfoFailure()` have zero callers in the entire codebase. Options: (a) leave as-is (harmless dead code), (b) wire them into a `gt refinery process` command so the production path has a programmatic option, (c) remove them. If (b), then e2e tests could call the command instead of simulating git operations. **Section 4 strengthens the case for (b)**: the Engineer's dead code already solves five of the six conflict resolution gaps (format compatibility, MR blocking, notification, merge-slot setup, and serialization). Wiring it in would simultaneously fix the conflict pipeline and make it testable. This is a design question for the upstream maintainers.
+
+6. **Should the conflict resolution pipeline be fixed before e2e tests are written?** Section 4 documents six compounding gaps. Writing e2e tests for the conflict path (Julian's Part E: E1-E5) would essentially be testing a pipeline that doesn't work end-to-end. Options: (a) write tests that document the current broken behavior (test-as-specification), (b) fix the pipeline first then write tests against the fixed behavior, (c) write tests against the *intended* behavior (Engineer's approach) as a forcing function for wiring it in.
+
+7. **Is the `bd merge-slot` command resilient to missing slot?** The conflict-resolve formula tells the polecat to run `bd merge-slot acquire --wait`, but the slot creation (`MergeSlotEnsureExists`) only exists in the Engineer's dead code. Does `bd merge-slot acquire` auto-create the slot, or does it error? This needs testing.
 
 ---
 
-## 9. References
+## 10. References
 
 - Julian's manual test plan: https://gist.github.com/julianknutsen/04217bd547d382ce5c6e37f44d3700bf
 - Xexr's adapted test plan: https://gist.github.com/Xexr/f6c6902fe818aad7ccdf645d21e08a49
