@@ -92,7 +92,7 @@
 | F-3 | Mock beads.List filters Type and Label independently, real impl treats as mutually exclusive | PR #3 review | Low | **Fixed** | `gt-p9m` | Mock now matches real behavior. Commit `a562e15a`. |
 | F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Fixed** | `gt-bvx` | Exported from config package. Commit `d1e36649`. |
 | F-5 | No multi-rig test for DeprecatedMergeQueueKeysCheck | PR #7 review | Minor | **Fixed** | `gt-e7w` | Multi-rig test added (clean + dirty rig). Commit `543ecd23`. |
-| F-6 | `removeDeprecatedKeys` hardcodes 0o644 file permissions | PR #7 review | Low | **Open** | -- | Matches SaveRigSettings behavior. Not filed as bead. |
+| F-6 | `removeDeprecatedKeys` hardcodes 0o644 file permissions | PR #7 review | Low | **Disagree** | -- | Matches SaveRigSettings (which has explicit gosec comment). Rig settings don't contain secrets. Every config write in codebase uses 0644. |
 | F-7 | Land function doesn't fetch before `resolveEpicBranch` (stale refs) | PR #4 review | Low | **Fixed** | `gt-45o` | Moved fetch before resolveEpicBranch, removed duplicate. Commit `d92e2f35`. |
 
 ---
