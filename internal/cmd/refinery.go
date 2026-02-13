@@ -884,15 +884,6 @@ func runRefineryBlocked(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// ProcessExitError wraps a process result with an exit code.
-// The cobra RunE handler returns this so deferred cleanup (ReleaseMR) runs before exit.
-type ProcessExitError struct {
-	ExitCode int
-	Message  string
-}
-
-func (e *ProcessExitError) Error() string { return e.Message }
-
 func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
 	rigName := ""
 	if len(args) > 0 {
@@ -916,16 +907,22 @@ func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
 	}
 	if len(ready) == 0 {
 		fmt.Println("Queue empty — nothing to process")
-		return &ProcessExitError{ExitCode: 3, Message: "queue empty"}
+		return NewSilentExit(3)
 	}
 	mr := ready[0]
 
-	// Claim it
+	// Claim it — release on failure paths only.
+	// On success, HandleMRInfoSuccess closes the MR bead, so releasing
+	// (clearing assignee) would error on the closed bead.
 	workerID := getWorkerID()
 	if err := eng.ClaimMR(mr.ID, workerID); err != nil {
 		return fmt.Errorf("claiming MR %s: %w", mr.ID, err)
 	}
+	merged := false
 	defer func() {
+		if merged {
+			return // MR bead is closed — don't try to update it
+		}
 		if releaseErr := eng.ReleaseMR(mr.ID); releaseErr != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to release MR %s: %v\n", mr.ID, releaseErr)
 		}
@@ -937,9 +934,10 @@ func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	result := eng.ProcessMRInfo(ctx, mr)
 
-	// Handle result
+	// Handle result — print status, then return SilentExitError for exit code
 	if result.Success {
 		eng.HandleMRInfoSuccess(mr, result)
+		merged = true
 		fmt.Printf("Done: merged at %s\n", result.MergeCommit)
 		return nil // exit 0
 	}
@@ -947,10 +945,13 @@ func runRefineryProcessNext(cmd *cobra.Command, args []string) error {
 	eng.HandleMRInfoFailure(mr, result)
 
 	if result.Conflict {
-		return &ProcessExitError{ExitCode: 1, Message: fmt.Sprintf("conflict — %s", result.Error)}
+		fmt.Printf("Done: conflict — %s\n", result.Error)
+		return NewSilentExit(1)
 	}
 	if result.TestsFailed {
-		return &ProcessExitError{ExitCode: 2, Message: fmt.Sprintf("test failure — %s", result.Error)}
+		fmt.Printf("Done: test failure — %s\n", result.Error)
+		return NewSilentExit(2)
 	}
-	return &ProcessExitError{ExitCode: 4, Message: fmt.Sprintf("error — %s", result.Error)}
+	fmt.Fprintf(os.Stderr, "Error: %s\n", result.Error)
+	return NewSilentExit(4)
 }

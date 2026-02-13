@@ -289,10 +289,17 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		}
 	}
 
-	if e.config.MergeStrategy == "squash" {
+	switch e.config.MergeStrategy {
+	case "squash":
 		return e.doMergeSquash(ctx, branch, target, sourceIssue)
+	case "rebase-ff", "":
+		return e.doMergeRebaseFF(ctx, branch, target, sourceIssue)
+	default:
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("unknown merge strategy %q (must be \"rebase-ff\" or \"squash\")", e.config.MergeStrategy),
+		}
 	}
-	return e.doMergeRebaseFF(ctx, branch, target, sourceIssue)
 }
 
 // doMergeSquash performs a squash merge: checkout target, check conflicts, test, squash, push.
@@ -375,7 +382,7 @@ func (e *Engineer) doMergeSquash(ctx context.Context, branch, target, sourceIssu
 // doMergeRebaseFF performs a rebase + fast-forward merge: fetch target, rebase
 // branch onto target, run tests on rebased branch, checkout target, ff-only merge, push.
 // Matches the production formula behavior. Produces linear history.
-func (e *Engineer) doMergeRebaseFF(ctx context.Context, branch, target, _ string) ProcessResult {
+func (e *Engineer) doMergeRebaseFF(ctx context.Context, branch, target, sourceIssue string) ProcessResult { //nolint:unparam // sourceIssue kept for signature consistency with doMergeSquash
 	// Fetch latest target from origin
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Fetching origin/%s...\n", target)
 	if err := e.git.FetchBranch("origin", target); err != nil {
@@ -395,6 +402,7 @@ func (e *Engineer) doMergeRebaseFF(ctx context.Context, branch, target, _ string
 	}
 	if err := e.git.Rebase("origin/" + target); err != nil {
 		_ = e.git.AbortRebase()
+		_ = e.git.Checkout(target) // restore working dir to target, not feature branch
 		return ProcessResult{
 			Success:  false,
 			Conflict: true,
@@ -452,7 +460,11 @@ func (e *Engineer) pushAndReturn(target string) ProcessResult {
 		}
 	}
 
-	_, _ = fmt.Fprintf(e.output, "[Engineer] Successfully merged: %s\n", mergeCommit[:8])
+	shortSHA := mergeCommit
+	if len(shortSHA) > 8 {
+		shortSHA = shortSHA[:8]
+	}
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Successfully merged: %s\n", shortSHA)
 	return ProcessResult{
 		Success:     true,
 		MergeCommit: mergeCommit,
