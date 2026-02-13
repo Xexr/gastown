@@ -657,9 +657,9 @@ func cleanupIntegrationBranch(g *git.Git, bd *beads.Beads, epicID, branchName, t
 
 // findOpenMRsForIntegration finds all open merge requests targeting an integration branch.
 func findOpenMRsForIntegration(bd *beads.Beads, targetBranch string) ([]*beads.Issue, error) {
-	// List all open merge requests
+	// List all open merge requests (MRs have Type: "task" with label "gt:merge-request")
 	opts := beads.ListOptions{
-		Type:   "merge-request",
+		Label:  "gt:merge-request",
 		Status: "open",
 	}
 	allMRs, err := bd.List(opts)
@@ -792,9 +792,9 @@ func runMqIntegrationStatus(cmd *cobra.Command, args []string) error {
 	// Query for MRs targeting this integration branch (use resolved name)
 	targetBranch := branchName
 
-	// Get all merge-request issues
+	// Get all merge-request issues (MRs have Type: "task" with label "gt:merge-request")
 	allMRs, err := bd.List(beads.ListOptions{
-		Type:   "merge-request",
+		Label:  "gt:merge-request",
 		Status: "", // all statuses
 	})
 	if err != nil {

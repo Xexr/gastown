@@ -10,6 +10,61 @@ import (
 	"github.com/steveyegge/gastown/internal/beads"
 )
 
+// TestMakeTestMR_RealisticFields verifies that makeTestMR produces MR beads
+// matching real beads structure: Type "task" with label "gt:merge-request",
+// NOT Type "merge-request". This is the regression test for Bug 1 from
+// PR #1226 review: mq_integration.go queries Type: "merge-request" but
+// real MR beads have Type: "task" with label "gt:merge-request".
+func TestMakeTestMR_RealisticFields(t *testing.T) {
+	mr := makeTestMR("mr-1", "polecat/Nux/gt-001", "main", "Nux", "open")
+
+	// Real MR beads have Type: "task", not "merge-request"
+	if mr.Type != "task" {
+		t.Errorf("makeTestMR() Type = %q, want %q (real MR beads use task type)", mr.Type, "task")
+	}
+
+	// Real MR beads carry the gt:merge-request label
+	if !beads.HasLabel(mr, "gt:merge-request") {
+		t.Errorf("makeTestMR() missing label 'gt:merge-request', got labels: %v", mr.Labels)
+	}
+}
+
+// TestMockBeadsList_LabelFilter verifies that the mock's List method correctly
+// filters by Label (not just Type), matching real Beads.List behavior.
+func TestMockBeadsList_LabelFilter(t *testing.T) {
+	mock := newMockBeads()
+
+	// Add a realistic MR (Type: "task", Label: "gt:merge-request")
+	mr := makeTestMR("mr-1", "polecat/Nux/gt-001", "main", "Nux", "open")
+	mock.addIssue(mr)
+
+	// Add a plain task (no MR label)
+	plainTask := makeTestIssue("task-1", "Some task", "task", "open")
+	mock.addIssue(plainTask)
+
+	// Query by label should return only the MR
+	results, err := mock.List(beads.ListOptions{Label: "gt:merge-request"})
+	if err != nil {
+		t.Fatalf("List() error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("List(Label: gt:merge-request) returned %d results, want 1", len(results))
+	}
+	if len(results) == 1 && results[0].ID != "mr-1" {
+		t.Errorf("List() returned ID %q, want %q", results[0].ID, "mr-1")
+	}
+
+	// Query by Type "merge-request" should NOT find realistic MRs
+	// (because their Type is "task", not "merge-request")
+	typeResults, err := mock.List(beads.ListOptions{Type: "merge-request"})
+	if err != nil {
+		t.Fatalf("List() error: %v", err)
+	}
+	if len(typeResults) != 0 {
+		t.Errorf("List(Type: merge-request) returned %d results, want 0 (realistic MRs have Type: task)", len(typeResults))
+	}
+}
+
 func TestFilterMRsByTarget(t *testing.T) {
 	// Create test MRs with different targets
 	mrs := []*beads.Issue{
@@ -85,12 +140,13 @@ func TestFilterMRsByTarget_EmptyInput(t *testing.T) {
 }
 
 func TestFilterMRsByTarget_NoMRFields(t *testing.T) {
-	// Issue without MR fields in description
+	// Issue with MR label but no MR fields in description
 	plainIssue := &beads.Issue{
 		ID:          "issue-1",
 		Title:       "Not an MR",
-		Type:        "merge-request",
+		Type:        "task",
 		Status:      "open",
+		Labels:      []string{"gt:merge-request"},
 		Description: "Just a plain description with no MR fields",
 	}
 

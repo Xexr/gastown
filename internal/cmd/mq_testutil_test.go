@@ -39,6 +39,9 @@ func (m *mockBeads) List(opts beads.ListOptions) ([]*beads.Issue, error) {
 	var result []*beads.Issue
 	for _, issue := range m.issues {
 		// Apply basic filtering
+		if opts.Label != "" && !beads.HasLabel(issue, opts.Label) {
+			continue
+		}
 		if opts.Type != "" && issue.Type != opts.Type {
 			continue
 		}
@@ -86,9 +89,10 @@ func makeTestMR(id, branch, target, worker string, status string) *beads.Issue {
 	return &beads.Issue{
 		ID:          id,
 		Title:       "Merge: " + branch,
-		Type:        "merge-request",
+		Type:        "task",
 		Status:      status,
 		Priority:    2,
+		Labels:      []string{"gt:merge-request"},
 		Description: desc,
 		CreatedAt:   "2025-01-01T12:00:00Z",
 		UpdatedAt:   "2025-01-01T12:00:00Z",
