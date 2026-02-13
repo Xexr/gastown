@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `0044b172` (18 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 12 fixes) |
+| **PR branch HEAD** | `d92e2f35` (19 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 13 fixes) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -93,7 +93,7 @@
 | F-4 | Duplicate `deprecatedMergeQueueKeys` variable in config/loader.go and doctor check | PR #7 review | Minor | **Fixed** | `gt-bvx` | Exported from config package. Commit `d1e36649`. |
 | F-5 | No multi-rig test for DeprecatedMergeQueueKeysCheck | PR #7 review | Minor | **Fixed** | `gt-e7w` | Multi-rig test added (clean + dirty rig). Commit `543ecd23`. |
 | F-6 | `removeDeprecatedKeys` hardcodes 0o644 file permissions | PR #7 review | Low | **Open** | -- | Matches SaveRigSettings behavior. Not filed as bead. |
-| F-7 | Land function doesn't fetch before `resolveEpicBranch` (stale refs) | PR #4 review | Low | **Noted** | -- | Pre-existing condition, not a regression from PR #4. |
+| F-7 | Land function doesn't fetch before `resolveEpicBranch` (stale refs) | PR #4 review | Low | **Fixed** | `gt-45o` | Moved fetch before resolveEpicBranch, removed duplicate. Commit `d92e2f35`. |
 
 ---
 
@@ -159,7 +159,7 @@
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `0044b172` (18 commits: original + 5 fork PR cherry-picks + 12 fixes) |
+| **PR branch HEAD** | `d92e2f35` (19 commits: original + 5 fork PR cherry-picks + 13 fixes) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
 | **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
 | **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
