@@ -456,6 +456,13 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("'%s' is a %s, not an epic", epicID, epic.Type)
 	}
 
+	// Fetch early so resolveEpicBranch and subsequent branch-existence
+	// checks operate on up-to-date refs (matches status which also fetches first).
+	fmt.Printf("Fetching latest from origin...\n")
+	if err := g.Fetch("origin"); err != nil {
+		return fmt.Errorf("fetching from origin: %w", err)
+	}
+
 	// Get integration branch name — tries metadata, then {title} template,
 	// then legacy {epic} template with branch existence checking.
 	branchName := resolveEpicBranch(epic, r.Path, g)
@@ -566,12 +573,6 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  4. Delete integration branch (local and remote)\n")
 		fmt.Printf("  5. Update epic status to closed\n")
 		return nil
-	}
-
-	// Fetch latest before creating worktree (ensures refs are up to date)
-	fmt.Printf("Fetching latest from origin...\n")
-	if err := g.Fetch("origin"); err != nil {
-		return fmt.Errorf("fetching from origin: %w", err)
 	}
 
 	// Idempotency check: if integration branch is already an ancestor of the
