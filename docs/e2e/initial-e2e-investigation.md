@@ -201,28 +201,86 @@ When a merge conflict is detected, the two paths diverge significantly:
 
 ### Who resolves the conflict task?
 
-**Neither path addresses this.** The task is created as a regular bead (`type: task`) that appears in `bd ready`. Its description contains prose instructions:
+A dedicated **conflict resolution formula** exists: `mol-polecat-conflict-resolve.formula.toml`. It guides a polecat through conflict resolution with a fundamentally different merge path than normal polecat work:
+
+| Aspect | Regular polecat work | Conflict resolution |
+|--------|---------------------|---------------------|
+| Branch | Create new branch | Checkout existing MR branch |
+| Merge path | Submit to queue via `gt done` | **Push directly to target branch** |
+| Issue closure | Refinery closes after merge | Polecat closes MR bead itself |
+| Serialization | None | Merge-slot gate required |
+| Formula | `mol-polecat-work` (auto-applied) | `mol-polecat-conflict-resolve` (must be explicit) |
+
+The conflict resolution formula's steps:
+1. **load-task** — parse metadata (original MR, branch, conflict SHA) from task description
+2. **acquire-slot** — `bd merge-slot acquire --wait` (serializes resolution)
+3. **checkout-branch** — `git checkout -b temp-resolve origin/<branch>`
+4. **rebase-resolve** — `git rebase origin/main`, resolve conflicts using judgment
+5. **run-tests** — verify resolution doesn't break anything
+6. **push-to-main** — `git push origin temp-resolve:<target>` (**bypasses merge queue**)
+7. **close-beads** — close original MR bead AND source issue (refinery normally does this)
+8. **release-slot** — `bd merge-slot release`
+9. **cleanup-and-exit** — close conflict task, `gt done`
+
+**Why direct push?** Going back through the merge queue would create an infinite loop — the MR was already reviewed/approved, the polecat is just resolving conflicts.
+
+### Dispatch gap: nobody auto-slings conflict tasks
+
+The conflict task is created as a regular bead (`type: task`) and appears in `bd ready`. However:
+
+1. **The witness does NOT scan `bd ready`** for unassigned tasks. It only reacts to mail (MERGE_READY, POLECAT_DONE, etc.). The witness patrol formula has no step for proactive task dispatch.
+
+2. **`gt sling` auto-applies `mol-polecat-work`** (line 387-389 of `sling.go`), NOT `mol-polecat-conflict-resolve`. To use the correct formula, you must explicitly specify it:
+   ```bash
+   gt sling mol-polecat-conflict-resolve --on <conflict-task-id> gastown
+   ```
+
+3. **No agent proactively monitors `bd ready`** and dispatches conflict tasks.
+
+The task sits in `bd ready` until someone (human or agent) manually runs the sling command with the correct formula. **This is a manual gap in an otherwise automated pipeline.**
+
+### MERGE_FAILED protocol: notification only, no dispatch
+
+The formula's `handle-failures` step sends `MERGE_FAILED` to the witness for **test failures** (not conflicts). For conflicts, the formula just creates a task and skips — no MERGE_FAILED is sent.
+
+The witness's `HandleMergeFailed()` handler (`handlers.go:368-416`) only notifies the original polecat that their merge was rejected. It does NOT:
+- Create tasks
+- Dispatch work
+- Trigger conflict resolution
+
+And the original polecat may already be nuked after `gt done`, so the notification may go nowhere.
+
+### End-to-end conflict resolution flow (actual)
 
 ```
-1. Check out the branch
-2. Rebase onto target: git rebase origin/main
-3. Resolve conflicts
-4. Force push: git push -f origin <branch>
-5. Close this task when done
+Refinery patrol: rebase fails
+  ↓
+Formula: Claude creates conflict task (bd create --type=task ...)
+  ↓
+Task appears in `bd ready`
+  ↓
+ ── MANUAL GAP ──
+  ↓
+Human/agent runs: gt sling mol-polecat-conflict-resolve --on <task> <rig>
+  ↓
+Polecat spawned with conflict resolution formula
+  ↓
+Polecat: acquires merge slot
+  ↓
+Polecat: git checkout + rebase + resolve conflicts (LLM judgment)
+  ↓
+Polecat: runs tests
+  ↓
+Polecat: pushes DIRECTLY to target branch (bypasses merge queue)
+  ↓
+Polecat: closes MR bead + source issue + conflict task
+  ↓
+Polecat: releases merge slot, runs gt done
+  ↓
+Witness: receives POLECAT_DONE, nukes polecat
 ```
 
-Step 3 — "resolve conflicts" — is inherently a judgment call. There is no automatic dispatch mechanism. The task sits in `bd ready` until:
-- A human notices it and assigns it
-- The witness or another agent slungs it to a polecat
-- Someone manually picks it up
-
-After resolution, the polecat/person must:
-1. Force-push the resolved branch
-2. Close the task bead (`bd close <task-id>`)
-3. (Engineer path only) MR unblocks automatically
-4. (Formula path) MR gets retried on next patrol cycle regardless
-
-**This is an untested lifecycle with no deterministic guarantee of completion.**
+**This is an untested lifecycle with a manual dispatch gap and no deterministic guarantee of completion.**
 
 ### LLM-dependent weak points in the formula
 
@@ -258,9 +316,11 @@ The LLM's role would shrink from **executing the merge mechanics** to **orchestr
 These findings affect what we can and should test:
 
 1. **Formula FORBIDDEN directives are untestable in Go** — they're Claude-level guardrails. The pre-push hook is the testable enforcement layer.
-2. **Conflict resolution lifecycle is untested end-to-end** — no test covers: conflict detected → task created → task dispatched → conflict resolved → MR retried → merge succeeds.
-3. **The formula's retry-without-blocking approach risks duplicate conflict tasks** — this is a testable scenario.
-4. **If `gt refinery process-next` existed**, the entire merge pipeline would be deterministically testable without simulating Claude's behavior.
+2. **Conflict resolution lifecycle is untested end-to-end** — no test covers: conflict detected → task created → task dispatched → conflict resolved → direct push → beads closed.
+3. **The formula's retry-without-blocking approach risks duplicate conflict tasks** — this is a testable scenario (the Engineer's dependency-blocking approach prevents this, but is unused).
+4. **`gt sling` formula routing is not conflict-aware** — auto-applies `mol-polecat-work` instead of `mol-polecat-conflict-resolve`. This could be tested: sling a conflict task to a polecat, verify the wrong formula is applied.
+5. **Direct push bypasses merge queue** — the conflict resolution formula pushes directly to the target branch. This is intentional (avoids infinite loop) but means the merge queue's test/validation step is skipped for resolved conflicts. Testable: verify push goes to correct target branch.
+6. **If `gt refinery process-next` existed**, the merge pipeline + conflict handling would be deterministically testable without simulating Claude. The Engineer already has dependency-blocking and merge-slot serialization — the formula has neither.
 
 ---
 
