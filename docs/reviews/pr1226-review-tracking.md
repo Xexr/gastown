@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `c1ee17ec` (10 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 4 fixes) |
+| **PR branch HEAD** | `e635931f` (15 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 9 fixes) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -21,7 +21,7 @@
 | **Formula sync** | #1372 wisp hooking preserved (was accidentally reverted in earlier versions, fixed by rebase) |
 | **PR state** | OPEN, not yet approved. Two `request_changes` reviews from @julianknutsen's automated pipeline. |
 | **Fork PRs folded** | #3, #4, #5, #6, #7 cherry-picked onto PR branch. #8 deferred (Draft). All closed with review comments. |
-| **Pending before squash** | R4-3 through R4-8 code fixes, Q2 answer, formula version check |
+| **Pending before squash** | R4-7 (`.land-worktree/` doctor check), Q2 answer, MT-3 (blocked on infra) |
 
 ---
 
@@ -74,14 +74,14 @@
 
 | # | Finding | Severity | Status | Fork PR | Notes |
 |---|---------|----------|--------|---------|-------|
-| R4-1 | Silent config loss for `target_branch` in existing rigs -- refinery's `LoadConfig()` never calls `warnDeprecatedMergeQueueKeys` | Blocker | **Folded** | [Xexr/gastown#7](https://github.com/Xexr/gastown/pull/7) (closed) | l0g1x determined `Engineer.LoadConfig()` is dead code. Doctor check added instead. Two follow-up fixes needed: duplicate var (`gt-bvx`, blocks squash), multi-rig test (`gt-e7w`, blocks squash). |
+| R4-1 | Silent config loss for `target_branch` in existing rigs -- refinery's `LoadConfig()` never calls `warnDeprecatedMergeQueueKeys` | Blocker | **Folded** | [Xexr/gastown#7](https://github.com/Xexr/gastown/pull/7) (closed) | l0g1x determined `Engineer.LoadConfig()` is dead code. Doctor check added instead. Follow-ups complete: duplicate var fixed (`gt-bvx`, `d1e36649`), multi-rig test added (`gt-e7w`, `543ecd23`). |
 | R4-2 | Legacy epics resolve to wrong integration branch in land/status -- `land`, `status`, `resolveIntegrationBranchName` don't use `DetectIntegrationBranch`'s two-step fallback | Major | **Folded** | [Xexr/gastown#4](https://github.com/Xexr/gastown/pull/4) (closed) | New `resolveEpicBranch` function covers all 3 affected paths. 6 test scenarios. Note: land doesn't fetch before resolution (pre-existing, not a regression). |
-| R4-3 | `land` accepts local-only branch then fails on `origin/` refs downstream | Major | **Open** | -- | Need to either require remote existence up front or consistently use local refs. `gt-x1z`. |
-| R4-4 | `RefExists` masks infrastructure failures as "ref missing" -- `GitError` -> `false, nil` for all errors | Major | **Open** | -- | Need to narrow to missing-ref exit pattern only; propagate other errors. `gt-61l`. |
-| R4-5 | Inconsistent error handling in `DetectIntegrationBranch` -- metadata path hard-errors, legacy path swallows | Minor | **Open** | -- | Should swallow in both paths for consistency. `gt-03t`. |
-| R4-6 | Missing compile-time interface assertion `var _ BranchChecker = (*git.Git)(nil)` | Minor | **Open** | -- | One-liner fix. `gt-52j`. |
+| R4-3 | `land` accepts local-only branch then fails on `origin/` refs downstream | Major | **Fixed** | -- | Early validation rejects local-only branch with "push it first" message. Commit `ddef9eb2`. |
+| R4-4 | `RefExists` masks infrastructure failures as "ref missing" -- `GitError` -> `false, nil` for all errors | Major | **Fixed** | -- | Narrowed to "Needed a single revision" pattern only. Commit `77ccdaa2`. |
+| R4-5 | Inconsistent error handling in `DetectIntegrationBranch` -- metadata path hard-errors, legacy path swallows | Minor | **Fixed** | -- | Both paths now swallow consistently (best-effort). Commit `e635931f`. |
+| R4-6 | Missing compile-time interface assertion `var _ BranchChecker = (*git.Git)(nil)` | Minor | **Fixed** | -- | Added in `git/interface_test.go`. Commit `1e7cc81f`. |
 | R4-7 | `.land-worktree/` not in `.gitignore` for existing rigs -- only added during rig init | Minor | **Open** | -- | Needs a `gt doctor` check. `gt-58n`. |
-| R4-8 | Validation error message omits newly rejected `?`, `*`, `[` characters | Nit | **Open** | -- | Update error message string. `gt-w0h`. |
+| R4-8 | Validation error message omits newly rejected `?`, `*`, `[` characters | Nit | **Fixed** | -- | Error message now includes `?`, `*`, `[`. Commit `1e7cc81f`. |
 
 ### Our Review Findings (from fork PR code review, 2026-02-13)
 
@@ -125,14 +125,14 @@
 
 1. ~~**`gt-bvx`** -- Fix duplicate `deprecatedMergeQueueKeys` variable~~ **DONE** (`d1e36649`)
 2. ~~**`gt-e7w`** -- Add multi-rig test for DeprecatedMergeQueueKeysCheck~~ **DONE** (`543ecd23`)
-3. **`gt-x1z`** (R4-3) -- `land` local-only branch validation
-4. **`gt-61l`** (R4-4) -- `RefExists` error masking
-5. **`gt-03t`** (R4-5) -- Consistent error handling in `DetectIntegrationBranch`
-6. **`gt-52j`** (R4-6) -- Compile-time interface assertion (one-liner)
+3. ~~**`gt-x1z`** (R4-3) -- `land` local-only branch validation~~ **DONE** (`ddef9eb2`)
+4. ~~**`gt-61l`** (R4-4) -- `RefExists` error masking~~ **DONE** (`77ccdaa2`)
+5. ~~**`gt-03t`** (R4-5) -- Consistent error handling in `DetectIntegrationBranch`~~ **DONE** (`e635931f`)
+6. ~~**`gt-52j`** (R4-6) -- Compile-time interface assertion~~ **DONE** (`1e7cc81f`)
 7. **`gt-58n`** (R4-7) -- `.land-worktree/` doctor check for existing rigs
-8. **`gt-w0h`** (R4-8) -- Validation error message update
+8. ~~**`gt-w0h`** (R4-8) -- Validation error message update~~ **DONE** (`1e7cc81f`)
 9. **`gt-p7i`** (Q2) -- Answer formula workflow change question
-10. **`gt-4fd`** -- Check formula version increments are +1 relative to upstream/main
+10. ~~**`gt-4fd`** -- Check formula version increments (+1 verified, refinery-patrol bumped 5→6)~~ **DONE** (`1e7cc81f`)
 
 ### Does not block squash
 
@@ -159,7 +159,7 @@
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `c1ee17ec` (10 commits: original + 5 fork PR cherry-picks + 4 fixes) |
+| **PR branch HEAD** | `e635931f` (15 commits: original + 5 fork PR cherry-picks + 9 fixes) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
 | **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
 | **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
