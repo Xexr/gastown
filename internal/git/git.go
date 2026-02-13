@@ -107,6 +107,28 @@ func (g *Git) run(args ...string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
+// runWithEnv executes a git command with additional environment variables.
+func (g *Git) runWithEnv(args []string, extraEnv []string) (string, error) {
+	if g.gitDir != "" {
+		args = append([]string{"--git-dir=" + g.gitDir}, args...)
+	}
+	cmd := exec.Command("git", args...)
+	if g.workDir != "" {
+		cmd.Dir = g.workDir
+	}
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return "", g.wrapError(err, stdout.String(), stderr.String(), args)
+	}
+	return strings.TrimSpace(stdout.String()), nil
+}
+
 // wrapError wraps git errors with context.
 // ZFC: Returns GitError with raw output for agent observation.
 // Does not detect or interpret error types - agents should observe and decide.
@@ -265,6 +287,11 @@ func configureHooksPath(repoPath string) error {
 	return nil
 }
 
+// ConfigureHooksPath sets core.hooksPath for the repo/worktree if .githooks exists.
+func (g *Git) ConfigureHooksPath() error {
+	return configureHooksPath(g.workDir)
+}
+
 // configureRefspec sets remote.origin.fetch to the standard refspec for bare repos.
 // Bare clones don't have this set by default, which breaks worktrees that need to
 // fetch and see origin/* refs. Without this, `git fetch` only updates FETCH_HEAD
@@ -366,6 +393,18 @@ func (g *Git) Push(remote, branch string, force bool) error {
 		args = append(args, "--force")
 	}
 	_, err := g.run(args...)
+	return err
+}
+
+// PushWithEnv pushes with additional environment variables.
+// Used by gt mq integration land to set GT_INTEGRATION_LAND=1, which the
+// pre-push hook checks to allow integration branch content landing on main.
+func (g *Git) PushWithEnv(remote, branch string, force bool, env []string) error {
+	args := []string{"push", remote, branch}
+	if force {
+		args = append(args, "--force")
+	}
+	_, err := g.runWithEnv(args, env)
 	return err
 }
 

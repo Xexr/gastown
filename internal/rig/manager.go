@@ -506,6 +506,10 @@ func (m *Manager) AddRig(opts AddRigOptions) (*Rig, error) {
 	if err := bareGit.WorktreeAddExisting(refineryRigPath, defaultBranch); err != nil {
 		return nil, fmt.Errorf("creating refinery worktree: %w", err)
 	}
+	refineryGit := git.NewGit(refineryRigPath)
+	if err := refineryGit.ConfigureHooksPath(); err != nil {
+		return nil, fmt.Errorf("configuring hooks for refinery: %w", err)
+	}
 	fmt.Printf("   ✓ Created refinery worktree\n")
 	// Set up beads redirect for refinery (points to rig-level .beads)
 	if err := beads.SetupRedirect(m.townRoot, refineryRigPath); err != nil {

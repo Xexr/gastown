@@ -446,6 +446,58 @@ If either is false, the patrol step exits early.
 | Need human sign-off before landing | Keep disabled (default), land manually |
 | Mix of both | Keep disabled, use `gt mq integration land` for manual control |
 
+## Safety Guardrails
+
+Integration branch landing is protected by a three-layer defense:
+
+### Layer 1: Formula and Role Instructions
+
+The refinery formula and role template explicitly forbid landing integration
+branches via raw git commands. Only `gt mq integration land` is authorized.
+
+### Layer 2: Pre-Push Hook
+
+The `.githooks/pre-push` hook detects when a push to the default branch
+introduces integration branch content. It uses ancestry-based detection:
+if any `origin/integration/*` branch tip becomes newly reachable from the
+pushed commits, the push is blocked unless `GT_INTEGRATION_LAND=1` is set.
+
+The default branch is detected dynamically via `refs/remotes/origin/HEAD`
+(fallback: `main`), so this works regardless of the rig's branch naming.
+
+This catches all merge styles: `--no-ff`, `--ff-only`, default merge, and
+rebase. Only cherry-picks (which produce new SHAs) are not detected.
+
+**Scope**: This check matches branches under the `integration/` prefix (the
+default template). Custom templates that produce branches outside `integration/`
+are not covered by the hook — Layer 1 (formula language) is the guardrail for
+those cases.
+
+**Requires**: `core.hooksPath` must be configured for the hook to be active.
+New rigs get this automatically. Existing rigs: run `gt doctor --fix`.
+
+### Layer 3: Authorized Code Path
+
+The `gt mq integration land` command uses `PushWithEnv()` to set
+`GT_INTEGRATION_LAND=1`, allowing the push through the hook. Raw `git push`
+from any agent or user does not set this variable and will be blocked.
+Manually setting the env var is possible but is not part of the supported
+workflow — the variable is a policy-based trust boundary, not a
+capability-based security mechanism.
+
+### Why Three Layers?
+
+| Layer | Type | Strength | Limitation |
+|-------|------|----------|------------|
+| Formula/Role | Soft | Covers all branch patterns | AI agents can ignore instructions |
+| Pre-push hook | Hard | Blocks all merge styles at git boundary | Only matches `integration/*` prefix; env var is policy-based |
+| Code path | Hard | Land command sets bypass env var | Requires hook to be active |
+
+The layers complement each other. The formula covers custom templates; the hook
+provides hard enforcement for default templates (catching merges, fast-forwards,
+and rebases via ancestry detection); the code path ensures the CLI command can
+bypass the hook.
+
 ## Build Pipeline Configuration
 
 Integration branches work with different project toolchains. The rig's build pipeline

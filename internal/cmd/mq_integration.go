@@ -652,7 +652,7 @@ func runMqIntegrationLand(cmd *cobra.Command, args []string) error {
 
 	// 6. Push to origin
 	fmt.Printf("Pushing %s to origin...\n", targetBranch)
-	if err := landGit.Push("origin", targetBranch, false); err != nil {
+	if err := landGit.PushWithEnv("origin", targetBranch, false, []string{"GT_INTEGRATION_LAND=1"}); err != nil {
 		return fmt.Errorf("push failed: %w", err)
 	}
 	fmt.Printf("  %s Pushed to origin\n", style.Bold.Render("✓"))

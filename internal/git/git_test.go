@@ -909,6 +909,51 @@ func TestPruneStaleBranches_SkipsUnmerged(t *testing.T) {
 	}
 }
 
+func TestPushWithEnv(t *testing.T) {
+	localDir, _, mainBranch := initTestRepoWithRemote(t)
+	g := NewGit(localDir)
+
+	// Set up a pre-push hook that blocks unless GT_INTEGRATION_LAND=1
+	hooksDir := filepath.Join(localDir, ".git", "hooks")
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		t.Fatalf("mkdir hooks: %v", err)
+	}
+	hookScript := `#!/bin/bash
+if [[ "$GT_INTEGRATION_LAND" != "1" ]]; then
+  echo "BLOCKED: GT_INTEGRATION_LAND not set"
+  exit 1
+fi
+exit 0
+`
+	hookPath := filepath.Join(hooksDir, "pre-push")
+	if err := os.WriteFile(hookPath, []byte(hookScript), 0755); err != nil {
+		t.Fatalf("write hook: %v", err)
+	}
+
+	// Make a commit to push
+	if err := os.WriteFile(filepath.Join(localDir, "env-test.txt"), []byte("test"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := g.Add("env-test.txt"); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if err := g.Commit("env test"); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	// Regular Push should fail (hook blocks without env var)
+	err := g.Push("origin", mainBranch, false)
+	if err == nil {
+		t.Fatal("expected Push to fail without GT_INTEGRATION_LAND")
+	}
+
+	// PushWithEnv with GT_INTEGRATION_LAND=1 should succeed
+	err = g.PushWithEnv("origin", mainBranch, false, []string{"GT_INTEGRATION_LAND=1"})
+	if err != nil {
+		t.Fatalf("PushWithEnv with GT_INTEGRATION_LAND=1 should succeed: %v", err)
+	}
+}
+
 func TestFetchPrune(t *testing.T) {
 	localDir, _, mainBranch := initTestRepoWithRemote(t)
 	g := NewGit(localDir)
