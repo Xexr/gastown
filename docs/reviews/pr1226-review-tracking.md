@@ -13,7 +13,7 @@
 |------|-------|
 | **Upstream sync** | Complete as of 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
-| **PR branch HEAD** | `a562e15a` (17 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 11 fixes) |
+| **PR branch HEAD** | `0044b172` (18 commits on upstream/main: 1 original + 5 cherry-picked fork PRs + 12 fixes) |
 | **Main cherry-pick** | `27961dfd` (cherry-pick of original commit) |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
 | **CI** | All checks passing (lint, test, integration, Windows CI, embedded formulas, coverage) |
@@ -67,7 +67,7 @@
 | MT-1 | `gt mq integration status` always shows 0 MRs -- queries `Type: "merge-request"` but MR beads have `Type: "task"` with label `gt:merge-request` | Major | **Folded** (code hygiene only) | [Xexr/gastown#3](https://github.com/Xexr/gastown/pull/3) (closed) | Cherry-picked as code hygiene. Our review found the fix is a **behavioral no-op** -- `beads.List` already translates Type to `--label`. If 0-MRs symptom was real, root cause is elsewhere. See `gt-6ck`. |
 | MT-2 | Epic auto-closed before `gt mq integration land` -- last child MR close triggers epic auto-close | Minor | **Open** | -- | Lifecycle timing issue. Design decision needed: delay auto-close, re-open during land, or decouple. `gt-2rz`. |
 | MT-3 | Refinery AI bypasses `auto_land=false` guard -- merges integration branch via raw git commands | Major | **Open** (Draft PR reviewed) | [Xexr/gastown#8](https://github.com/Xexr/gastown/pull/8) | Three-layer enforcement architecture reviewed and validated. Blocked on core.hooksPath gap in WorktreeAddExisting() — Layer 2 ineffective on fresh rigs. Need infrastructure fix before folding. `gt-58j`, `gt-627`. |
-| MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Open** | -- | Need to add existence check + `--force` flag in runMqIntegrationCreate. Straightforward implementation. `gt-dgt`. |
+| MT-4 | Duplicate `gt mq integration create` succeeds silently -- overwrites metadata, orphans old branch | Minor | **Fixed** | -- | Existence check + `--force` flag added. Commit `0044b172`. |
 | MT-5 | PR reverts wisp hooking fix from #1372 in refinery + witness formulas | Minor | **Resolved** | -- | Fixed by rebasing onto upstream/main which includes #1372. |
 
 ### Round 4: Dual-model automated review (Claude + Codex) -- from @julianknutsen, request_changes
@@ -144,7 +144,7 @@
 
 14. **`gt-2rz`** (MT-2) -- Epic auto-closed before integration land. Design decision: delay auto-close, re-open during land, or decouple lifecycle. Likely simplest: land re-opens if auto-closed.
 15. **`gt-58j`** / **`gt-627`** (MT-3) -- Refinery formula guardrails for auto_land. Fork PR #8 reviewed, architecture validated. Blocked on core.hooksPath not set in WorktreeAddExisting(). Need infra fix before folding.
-16. **`gt-dgt`** (MT-4) -- Duplicate `mq integration create` guard. Straightforward: check existing metadata, refuse without `--force`.
+16. ~~**`gt-dgt`** (MT-4) -- Duplicate `mq integration create` guard~~ **DONE** (`0044b172`)
 
 ### Out of scope for this PR
 
@@ -159,7 +159,7 @@
 | **Last sync** | 2026-02-13 |
 | **upstream/main HEAD** | `ed084c08` |
 | **origin/main HEAD** | `27961dfd` (upstream + 1 cherry-pick) |
-| **PR branch HEAD** | `a562e15a` (17 commits: original + 5 fork PR cherry-picks + 11 fixes) |
+| **PR branch HEAD** | `0044b172` (18 commits: original + 5 fork PR cherry-picks + 12 fixes) |
 | **Absorbed** | 25 commits (18 non-merge) from 11 contributors |
 | **All clones aligned** | crew/furiosa, mayor/rig, refinery/rig all at `27961dfd` |
 | **Binary rebuilt** | `gt version v0.5.0-831-g27961dfd` |
