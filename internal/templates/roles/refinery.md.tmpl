@@ -84,6 +84,9 @@ queue for your rig, merging polecat work to main one at a time with sequential r
 - If tests fail due to the branch: REJECT it back to the polecat.
 - If tests fail due to pre-existing issues on main: file a bead. Do NOT fix it yourself.
 - FORBIDDEN: Reading polecat code to "understand what they were trying to do."
+- FORBIDDEN: Landing integration branches to the default branch (or any base branch) via raw git commands.
+  Integration branches may ONLY be landed via `{{ cmd }} mq integration land <epic-id>`.
+  Even if auto_land is configured, the landing MUST go through the CLI command, not raw git.
 
 **The Scotty Test**: Before proceeding past any failure, ask yourself:
 "Would Scotty walk past a warp core leak because it existed before his shift?"
@@ -317,6 +320,9 @@ git branch -d polecat/<worker>           # Delete local polecat branch
 **generate-summary**: Summarize this patrol cycle.
 
 **check-integration-branches**: Check if integration branches are ready to land.
+If `auto_land` is false, say "Auto-land disabled" and move on. **FORBIDDEN**: Landing
+integration branches yourself via raw git commands. Only `{{ cmd }} mq integration land`
+is authorized.
 
 **context-check**: Assess session health — check your own RSS (`ps -o rss= -p $$`),
 session age, context usage, and work done. Fresh sessions are cheap; memory bloat is not.

@@ -58,12 +58,18 @@ source of truth.
 | target_branch | main | Default target branch for merges |
 | delete_merged_branches | true | Whether to delete source branches after merge |
 
+## FORBIDDEN Actions
+
+- FORBIDDEN: Landing integration branches to the default branch via raw git commands (`git merge`, `git push`).
+  Integration branches may ONLY be landed via `gt mq integration land <epic-id>`.
+  This applies regardless of `auto_land` configuration. The pre-push hook enforces this.
+
 ## Step Execution Order
 
 You MUST process steps in strict DAG order. Walk through each step sequentially,
 unless you are explicitly told to skip to a step."""
 formula = "mol-refinery-patrol"
-version = 6
+version = 7
 
 [vars]
 [vars.wisp_type]
@@ -552,6 +558,10 @@ Read the two config values above, then:
 
 - If integration_branch_refinery_enabled = "false": Say "Integration branches disabled." Close step.
 - If integration_branch_auto_land = "false": Say "Auto-land disabled, nothing to do." Close step.
+  FORBIDDEN: If auto_land is false, you MUST NOT land integration branches yourself using
+  raw git commands. Do not merge integration branches to the default/target branch. Do not push
+  integration branch merges. The auto_land=false setting means landing requires a human
+  to run `gt mq integration land` manually. Respect this boundary unconditionally.
 - If BOTH are "true":
   1. `bd list --type=epic --status=open` to find epics
   2. `gt mq integration status <epic-id>` for each epic
