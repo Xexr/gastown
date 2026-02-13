@@ -29,26 +29,108 @@ Julian's test plan has 28 tests across 6 parts:
 
 ---
 
-## 2. Key Architectural Insight: The Engineer is Pure Go
+## 2. Key Architectural Insight: Why No Tmux, Daemon, or Claude Sessions
 
-The `refinery.Engineer` (`internal/refinery/engineer.go`) is a regular Go struct:
+### The production stack (5 layers)
 
-```go
-e := refinery.NewEngineer(r *rig.Rig)
-result := e.ProcessMRInfo(ctx, &MRInfo{
-    Branch:      "polecat/nux",
-    Target:      "integration/gt-abc",
-    SourceIssue: "gt-task123",
-})
-e.HandleMRInfoSuccess(mr, result)
+In production, the refinery merge queue works through a 5-layer stack:
+
+```
+Layer 1: Daemon (daemon.go)
+  └─ Heartbeat loop calls ensureRefineryRunning() every 3 min
+     └─ Creates refinery.Manager, calls mgr.Start()
+
+Layer 2: Refinery Manager (manager.go)
+  └─ Creates tmux session "gt-<rig>-refinery"
+     └─ Working dir: <rig>/refinery/rig/
+        └─ Starts Claude Code with initial prompt: "Run gt prime --hook and begin patrol."
+
+Layer 3: Claude Code (LLM instance)
+  └─ SessionStart hook runs "gt prime --hook"
+     └─ Detects role: refinery
+        └─ Outputs formula context to Claude's conversation
+
+Layer 4: Formula (mol-refinery-patrol.formula.toml)
+  └─ Step-by-step instructions Claude follows:
+     inbox-check → queue-scan → process-branch → run-tests →
+     handle-failures → merge-push → loop-check → ...
+
+Layer 5: Shell commands (what Claude actually executes)
+  └─ git fetch --prune origin
+  └─ gt mq list <rig>
+  └─ git checkout -b temp origin/<polecat-branch>
+  └─ git rebase origin/main
+  └─ git merge --ff-only temp
+  └─ git push origin main
+  └─ bd close <mr-bead-id>
+  └─ gt mail send <rig>/witness -s "MERGED <polecat>"
 ```
 
-It does **NOT** need tmux, daemon, or Claude sessions. It just needs:
-- A `rig.Rig` with a `Path` (directory tree: `refinery/rig/` or `mayor/rig/` as git working dir)
-- A `beads.Beads` instance (wraps `bd` CLI calls)
-- A `git.Git` instance (wraps git operations in a working directory)
+**Critical insight: In production, Claude (the LLM) runs raw git commands following formula instructions. It does NOT call `Engineer.ProcessMRInfo()`.** The formula IS the control plane — it tells Claude what to do step by step, and Claude executes shell commands.
 
-This means **we can call the merge queue processor directly from Go test code** without any of the agent orchestration infrastructure. This is the critical insight for automating Part C tests.
+### Where Engineer.ProcessMRInfo() fits
+
+`Engineer.ProcessMRInfo()` is a Go library function that encapsulates the **same merge logic** as the formula's git commands:
+
+```go
+// engineer.go — doMerge() is the core, called by ProcessMR and ProcessMRInfo
+func (e *Engineer) doMerge(ctx, branch, target, sourceIssue) ProcessResult {
+    e.git.BranchExists(branch)       // ≈ git branch --list
+    e.git.Checkout(target)           // ≈ git checkout main
+    e.git.Pull("origin", target)     // ≈ git pull origin main
+    e.git.CheckConflicts(branch, target) // ≈ git merge-tree
+    e.git.MergeSquash(branch, msg)   // ≈ git merge --squash
+    e.git.Push("origin", target)     // ≈ git push origin main
+}
+```
+
+Each `e.git.*` call is a thin wrapper around `exec.Command("git", ...)`. The Engineer struct does not depend on tmux, daemon, Claude, or formulas — it only depends on:
+
+| Dependency | What it is | Test equivalent |
+|-----------|-----------|-----------------|
+| `rig.Rig{Name, Path}` | A rig directory with subdirectories | `t.TempDir()` with scaffolded dirs |
+| `git.Git` (via `git.NewGit(dir)`) | Runs git commands in a working directory | Same — works against local bare repos |
+| `beads.Beads` (via `beads.New(path)`) | Runs `bd` CLI for issue CRUD | `mockBdCommand(t)` puts fake `bd` on PATH |
+| `mail.Router` | Sends inter-agent messages | Can be ignored (non-fatal warnings on failure) |
+
+### Why this is the right test boundary
+
+The production refinery has two parallel implementations of merge logic:
+
+1. **Formula-driven** (layers 1-5): Claude follows TOML instructions → runs shell commands
+2. **Go library** (`Engineer`): Same logic as Go functions → calls `exec.Command("git", ...)`
+
+For e2e testing, we care about:
+- Does `gt mq integration create` correctly create branches? → **Test the CLI** (subprocess)
+- Does the merge logic work (conflict detection, squash merge, branch targeting)? → **Test the Engineer** (Go calls)
+- Does `gt mq integration land` correctly merge to main with guardrails? → **Test the CLI** (subprocess)
+
+We do NOT need to test "can Claude follow formula instructions" — that's a Claude capability test, not a code test. By calling `Engineer.ProcessMRInfo()` directly, we test the actual merge mechanics without 4 layers of orchestration overhead:
+
+```go
+// What we're testing                              // What we're NOT testing
+e := refinery.NewEngineer(r)                       // ✗ Daemon heartbeat loop
+result := e.ProcessMRInfo(ctx, &MRInfo{            // ✗ Tmux session management
+    Branch: "polecat/nux",                         // ✗ Claude Code startup
+    Target: "integration/gt-abc",                  // ✗ Formula parsing
+    SourceIssue: "gt-task123",                     // ✗ Claude's ability to follow steps
+})                                                 // ✓ Git merge mechanics
+e.HandleMRInfoSuccess(mr, result)                  // ✓ Branch targeting
+                                                   // ✓ Conflict detection
+                                                   // ✓ Bead state management
+```
+
+### The hybrid approach
+
+For the full Part C lifecycle test, we combine both:
+
+| Step | Approach | Why |
+|------|----------|-----|
+| `gt mq integration create` | Subprocess (built `gt` binary) | Tests CLI branch creation, epic validation |
+| Polecat work simulation | Raw git commands in test | No need for polecat/witness/sling infrastructure |
+| MR bead creation | Mock `bd` or `gt done` subprocess | Tests MR field format, target detection |
+| Merge: polecat → integration | `Engineer.ProcessMRInfo()` direct Go call | Tests merge logic without agent overhead |
+| `gt mq integration land` | Subprocess (built `gt` binary) | Tests guardrails, pre-push hook, `--no-ff` merge |
 
 ---
 
