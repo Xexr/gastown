@@ -592,6 +592,13 @@ func (g *Git) MergeSquash(branch, message string) error {
 	return err
 }
 
+// MergeFFOnly performs a fast-forward-only merge. Returns error if the merge
+// cannot be done as a fast-forward (i.e., the branches have diverged).
+func (g *Git) MergeFFOnly(branch string) error {
+	_, err := g.run("merge", "--ff-only", branch)
+	return err
+}
+
 // GetBranchCommitMessage returns the commit message of the HEAD commit on the given branch.
 // This is useful for preserving the original conventional commit message (feat:/fix:) when
 // performing squash merges.

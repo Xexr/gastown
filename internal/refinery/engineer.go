@@ -52,19 +52,25 @@ type MergeQueueConfig struct {
 
 	// MaxConcurrent is the maximum number of MRs to process concurrently.
 	MaxConcurrent int `json:"max_concurrent"`
+
+	// MergeStrategy controls how branches are merged: "rebase-ff" (default) or "squash".
+	// "rebase-ff" matches the production formula: rebase onto target, then ff-only merge.
+	// "squash" is the original Engineer behavior: squash merge into single commit.
+	MergeStrategy string `json:"merge_strategy"`
 }
 
 // DefaultMergeQueueConfig returns sensible defaults for merge queue configuration.
 func DefaultMergeQueueConfig() *MergeQueueConfig {
 	return &MergeQueueConfig{
-		Enabled:    true,
-		OnConflict: "assign_back",
-		RunTests:                         true,
-		TestCommand:                      "",
-		DeleteMergedBranches:             true,
-		RetryFlakyTests:                  1,
-		PollInterval:                     30 * time.Second,
-		MaxConcurrent:                    1,
+		Enabled:              true,
+		OnConflict:           "assign_back",
+		RunTests:             true,
+		TestCommand:          "",
+		DeleteMergedBranches: true,
+		RetryFlakyTests:      1,
+		PollInterval:         30 * time.Second,
+		MaxConcurrent:        1,
+		MergeStrategy:        "rebase-ff",
 	}
 }
 
@@ -261,6 +267,11 @@ func (e *Engineer) ProcessMR(ctx context.Context, mr *beads.Issue) ProcessResult
 
 // doMerge performs the actual git merge operation.
 // This is the core merge logic shared by ProcessMR and ProcessMRFromQueue.
+//
+// Supports two strategies via config.MergeStrategy:
+//   - "rebase-ff" (default): Rebase branch onto target, then fast-forward merge.
+//     Matches the production formula behavior. Linear history.
+//   - "squash": Squash all branch commits into one on target. Original behavior.
 func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue string) ProcessResult {
 	// Step 1: Verify source branch exists locally (shared .repo.git with polecats)
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Checking local branch %s...\n", branch)
@@ -278,7 +289,15 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		}
 	}
 
-	// Step 2: Checkout the target branch
+	if e.config.MergeStrategy == "squash" {
+		return e.doMergeSquash(ctx, branch, target, sourceIssue)
+	}
+	return e.doMergeRebaseFF(ctx, branch, target, sourceIssue)
+}
+
+// doMergeSquash performs a squash merge: checkout target, check conflicts, test, squash, push.
+func (e *Engineer) doMergeSquash(ctx context.Context, branch, target, sourceIssue string) ProcessResult {
+	// Checkout the target branch
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Checking out target branch %s...\n", target)
 	if err := e.git.Checkout(target); err != nil {
 		return ProcessResult{
@@ -289,11 +308,10 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 
 	// Make sure target is up to date with origin
 	if err := e.git.Pull("origin", target); err != nil {
-		// Pull might fail if nothing to pull, that's ok
 		_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: pull from origin/%s: %v (continuing)\n", target, err)
 	}
 
-	// Step 3: Check for merge conflicts (using local branch)
+	// Check for merge conflicts (dry-run)
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Checking for conflicts...\n")
 	conflicts, err := e.git.CheckConflicts(branch, target)
 	if err != nil {
@@ -311,7 +329,7 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		}
 	}
 
-	// Step 4: Run tests if configured
+	// Run tests if configured
 	if e.config.RunTests && e.config.TestCommand != "" {
 		_, _ = fmt.Fprintf(e.output, "[Engineer] Running tests: %s\n", e.config.TestCommand)
 		result := e.runTests(ctx)
@@ -325,12 +343,9 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		_, _ = fmt.Fprintln(e.output, "[Engineer] Tests passed")
 	}
 
-	// Step 5: Perform the actual merge using squash merge
-	// Get the original commit message from the polecat branch to preserve the
-	// conventional commit format (feat:/fix:) instead of creating redundant merge commits
+	// Perform squash merge — preserves original conventional commit message
 	originalMsg, err := e.git.GetBranchCommitMessage(branch)
 	if err != nil {
-		// Fallback to a descriptive message if we can't get the original
 		originalMsg = fmt.Sprintf("Squash merge %s into %s", branch, target)
 		if sourceIssue != "" {
 			originalMsg = fmt.Sprintf("Squash merge %s into %s (%s)", branch, target, sourceIssue)
@@ -339,8 +354,6 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 	}
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Squash merging with message: %s\n", strings.TrimSpace(originalMsg))
 	if err := e.git.MergeSquash(branch, originalMsg); err != nil {
-		// ZFC: Use git's porcelain output to detect conflicts instead of parsing stderr.
-		// GetConflictingFiles() uses `git diff --diff-filter=U` which is proper.
 		conflicts, conflictErr := e.git.GetConflictingFiles()
 		if conflictErr == nil && len(conflicts) > 0 {
 			_ = e.git.AbortMerge()
@@ -356,7 +369,73 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		}
 	}
 
-	// Step 6: Get the merge commit SHA
+	return e.pushAndReturn(target)
+}
+
+// doMergeRebaseFF performs a rebase + fast-forward merge: fetch target, rebase
+// branch onto target, run tests on rebased branch, checkout target, ff-only merge, push.
+// Matches the production formula behavior. Produces linear history.
+func (e *Engineer) doMergeRebaseFF(ctx context.Context, branch, target, _ string) ProcessResult {
+	// Fetch latest target from origin
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Fetching origin/%s...\n", target)
+	if err := e.git.FetchBranch("origin", target); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("failed to fetch origin/%s: %v", target, err),
+		}
+	}
+
+	// Rebase branch onto target — conflict detection happens here
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Rebasing %s onto origin/%s...\n", branch, target)
+	if err := e.git.Checkout(branch); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("failed to checkout branch %s: %v", branch, err),
+		}
+	}
+	if err := e.git.Rebase("origin/" + target); err != nil {
+		_ = e.git.AbortRebase()
+		return ProcessResult{
+			Success:  false,
+			Conflict: true,
+			Error:    fmt.Sprintf("rebase conflict: %v", err),
+		}
+	}
+
+	// Run tests on the REBASED branch (after rebase, before merge)
+	if e.config.RunTests && e.config.TestCommand != "" {
+		_, _ = fmt.Fprintf(e.output, "[Engineer] Running tests: %s\n", e.config.TestCommand)
+		result := e.runTests(ctx)
+		if !result.Success {
+			return ProcessResult{
+				Success:     false,
+				TestsFailed: true,
+				Error:       result.Error,
+			}
+		}
+		_, _ = fmt.Fprintln(e.output, "[Engineer] Tests passed")
+	}
+
+	// Fast-forward target to rebased branch
+	_, _ = fmt.Fprintf(e.output, "[Engineer] Merging (ff-only) into %s...\n", target)
+	if err := e.git.Checkout(target); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("failed to checkout target %s: %v", target, err),
+		}
+	}
+	if err := e.git.MergeFFOnly(branch); err != nil {
+		return ProcessResult{
+			Success: false,
+			Error:   fmt.Sprintf("ff-only merge failed (branch diverged?): %v", err),
+		}
+	}
+
+	return e.pushAndReturn(target)
+}
+
+// pushAndReturn pushes the current branch to origin and returns a success ProcessResult.
+func (e *Engineer) pushAndReturn(target string) ProcessResult {
 	mergeCommit, err := e.git.Rev("HEAD")
 	if err != nil {
 		return ProcessResult{
@@ -365,7 +444,6 @@ func (e *Engineer) doMerge(ctx context.Context, branch, target, sourceIssue stri
 		}
 	}
 
-	// Step 7: Push to origin
 	_, _ = fmt.Fprintf(e.output, "[Engineer] Pushing to origin/%s...\n", target)
 	if err := e.git.Push("origin", target, false); err != nil {
 		return ProcessResult{
