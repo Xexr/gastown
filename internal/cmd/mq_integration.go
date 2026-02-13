@@ -331,6 +331,11 @@ func runMqIntegrationCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("'%s' is a %s, not an epic", epicID, epic.Type)
 	}
 
+	// Check for existing integration branch metadata
+	if existing := getIntegrationBranchField(epic.Description); existing != "" && !mqIntegrationCreateForce {
+		return fmt.Errorf("epic '%s' already has integration branch '%s'\n\nUse --force to recreate", epicID, existing)
+	}
+
 	// Build integration branch name from template
 	template := getIntegrationBranchTemplate(r.Path, mqIntegrationCreateBranch)
 	branchName := buildIntegrationBranchName(template, epicID, epic.Title)

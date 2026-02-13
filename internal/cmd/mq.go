@@ -53,6 +53,7 @@ var (
 	// Integration create flags
 	mqIntegrationCreateBranch     string
 	mqIntegrationCreateBaseBranch string
+	mqIntegrationCreateForce      bool
 )
 
 var mqCmd = &cobra.Command{
@@ -312,6 +313,7 @@ func init() {
 	// Integration branch subcommands
 	mqIntegrationCreateCmd.Flags().StringVar(&mqIntegrationCreateBranch, "branch", "", "Override branch name template (supports {title}, {epic}, {prefix}, {user})")
 	mqIntegrationCreateCmd.Flags().StringVar(&mqIntegrationCreateBaseBranch, "base-branch", "", "Create integration branch from this branch instead of main")
+	mqIntegrationCreateCmd.Flags().BoolVar(&mqIntegrationCreateForce, "force", false, "Recreate integration branch even if one already exists")
 	mqIntegrationCmd.AddCommand(mqIntegrationCreateCmd)
 
 	// Integration land flags
