@@ -65,6 +65,85 @@ func TestMockBeadsList_LabelFilter(t *testing.T) {
 	}
 }
 
+// TestMockBeadsList_StatusFiltering verifies that the mock's List method
+// correctly reproduces bd's default status behavior: when Status is "",
+// closed issues are excluded (matching real bd list without --status flag).
+// This is the regression test for gt-6ck (MT-1): integration status showed
+// 0 MRs because Status:"" silently excluded closed/merged MRs.
+func TestMockBeadsList_StatusFiltering(t *testing.T) {
+	mock := newMockBeads()
+
+	// Add issues in various statuses
+	mock.addIssue(makeTestMR("mr-open", "polecat/A/gt-001", "integration/test", "A", "open"))
+	mock.addIssue(makeTestMR("mr-progress", "polecat/B/gt-002", "integration/test", "B", "in_progress"))
+	mock.addIssue(makeTestMR("mr-closed", "polecat/C/gt-003", "integration/test", "C", "closed"))
+	mock.addIssue(makeTestMR("mr-blocked", "polecat/D/gt-004", "integration/test", "D", "blocked"))
+
+	tests := []struct {
+		name      string
+		status    string
+		wantCount int
+		wantIDs   map[string]bool
+	}{
+		{
+			name:      "empty status excludes closed (matches real bd default)",
+			status:    "",
+			wantCount: 3,
+			wantIDs:   map[string]bool{"mr-open": true, "mr-progress": true, "mr-blocked": true},
+		},
+		{
+			name:      "status=all includes everything",
+			status:    "all",
+			wantCount: 4,
+			wantIDs:   map[string]bool{"mr-open": true, "mr-progress": true, "mr-closed": true, "mr-blocked": true},
+		},
+		{
+			name:      "status=open returns only open",
+			status:    "open",
+			wantCount: 1,
+			wantIDs:   map[string]bool{"mr-open": true},
+		},
+		{
+			name:      "status=closed returns only closed",
+			status:    "closed",
+			wantCount: 1,
+			wantIDs:   map[string]bool{"mr-closed": true},
+		},
+		{
+			name:      "status=in_progress returns only in_progress",
+			status:    "in_progress",
+			wantCount: 1,
+			wantIDs:   map[string]bool{"mr-progress": true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results, err := mock.List(beads.ListOptions{
+				Label:  "gt:merge-request",
+				Status: tt.status,
+			})
+			if err != nil {
+				t.Fatalf("List() error: %v", err)
+			}
+			if len(results) != tt.wantCount {
+				ids := make([]string, len(results))
+				for i, r := range results {
+					ids[i] = r.ID + "(" + r.Status + ")"
+				}
+				t.Errorf("List(Status:%q) returned %d results %v, want %d",
+					tt.status, len(results), ids, tt.wantCount)
+			}
+			for _, r := range results {
+				if !tt.wantIDs[r.ID] {
+					t.Errorf("List(Status:%q) returned unexpected ID %q (status=%q)",
+						tt.status, r.ID, r.Status)
+				}
+			}
+		})
+	}
+}
+
 // mockBranchChecker implements beads.BranchChecker for testing.
 type mockBranchChecker struct {
 	localBranches  map[string]bool

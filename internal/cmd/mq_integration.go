@@ -839,7 +839,7 @@ func runMqIntegrationStatus(cmd *cobra.Command, args []string) error {
 	// Get all merge-request issues (MRs have Type: "task" with label "gt:merge-request")
 	allMRs, err := bd.List(beads.ListOptions{
 		Label:  "gt:merge-request",
-		Status: "", // all statuses
+		Status: "all",
 	})
 	if err != nil {
 		return fmt.Errorf("querying merge requests: %w", err)

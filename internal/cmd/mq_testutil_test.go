@@ -47,7 +47,12 @@ func (m *mockBeads) List(opts beads.ListOptions) ([]*beads.Issue, error) {
 		} else if opts.Type != "" && issue.Type != opts.Type {
 			continue
 		}
-		if opts.Status != "" && issue.Status != opts.Status {
+		// Match real bd behavior: no --status flag defaults to non-closed issues
+		if opts.Status == "" {
+			if issue.Status == "closed" {
+				continue
+			}
+		} else if opts.Status != "all" && issue.Status != opts.Status {
 			continue
 		}
 		result = append(result, issue)
