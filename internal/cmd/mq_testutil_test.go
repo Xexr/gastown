@@ -38,11 +38,13 @@ func (m *mockBeads) List(opts beads.ListOptions) ([]*beads.Issue, error) {
 	}
 	var result []*beads.Issue
 	for _, issue := range m.issues {
-		// Apply basic filtering
-		if opts.Label != "" && !beads.HasLabel(issue, opts.Label) {
-			continue
-		}
-		if opts.Type != "" && issue.Type != opts.Type {
+		// Apply basic filtering — Label and Type are mutually exclusive
+		// (matches real beads.List: Label takes precedence, Type is ignored when Label is set)
+		if opts.Label != "" {
+			if !beads.HasLabel(issue, opts.Label) {
+				continue
+			}
+		} else if opts.Type != "" && issue.Type != opts.Type {
 			continue
 		}
 		if opts.Status != "" && issue.Status != opts.Status {
