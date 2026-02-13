@@ -177,6 +177,41 @@ func TestDeprecatedMergeQueueKeysCheck_Fix(t *testing.T) {
 	}
 }
 
+func TestDeprecatedMergeQueueKeysCheck_MultiRig(t *testing.T) {
+	townRoot := t.TempDir()
+
+	// Rig 1: clean config (no deprecated keys)
+	createRigWithSettings(t, townRoot, "cleanrig", map[string]interface{}{
+		"merge_queue": map[string]interface{}{
+			"enabled": true,
+		},
+	})
+
+	// Rig 2: has deprecated keys
+	createRigWithSettings(t, townRoot, "dirtyrig", map[string]interface{}{
+		"merge_queue": map[string]interface{}{
+			"enabled":              true,
+			"target_branch":        "develop",
+			"integration_branches": true,
+		},
+	})
+
+	check := NewDeprecatedMergeQueueKeysCheck()
+	ctx := &CheckContext{TownRoot: townRoot}
+	result := check.Run(ctx)
+
+	if result.Status != StatusWarning {
+		t.Errorf("expected StatusWarning, got %v: %s", result.Status, result.Message)
+	}
+	// Should report 1 affected rig, not 2
+	if want := "Found deprecated merge_queue keys in 1 rig(s)"; result.Message != want {
+		t.Errorf("message = %q, want %q", result.Message, want)
+	}
+	if len(result.Details) != 2 {
+		t.Errorf("expected 2 detail lines (one per deprecated key), got %d: %v", len(result.Details), result.Details)
+	}
+}
+
 // setupTownWithSettings creates a minimal town with one rig that has the given settings.
 func setupTownWithSettings(t *testing.T, settings map[string]interface{}) string {
 	t.Helper()
@@ -216,4 +251,24 @@ func setupTownMinimal(t *testing.T) string {
 	}
 
 	return townRoot
+}
+
+// createRigWithSettings creates a named rig under townRoot with the given settings.
+func createRigWithSettings(t *testing.T, townRoot, rigName string, settings map[string]interface{}) {
+	t.Helper()
+	rigPath := filepath.Join(townRoot, rigName)
+	if err := os.MkdirAll(filepath.Join(rigPath, "crew"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	settingsDir := filepath.Join(rigPath, "settings")
+	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(settingsDir, "config.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
