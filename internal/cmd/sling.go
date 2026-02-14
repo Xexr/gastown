@@ -152,7 +152,15 @@ func runSling(cmd *cobra.Command, args []string) error {
 	// Under concurrent load (batch slinging), auto-commits from individual bd writes
 	// cause manifest contention and 'database is read only' errors. The Dolt server
 	// handles commits — individual auto-commits are unnecessary.
+	prevAutoCommit := os.Getenv("BD_DOLT_AUTO_COMMIT")
 	os.Setenv("BD_DOLT_AUTO_COMMIT", "off")
+	defer func() {
+		if prevAutoCommit == "" {
+			os.Unsetenv("BD_DOLT_AUTO_COMMIT")
+		} else {
+			os.Setenv("BD_DOLT_AUTO_COMMIT", prevAutoCommit)
+		}
+	}()
 
 	// Handle --stdin: read message/args from stdin (avoids shell quoting issues)
 	if slingStdin {
@@ -249,14 +257,15 @@ func runSling(cmd *cobra.Command, args []string) error {
 	}
 	originalStatus := info.Status
 	originalAssignee := info.Assignee
-	if (info.Status == "pinned" || info.Status == "hooked") && !slingForce {
+	force := slingForce // local copy to avoid mutating package-level flag
+	if (info.Status == "pinned" || info.Status == "hooked") && !force {
 		// Auto-force when hooked agent's session is confirmed dead (gt-pqf9x).
 		// This eliminates the #1 friction in convoy feeding: stale hooks from
 		// dead polecats blocking re-sling without --force.
 		if info.Status == "hooked" && info.Assignee != "" && isHookedAgentDead(info.Assignee) {
 			fmt.Printf("%s Hooked agent %s has no active session, auto-forcing re-sling...\n",
 				style.Warning.Render("⚠"), info.Assignee)
-			slingForce = true
+			force = true
 		} else {
 			assignee := info.Assignee
 			if assignee == "" {
@@ -273,7 +282,7 @@ func runSling(cmd *cobra.Command, args []string) error {
 	}
 	resolved, err := resolveTarget(target, ResolveTargetOptions{
 		DryRun:     slingDryRun,
-		Force:      slingForce,
+		Force:      force,
 		Create:     slingCreate,
 		Account:    slingAccount,
 		Agent:      slingAgent,
@@ -302,7 +311,7 @@ func runSling(cmd *cobra.Command, args []string) error {
 	// Cross-rig guard: prevent slinging beads to polecats in the wrong rig (gt-myecw).
 	// Polecats work in their rig's worktree and cannot fix code owned by another rig.
 	// Skip for self-sling (user knows what they're doing) and --force overrides.
-	if strings.Contains(targetAgent, "/polecats/") && !slingForce && !isSelfSling {
+	if strings.Contains(targetAgent, "/polecats/") && !force && !isSelfSling {
 		if err := checkCrossRigGuard(beadID, targetAgent, townRoot); err != nil {
 			return err
 		}
@@ -316,7 +325,7 @@ func runSling(cmd *cobra.Command, args []string) error {
 	}
 
 	// Handle --force when bead is already hooked: send shutdown to old polecat and unhook
-	if info.Status == "hooked" && slingForce && info.Assignee != "" {
+	if info.Status == "hooked" && force && info.Assignee != "" {
 		fmt.Printf("%s Bead already hooked to %s, forcing reassignment...\n", style.Warning.Render("⚠"), info.Assignee)
 
 		// Determine requester identity from env vars, fall back to "gt-sling"
@@ -435,7 +444,7 @@ func runSling(cmd *cobra.Command, args []string) error {
 				rollbackSlingArtifactsFn(newPolecatInfo, beadID, hookWorkDir)
 				// Under --force, if this bead was previously pinned, rollback's unhook would otherwise
 				// clear the pinned state. Restore pinned state so we don't lose the original hook.
-				if slingForce && originalStatus == "pinned" {
+				if force && originalStatus == "pinned" {
 					restorePinnedBead(townRoot, beadID, originalAssignee)
 				}
 			}
