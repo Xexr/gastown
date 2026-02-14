@@ -81,8 +81,13 @@ Examples:
 }
 
 var daemonRunCmd = &cobra.Command{
-	Use:    "run",
-	Short:  "Run daemon in foreground (internal)",
+	Use:   "run",
+	Short: "Run daemon in foreground (internal)",
+	Long: `Run the Gas Town daemon in the foreground.
+
+This is called internally by the daemon start process and supervisor
+services (launchd/systemd). Use 'gt daemon start' to start the daemon
+normally in the background.`,
 	Hidden: true,
 	RunE:   runDaemonRun,
 }

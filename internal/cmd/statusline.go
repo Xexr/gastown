@@ -20,8 +20,13 @@ var (
 )
 
 var statusLineCmd = &cobra.Command{
-	Use:    "status-line",
-	Short:  "Output status line content for tmux (internal use)",
+	Use:   "status-line",
+	Short: "Output status line content for tmux (internal use)",
+	Long: `Output formatted status line content for the tmux status bar.
+
+Called internally by the tmux status-right configuration. Displays
+the current rig, role, worker name, and active issue. Pass --session
+to specify which tmux session to query.`,
 	Hidden: true, // Internal command called by tmux
 	RunE:   runStatusLine,
 }
