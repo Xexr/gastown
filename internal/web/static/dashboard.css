@@ -1549,6 +1549,242 @@
             flex-shrink: 0;
         }
 
+        /* === Rich Activity Timeline === */
+
+        .tl-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.1);
+            align-items: center;
+        }
+
+        .tl-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tl-filter-group label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .tl-filter-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .tl-filter-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .tl-filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        .tl-filter-select {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            max-width: 120px;
+        }
+
+        .tl-timeline {
+            display: flex;
+            flex-direction: column;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 8px 0;
+            position: relative;
+        }
+
+        .tl-entry {
+            display: flex;
+            gap: 0;
+            padding: 0 8px;
+            min-height: 42px;
+            transition: opacity 0.15s ease;
+        }
+
+        .tl-entry.tl-hidden {
+            display: none;
+        }
+
+        .tl-rail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 56px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .tl-time {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            line-height: 1;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+
+        .tl-node {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Connecting line between nodes */
+        .tl-entry:not(:last-child) .tl-rail::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            bottom: 0;
+            background: var(--border);
+            opacity: 0.4;
+        }
+
+        .tl-content {
+            flex: 1;
+            padding: 6px 8px;
+            margin: 4px 0;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            border-left: 3px solid var(--border);
+            min-width: 0;
+        }
+
+        .tl-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tl-icon {
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .tl-summary {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tl-meta {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tl-badge {
+            font-size: 0.6rem;
+            padding: 1px 5px;
+            border-radius: 2px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tl-badge-agent {
+            color: var(--cyan);
+            border-color: rgba(136, 192, 208, 0.2);
+        }
+
+        .tl-badge-rig {
+            color: var(--purple);
+            border-color: rgba(180, 142, 173, 0.2);
+        }
+
+        .tl-badge-type {
+            color: var(--text-muted);
+        }
+
+        /* Category-specific node and border colors */
+        .tl-cat-agent .tl-node {
+            background: var(--cyan);
+        }
+        .tl-cat-agent .tl-content {
+            border-left-color: var(--cyan);
+        }
+
+        .tl-cat-work .tl-node {
+            background: var(--green);
+        }
+        .tl-cat-work .tl-content {
+            border-left-color: var(--green);
+        }
+
+        .tl-cat-comms .tl-node {
+            background: var(--yellow);
+        }
+        .tl-cat-comms .tl-content {
+            border-left-color: var(--yellow);
+        }
+
+        .tl-cat-system .tl-node {
+            background: var(--purple);
+        }
+        .tl-cat-system .tl-content {
+            border-left-color: var(--purple);
+        }
+
+        .tl-cat-default .tl-node {
+            background: var(--text-muted);
+        }
+
+        /* Hover */
+        .tl-entry:hover .tl-content {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .tl-entry:hover .tl-summary {
+            color: var(--text-primary);
+        }
+
+        .tl-empty-filtered {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+        }
+
+        /* Expanded panel: allow wrapping */
+        .panel.expanded .tl-summary {
+            white-space: normal;
+        }
+
+        .panel.expanded .tl-timeline {
+            max-height: none;
+        }
+
         /* Empty state */
         .empty-state {
             text-align: center;
@@ -1928,6 +2164,7 @@
         .panel.expanded .hook-title,
         .panel.expanded .mail-subject,
         .panel.expanded .feed-summary,
+        .panel.expanded .tl-summary,
         .panel.expanded td {
             max-width: none;
             white-space: normal;
