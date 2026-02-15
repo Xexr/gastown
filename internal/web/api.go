@@ -52,9 +52,15 @@ type APIHandler struct {
 	optionsCache     *OptionsResponse
 	optionsCacheTime time.Time
 	optionsCacheMu   sync.RWMutex
+	// cmdSem limits concurrent command executions to prevent resource exhaustion.
+	cmdSem chan struct{}
 }
 
 const optionsCacheTTL = 30 * time.Second
+
+// maxConcurrentCommands limits how many gt subprocesses can run at once.
+// handleOptions alone spawns 7; allow headroom for other concurrent handlers.
+const maxConcurrentCommands = 12
 
 // NewAPIHandler creates a new API handler with the given run timeouts.
 func NewAPIHandler(defaultRunTimeout, maxRunTimeout time.Duration) *APIHandler {
@@ -66,6 +72,7 @@ func NewAPIHandler(defaultRunTimeout, maxRunTimeout time.Duration) *APIHandler {
 		workDir:           workDir,
 		defaultRunTimeout: defaultRunTimeout,
 		maxRunTimeout:     maxRunTimeout,
+		cmdSem:            make(chan struct{}, maxConcurrentCommands),
 	}
 }
 
@@ -190,8 +197,17 @@ func (h *APIHandler) handleCommands(w http.ResponseWriter, _ *http.Request) {
 
 // runGtCommand executes a gt command with the given args.
 func (h *APIHandler) runGtCommand(ctx context.Context, timeout time.Duration, args []string) (string, error) {
+	// Apply timeout first so it bounds both semaphore wait and command execution.
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	// Acquire semaphore slot to limit concurrent subprocess spawns.
+	select {
+	case h.cmdSem <- struct{}{}:
+		defer func() { <-h.cmdSem }()
+	case <-ctx.Done():
+		return "", fmt.Errorf("command slot unavailable: %w", ctx.Err())
+	}
 
 	cmd := exec.CommandContext(ctx, h.gtPath, args...)
 	if h.workDir != "" {
@@ -501,17 +517,24 @@ type OptionsResponse struct {
 // handleOptions returns dynamic options for command arguments.
 // Results are cached for 30 seconds to avoid slow repeated fetches.
 func (h *APIHandler) handleOptions(w http.ResponseWriter, r *http.Request) {
-	// Check cache first
+	// Check cache first — serialize under RLock to a buffer so we don't
+	// hold the lock while writing to the ResponseWriter (which can block
+	// on slow clients).
 	h.optionsCacheMu.RLock()
 	if h.optionsCache != nil && time.Since(h.optionsCacheTime) < optionsCacheTTL {
-		cached := h.optionsCache
+		data, err := json.Marshal(h.optionsCache)
 		h.optionsCacheMu.RUnlock()
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Cache", "HIT")
-		_ = json.NewEncoder(w).Encode(cached)
-		return
+		if err == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Cache", "HIT")
+			_, _ = w.Write(data)
+			_, _ = w.Write([]byte("\n"))
+			return
+		}
+		// Marshal failure is unexpected; fall through to refetch.
+	} else {
+		h.optionsCacheMu.RUnlock()
 	}
-	h.optionsCacheMu.RUnlock()
 
 	// Cache miss - fetch fresh data
 	resp := &OptionsResponse{}
@@ -1079,6 +1102,14 @@ func (h *APIHandler) runBdCommand(ctx context.Context, timeout time.Duration, ar
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// Acquire semaphore slot — shared with runGtCommand/runGhCommand.
+	select {
+	case h.cmdSem <- struct{}{}:
+		defer func() { <-h.cmdSem }()
+	case <-ctx.Done():
+		return "", fmt.Errorf("command slot unavailable: %w", ctx.Err())
+	}
+
 	cmd := exec.CommandContext(ctx, "bd", args...)
 	if h.workDir != "" {
 		cmd.Dir = h.workDir
@@ -1348,6 +1379,14 @@ func (h *APIHandler) handlePRShow(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandler) runGhCommand(ctx context.Context, timeout time.Duration, args []string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	// Acquire semaphore slot — shared with runGtCommand/runBdCommand.
+	select {
+	case h.cmdSem <- struct{}{}:
+		defer func() { <-h.cmdSem }()
+	case <-ctx.Done():
+		return "", fmt.Errorf("command slot unavailable: %w", ctx.Err())
+	}
 
 	cmd := exec.CommandContext(ctx, "gh", args...)
 	if h.workDir != "" {
