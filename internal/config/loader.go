@@ -9,10 +9,17 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/steveyegge/gastown/internal/constants"
 )
+
+// resolveConfigMu serializes agent config resolution across all callers.
+// ResolveRoleAgentConfig and ResolveAgentConfig load rig-specific agents
+// into a global registry; concurrent calls for different rigs would corrupt
+// each other's lookups.
+var resolveConfigMu sync.Mutex
 
 var (
 	// ErrNotFound indicates the config file does not exist.
@@ -913,6 +920,14 @@ func SaveTownSettings(path string, settings *TownSettings) error {
 // townRoot is the path to the town directory (e.g., ~/gt).
 // rigPath is the path to the rig directory (e.g., ~/gt/gastown).
 func ResolveAgentConfig(townRoot, rigPath string) *RuntimeConfig {
+	resolveConfigMu.Lock()
+	defer resolveConfigMu.Unlock()
+	return resolveAgentConfigInternal(townRoot, rigPath)
+}
+
+// resolveAgentConfigInternal is the lock-free version of ResolveAgentConfig.
+// Caller must hold resolveConfigMu.
+func resolveAgentConfigInternal(townRoot, rigPath string) *RuntimeConfig {
 	// Load rig settings
 	rigSettings, err := LoadRigSettings(RigSettingsPath(rigPath))
 	if err != nil {
@@ -955,6 +970,14 @@ func ResolveAgentConfig(townRoot, rigPath string) *RuntimeConfig {
 // Returns the resolved RuntimeConfig, the selected agent name, and an error if the override name
 // does not exist in town custom agents or built-in presets.
 func ResolveAgentConfigWithOverride(townRoot, rigPath, agentOverride string) (*RuntimeConfig, string, error) {
+	resolveConfigMu.Lock()
+	defer resolveConfigMu.Unlock()
+	return resolveAgentConfigWithOverrideInternal(townRoot, rigPath, agentOverride)
+}
+
+// resolveAgentConfigWithOverrideInternal is the lock-free version.
+// Caller must hold resolveConfigMu.
+func resolveAgentConfigWithOverrideInternal(townRoot, rigPath, agentOverride string) (*RuntimeConfig, string, error) {
 	// Load rig settings
 	rigSettings, err := LoadRigSettings(RigSettingsPath(rigPath))
 	if err != nil {
@@ -1073,6 +1096,8 @@ func lookupAgentConfigIfExists(name string, townSettings *TownSettings, rigSetti
 // townRoot is the path to the town directory (e.g., ~/gt).
 // rigPath is the path to the rig directory (e.g., ~/gt/gastown), or empty for town-level roles.
 func ResolveRoleAgentConfig(role, townRoot, rigPath string) *RuntimeConfig {
+	resolveConfigMu.Lock()
+	defer resolveConfigMu.Unlock()
 	rc := resolveRoleAgentConfigCore(role, townRoot, rigPath)
 	return withRoleSettingsFlag(rc, role, rigPath)
 }
@@ -1192,7 +1217,8 @@ func resolveRoleAgentConfigCore(role, townRoot, rigPath string) *RuntimeConfig {
 	}
 
 	// Fall back to existing resolution (rig's Agent → town's DefaultAgent → "claude")
-	return ResolveAgentConfig(townRoot, rigPath)
+	// Use internal version — caller already holds resolveConfigMu.
+	return resolveAgentConfigInternal(townRoot, rigPath)
 }
 
 // ResolveRoleAgentName returns the agent name that would be used for a specific role.

@@ -119,6 +119,9 @@ func (m *Manager) Start(foreground bool, agentOverride string, envOverrides []st
 
 	// Ensure runtime settings exist in the shared witness parent directory.
 	// Settings are passed to Claude Code via --settings flag.
+	// ResolveRoleAgentConfig is internally serialized (resolveConfigMu in
+	// package config) to prevent concurrent rig starts from corrupting the
+	// global agent registry.
 	townRoot := m.townRoot()
 	runtimeConfig := config.ResolveRoleAgentConfig("witness", townRoot, m.rig.Path)
 	witnessSettingsDir := config.RoleSettingsDir("witness", m.rig.Path)
