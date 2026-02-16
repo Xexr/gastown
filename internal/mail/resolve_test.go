@@ -80,9 +80,9 @@ func TestAgentBeadIDToAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {
-			got := agentBeadIDToAddress(tt.id)
+			got := AgentBeadIDToAddress(tt.id)
 			if got != tt.want {
-				t.Errorf("agentBeadIDToAddress(%q) = %q, want %q", tt.id, got, tt.want)
+				t.Errorf("AgentBeadIDToAddress(%q) = %q, want %q", tt.id, got, tt.want)
 			}
 		})
 	}

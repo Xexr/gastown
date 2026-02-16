@@ -77,15 +77,17 @@ Examples:
 }
 
 var crewListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "list [rig]",
 	Short: "List crew workspaces with status",
+	Args:  cobra.MaximumNArgs(1),
 	Long: `List all crew workspaces in a rig with their status.
 
 Shows git branch, session state, and git status for each workspace.
 
 Examples:
   gt crew list                    # List in current rig
-  gt crew list --rig greenplace   # List in specific rig
+  gt crew list greenplace         # List in specific rig (positional)
+  gt crew list --rig greenplace   # List in specific rig (flag)
   gt crew list --all              # List in all rigs
   gt crew list --json             # JSON output`,
 	RunE: runCrewList,

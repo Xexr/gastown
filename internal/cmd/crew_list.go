@@ -24,8 +24,16 @@ type CrewListItem struct {
 }
 
 func runCrewList(cmd *cobra.Command, args []string) error {
+	// Accept positional rig argument: gt crew list <rig>
+	if len(args) > 0 {
+		if crewRig != "" {
+			return fmt.Errorf("cannot specify both positional rig argument and --rig flag")
+		}
+		crewRig = args[0]
+	}
+
 	if crewListAll && crewRig != "" {
-		return fmt.Errorf("cannot use --all with --rig")
+		return fmt.Errorf("cannot use --all with a rig filter (--rig flag or positional argument)")
 	}
 
 	var rigs []*rig.Rig

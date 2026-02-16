@@ -36,8 +36,9 @@ Use dot notation to access nested keys (e.g., role_agents.witness).`,
 }
 
 var rigSettingsShowCmd = &cobra.Command{
-	Use:   "show <rig>",
-	Short: "Display all settings",
+	Use:     "show <rig>",
+	Aliases: []string{"get"},
+	Short:   "Display all settings",
 	Long: `Display all settings for a rig.
 
 Shows the complete settings/config.json file as formatted JSON.

@@ -122,7 +122,7 @@ func (r *Resolver) resolvePattern(pattern string) ([]Recipient, error) {
 	var recipients []Recipient
 	for id := range agents {
 		// Convert bead ID to address and check match
-		addr := agentBeadIDToAddress(id)
+		addr := AgentBeadIDToAddress(id)
 		if addr != "" && matchPattern(pattern, addr) {
 			recipients = append(recipients, Recipient{
 				Address: addr,
@@ -361,12 +361,12 @@ func (r *Resolver) resolveChannel(name string) ([]Recipient, error) {
 	}}, nil
 }
 
-// agentBeadIDToAddress converts an agent bead ID to a mail address.
+// AgentBeadIDToAddress converts an agent bead ID to a mail address.
 // Handles both gt- (rig agents) and hq- (town agents) prefixes:
 //   - hq-mayor → mayor/
 //   - hq-deacon → deacon/
 //   - gt-gastown-crew-max → gastown/crew/max
-func agentBeadIDToAddress(id string) string {
+func AgentBeadIDToAddress(id string) string {
 	var rest string
 
 	// Handle both gt- (rig agents) and hq- (town agents) prefixes

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +60,71 @@ func setupTestTownForCrewList(t *testing.T, rigs map[string][]string) string {
 	}
 
 	return townRoot
+}
+
+func TestRunCrewList_PositionalRigArg(t *testing.T) {
+	townRoot := setupTestTownForCrewList(t, map[string][]string{
+		"rig-a": {"alice"},
+		"rig-b": {"bob"},
+	})
+
+	originalWd, _ := os.Getwd()
+	defer os.Chdir(originalWd)
+	if err := os.Chdir(townRoot); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+
+	t.Run("positional arg sets rig filter", func(t *testing.T) {
+		crewRig = ""
+		crewListAll = false
+		crewJSON = true
+		defer func() {
+			crewRig = ""
+			crewJSON = false
+		}()
+
+		output := captureStdout(t, func() {
+			if err := runCrewList(&cobra.Command{}, []string{"rig-a"}); err != nil {
+				t.Fatalf("runCrewList error: %v", err)
+			}
+		})
+
+		var items []CrewListItem
+		if err := json.Unmarshal([]byte(output), &items); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if len(items) != 1 {
+			t.Fatalf("expected 1 crew worker, got %d", len(items))
+		}
+		if items[0].Rig != "rig-a" {
+			t.Errorf("expected rig-a, got %s", items[0].Rig)
+		}
+	})
+
+	t.Run("positional arg conflicts with --rig flag", func(t *testing.T) {
+		crewRig = "rig-b"
+		crewListAll = false
+		defer func() { crewRig = "" }()
+
+		err := runCrewList(&cobra.Command{}, []string{"rig-a"})
+		if err == nil {
+			t.Fatal("expected error for positional arg + --rig flag")
+		}
+		if !strings.Contains(err.Error(), "cannot specify both") {
+			t.Errorf("unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("positional arg with --all errors", func(t *testing.T) {
+		crewRig = ""
+		crewListAll = true
+		defer func() { crewListAll = false }()
+
+		err := runCrewList(&cobra.Command{}, []string{"rig-a"})
+		if err == nil {
+			t.Fatal("expected error for positional arg + --all")
+		}
+	})
 }
 
 func TestRunCrewList_AllWithRigErrors(t *testing.T) {
