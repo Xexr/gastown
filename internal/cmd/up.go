@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -686,7 +687,7 @@ func parseCrewStartupPreference(pref string, available []string) []string {
 // Returns list of started polecat names and map of errors.
 func startPolecatsWithWork(townRoot, rigName string) ([]string, map[string]error) {
 	started := []string{}
-	errors := map[string]error{}
+	errs := map[string]error{}
 
 	rigPath := filepath.Join(townRoot, rigName)
 	polecatsDir := filepath.Join(rigPath, "polecats")
@@ -695,13 +696,13 @@ func startPolecatsWithWork(townRoot, rigName string) ([]string, map[string]error
 	entries, err := os.ReadDir(polecatsDir)
 	if err != nil {
 		// No polecats directory
-		return started, errors
+		return started, errs
 	}
 
 	// Get polecat session manager
 	_, r, err := getRig(rigName)
 	if err != nil {
-		return started, errors
+		return started, errs
 	}
 	t := tmux.NewTmux()
 	polecatMgr := polecat.NewSessionManager(t, r)
@@ -732,15 +733,15 @@ func startPolecatsWithWork(townRoot, rigName string) ([]string, map[string]error
 
 		// This polecat has work - start it using SessionManager
 		if err := polecatMgr.Start(polecatName, polecat.SessionStartOptions{}); err != nil {
-			if err == polecat.ErrSessionRunning {
+			if errors.Is(err, polecat.ErrSessionReused) {
 				started = append(started, polecatName)
 			} else {
-				errors[polecatName] = err
+				errs[polecatName] = err
 			}
 		} else {
 			started = append(started, polecatName)
 		}
 	}
 
-	return started, errors
+	return started, errs
 }
