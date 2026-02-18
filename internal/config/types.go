@@ -86,6 +86,9 @@ type TownSettings struct {
 	// Actual model assignments live in RoleAgents and Agents.
 	// Values: "standard", "economy", "budget", or empty for custom configs.
 	CostTier string `json:"cost_tier,omitempty"`
+
+	// Queue configures the work queue for capacity-controlled polecat dispatch.
+	Queue *WorkQueueConfig `json:"queue,omitempty"`
 }
 
 // NewTownSettings creates a new TownSettings with defaults.
@@ -180,6 +183,62 @@ type ConvoyConfig struct {
 	// NotifyOnComplete controls whether convoy completion pushes a notification
 	// into the active Mayor session (in addition to mail). Opt-in; default false.
 	NotifyOnComplete bool `json:"notify_on_complete,omitempty"`
+}
+
+// WorkQueueConfig configures the work queue for capacity-controlled polecat dispatch.
+// This is a town-wide setting (not per-rig) because capacity control is host-wide:
+// API rate limits, memory, and CPU are shared resources across all rigs.
+type WorkQueueConfig struct {
+	// Enabled controls whether the daemon auto-dispatches queued work.
+	// Default: false (must opt in).
+	Enabled bool `json:"enabled"`
+
+	// MaxPolecats is the max concurrent polecats across ALL rigs.
+	// Includes both queue-dispatched and directly-slung polecats.
+	// 0 = unlimited. Default: 10.
+	MaxPolecats int `json:"max_polecats,omitempty"`
+
+	// BatchSize is the number of beads to dispatch per heartbeat tick.
+	// Limits spawn rate per 3-minute cycle. Default: 3.
+	BatchSize int `json:"batch_size,omitempty"`
+
+	// SpawnDelay is the delay between spawns to prevent Dolt lock contention.
+	// Default: "2s".
+	SpawnDelay string `json:"spawn_delay,omitempty"`
+}
+
+// DefaultWorkQueueConfig returns a WorkQueueConfig with sensible defaults.
+func DefaultWorkQueueConfig() *WorkQueueConfig {
+	return &WorkQueueConfig{
+		Enabled:     false,
+		MaxPolecats: 10,
+		BatchSize:   3,
+		SpawnDelay:  "2s",
+	}
+}
+
+// GetMaxPolecats returns MaxPolecats or the default (10) if unset.
+func (c *WorkQueueConfig) GetMaxPolecats() int {
+	if c == nil || c.MaxPolecats == 0 {
+		return 10
+	}
+	return c.MaxPolecats
+}
+
+// GetBatchSize returns BatchSize or the default (3) if unset.
+func (c *WorkQueueConfig) GetBatchSize() int {
+	if c == nil || c.BatchSize == 0 {
+		return 3
+	}
+	return c.BatchSize
+}
+
+// GetSpawnDelay returns SpawnDelay as a duration, defaulting to 2s.
+func (c *WorkQueueConfig) GetSpawnDelay() time.Duration {
+	if c == nil || c.SpawnDelay == "" {
+		return 2 * time.Second
+	}
+	return ParseDurationOrDefault(c.SpawnDelay, 2*time.Second)
 }
 
 // ParseDurationOrDefault parses a Go duration string, returning fallback on error or empty input.
