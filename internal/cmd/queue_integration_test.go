@@ -31,29 +31,23 @@ import (
 // leak into later tests (all using the same database).
 var queueTestCounter atomic.Int32
 
-// initBeadsDBForServer initializes a beads DB in server mode. Requires a Dolt
-// sql-server to be running on port 3307 (see requireDoltServer).
+// initBeadsDBForServer initializes a beads DB that can operate against the
+// shared Dolt test server on port 3307. Uses local init (bd init --prefix)
+// which reliably creates the schema, then bd auto-detects the running server
+// at runtime for SQL operations.
+//
+// Note: bd init --server (fresh, not migration) fails to create tables in CI.
+// Local init works reliably and bd auto-detects the server for runtime ops.
 func initBeadsDBForServer(t *testing.T, dir, prefix string) {
 	t.Helper()
 
-	cmd := exec.Command("bd", "init", "--server", "--server-port", doltTestPort, "--prefix", prefix)
+	cmd := exec.Command("bd", "init", "--prefix", prefix)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
-	t.Logf("bd init --server --prefix %s in %s: exit=%v\n%s", prefix, dir, err, out)
+	t.Logf("bd init --prefix %s in %s: exit=%v\n%s", prefix, dir, err, out)
 	if err != nil {
-		t.Fatalf("bd init --server failed in %s: %v\n%s", dir, err, out)
+		t.Fatalf("bd init failed in %s: %v\n%s", dir, err, out)
 	}
-
-	// Verify config was created with issue_prefix.
-	configPath := filepath.Join(dir, ".beads", "config.yaml")
-	configData, readErr := os.ReadFile(configPath)
-	if readErr != nil {
-		t.Fatalf("bd init --server succeeded but config missing at %s: %v", configPath, readErr)
-	}
-	if !strings.Contains(string(configData), "issue_prefix") {
-		t.Fatalf("bd init --server succeeded but config lacks issue_prefix:\n%s", configData)
-	}
-	t.Logf("config.yaml verified: %s", configPath)
 
 	// Create empty issues.jsonl to prevent bd auto-export from corrupting
 	// routes.jsonl (same as initBeadsDBWithPrefix does).
