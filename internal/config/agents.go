@@ -335,6 +335,9 @@ var builtinPresets = map[AgentPreset]*AgentPresetInfo{
 		HooksDir:            ".pi/extensions",
 		HooksSettingsFile:   "gastown-hooks.js",
 		SupportsForkSession: false,
+		HooksProvider:       "pi",
+		HooksDir:            ".pi/extensions",
+		HooksSettingsFile:   "gastown-hooks.js",
 		NonInteractive: &NonInteractiveConfig{
 			PromptFlag: "-p",
 			OutputFlag: "--no-session",
