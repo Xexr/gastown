@@ -172,11 +172,12 @@ func (m *ConvoyManager) runEventPoll() {
 // The first call is a warm-up: it advances high-water marks without
 // processing events, preventing a burst of historical replay on restart.
 func (m *ConvoyManager) pollAllStores() {
+	seenClosedIssues := make(map[string]struct{})
 	for name, store := range m.stores {
 		if name != "hq" && m.isRigParked(name) {
 			continue
 		}
-		m.pollStore(name, store)
+		m.pollStore(name, store, seenClosedIssues)
 	}
 	if !m.seeded {
 		m.seeded = true
@@ -185,7 +186,7 @@ func (m *ConvoyManager) pollAllStores() {
 
 // pollStore fetches new events from a single store and processes close events.
 // Convoy lookups always use the hq store since convoys are hq-* prefixed.
-func (m *ConvoyManager) pollStore(name string, store beadsdk.Storage) {
+func (m *ConvoyManager) pollStore(name string, store beadsdk.Storage, seenClosedIssues map[string]struct{}) {
 	// Load per-store high-water mark
 	var highWater int64
 	if v, ok := m.lastEventIDs.Load(name); ok {
@@ -234,6 +235,10 @@ func (m *ConvoyManager) pollStore(name string, store beadsdk.Storage) {
 		if issueID == "" {
 			continue
 		}
+		if _, exists := seenClosedIssues[issueID]; exists {
+			continue
+		}
+		seenClosedIssues[issueID] = struct{}{}
 
 		m.logger("Convoy: close detected: %s", issueID)
 		convoy.CheckConvoysForIssue(m.ctx, hqStore, m.townRoot, issueID, "Convoy", m.logger, m.gtPath, m.isRigParked)

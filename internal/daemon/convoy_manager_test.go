@@ -164,6 +164,68 @@ func TestEventPoll_DetectsCloseEvents(t *testing.T) {
 	}
 }
 
+func TestEventPoll_DeduplicatesCloseEventsAcrossStores(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on Windows")
+	}
+	hqStore, cleanupHQ := setupTestStore(t)
+	defer cleanupHQ()
+	rigStore, cleanupRig := setupTestStore(t)
+	defer cleanupRig()
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+	issue := &beadsdk.Issue{
+		ID:        "gt-dedupe1",
+		Title:     "Duplicate Close",
+		Status:    beadsdk.StatusOpen,
+		Priority:  2,
+		IssueType: beadsdk.TypeTask,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	requireCloseEvent := func(store beadsdk.Storage) {
+		if err := store.CreateIssue(ctx, issue, "test"); err != nil {
+			t.Fatalf("CreateIssue: %v", err)
+		}
+		if err := store.CloseIssue(ctx, issue.ID, "done", "test", ""); err != nil {
+			t.Fatalf("CloseIssue: %v", err)
+		}
+	}
+	requireCloseEvent(hqStore)
+	requireCloseEvent(rigStore)
+
+	var logged []string
+	logger := func(format string, args ...interface{}) {
+		logged = append(logged, fmt.Sprintf(format, args...))
+	}
+
+	m := NewConvoyManager(
+		t.TempDir(),
+		logger,
+		"gt",
+		10*time.Minute,
+		map[string]beadsdk.Storage{
+			"hq":       hqStore,
+			"gastown":  rigStore,
+		},
+		nil,
+		nil,
+	)
+	m.seeded = true
+	m.pollAllStores()
+
+	closeDetectedCount := 0
+	for _, s := range logged {
+		if strings.Contains(s, "close detected") && strings.Contains(s, issue.ID) {
+			closeDetectedCount++
+		}
+	}
+	if closeDetectedCount != 1 {
+		t.Fatalf("expected exactly 1 close detected log, got %d: %v", closeDetectedCount, logged)
+	}
+}
+
 func TestEventPoll_SkipsNonCloseEvents(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping on Windows")
