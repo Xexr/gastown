@@ -117,6 +117,11 @@ func EmitEventToTown(townRoot, channel, eventType string, payloadPairs []string)
 
 // emitEventImpl writes an event file to the given directory.
 func emitEventImpl(eventDir, channel, eventType string, payloadPairs []string) (string, error) {
+	// Validate channel name (prevent path traversal)
+	if !validChannelName.MatchString(channel) {
+		return "", fmt.Errorf("invalid channel name %q: must match [a-zA-Z0-9_-]", channel)
+	}
+
 	// Build payload from key=value pairs
 	payload := make(map[string]string)
 	for _, pair := range payloadPairs {
@@ -140,8 +145,8 @@ func emitEventImpl(eventDir, channel, eventType string, payloadPairs []string) (
 		return "", fmt.Errorf("marshaling event: %w", err)
 	}
 
-	// Write event file with nanosecond timestamp for uniqueness
-	eventFile := filepath.Join(eventDir, fmt.Sprintf("%d.event", now.UnixNano()))
+	// Write event file with nanosecond timestamp + PID for uniqueness
+	eventFile := filepath.Join(eventDir, fmt.Sprintf("%d-%d.event", now.UnixNano(), os.Getpid()))
 	if err := os.WriteFile(eventFile, data, 0644); err != nil {
 		return "", fmt.Errorf("writing event file: %w", err)
 	}

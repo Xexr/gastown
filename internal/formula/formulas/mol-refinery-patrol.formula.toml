@@ -724,4 +724,4 @@ SessionStart hook runs gt prime, and your successor picks up from the hook.
 **DO NOT just exit.** Always use `gt handoff` for proper lifecycle.
 
 **IMPORTANT**: Never sleep-poll manually (e.g., `sleep 30 && bd list`).
-Always use `gt mol step await-signal` — it's event-driven and tracks backoff state."""
+Always use `gt mol step await-event` — it's event-driven and tracks backoff state."""

@@ -126,6 +126,52 @@ func TestEmitEvent(t *testing.T) {
 	})
 }
 
+func TestEmitEventChannelValidation(t *testing.T) {
+	dir := t.TempDir()
+
+	// Valid channel name should succeed
+	_, err := emitEventImpl(dir, "valid-channel", "TEST", nil)
+	if err != nil {
+		t.Errorf("valid channel name rejected: %v", err)
+	}
+
+	// Path traversal should be rejected
+	_, err = emitEventImpl(dir, "../etc", "TEST", nil)
+	if err == nil {
+		t.Error("expected error for path traversal channel name, got nil")
+	}
+
+	// Slash in channel should be rejected
+	_, err = emitEventImpl(dir, "foo/bar", "TEST", nil)
+	if err == nil {
+		t.Error("expected error for channel with slash, got nil")
+	}
+
+	// Empty channel should be rejected
+	_, err = emitEventImpl(dir, "", "TEST", nil)
+	if err == nil {
+		t.Error("expected error for empty channel name, got nil")
+	}
+}
+
+func TestEmitEventPIDInFilename(t *testing.T) {
+	dir := t.TempDir()
+	path, err := emitEventImpl(dir, "test-channel", "TEST", nil)
+	if err != nil {
+		t.Fatalf("emit failed: %v", err)
+	}
+
+	// Filename should contain PID for uniqueness: <nanoseconds>-<pid>.event
+	base := filepath.Base(path)
+	if !strings.Contains(base, "-") {
+		t.Errorf("filename %q should contain PID separator '-'", base)
+	}
+	parts := strings.SplitN(strings.TrimSuffix(base, ".event"), "-", 2)
+	if len(parts) != 2 {
+		t.Errorf("filename %q should be <nanos>-<pid>.event, got %d parts", base, len(parts))
+	}
+}
+
 func TestEmitEventResult(t *testing.T) {
 	result := EmitEventResult{
 		Path:    "/home/gt/events/refinery/12345.event",

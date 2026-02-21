@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -28,33 +28,36 @@ var (
 	awaitEventCleanup     bool
 )
 
+// validChannelName restricts channel names to safe characters (no path traversal).
+var validChannelName = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 var moleculeAwaitEventCmd = &cobra.Command{
 	Use:   "await-event",
 	Short: "Wait for a file-based event on a named channel",
 	Long: `Wait for event files to appear in ~/gt/events/<channel>/, with optional backoff.
 
 Unlike await-signal (which subscribes to the generic beads activity feed),
-await-event watches a dedicated event channel directory using inotifywait.
-Events are only received when explicitly emitted via emit-event.sh.
+await-event watches a dedicated event channel directory for .event files.
+Events are emitted via "gt mol step emit-event" or programmatically.
 
-Use this for role-specific subscriptions where the generic beads feed would
-cause too many false wakes. For example, the refinery only cares about
-MERGE_READY events, not all beads activity.
+Channels are single-consumer: only one process should watch a given channel
+at a time. If multiple consumers watch the same channel with --cleanup,
+events may be deleted before all consumers read them.
 
 EVENT FORMAT:
-Events are JSON files in ~/gt/events/<channel>/*.event, created by
-~/gt/scripts/emit-event.sh. Each file contains:
+Events are JSON files in ~/gt/events/<channel>/*.event:
   {"type": "...", "channel": "...", "timestamp": "...", "payload": {...}}
 
 BEHAVIOR:
 1. Check for already-pending events (return immediately if found)
-2. If none, block via inotifywait until a new .event file appears
+2. If none, poll the directory until a new .event file appears or timeout
 3. On wake, return all pending event file paths and contents
 4. With --cleanup, delete processed event files automatically
 
 BACKOFF MODE:
 Same as await-signal: base * multiplier^idle_cycles, capped at max.
-Idle cycles tracked on agent bead labels.
+Idle cycles and backoff-until timestamp tracked on agent bead labels.
+If killed and restarted, backoff resumes from the stored backoff-until.
 
 EXIT CODES:
   0 - Event(s) found or timeout
@@ -112,6 +115,11 @@ func init() {
 }
 
 func runMoleculeAwaitEvent(cmd *cobra.Command, args []string) error {
+	// Validate channel name (prevent path traversal)
+	if !validChannelName.MatchString(awaitEventChannel) {
+		return fmt.Errorf("invalid channel name %q: must match [a-zA-Z0-9_-]", awaitEventChannel)
+	}
+
 	// Resolve event directory
 	townRoot, err := workspace.FindFromCwd()
 	if err != nil || townRoot == "" {
@@ -124,8 +132,9 @@ func runMoleculeAwaitEvent(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("creating event directory: %w", err)
 	}
 
-	// Read current idle cycles from agent bead (same pattern as await-signal)
+	// Read current idle cycles and backoff window from agent bead
 	var idleCycles int
+	var backoffUntil time.Time
 	var beadsDir string
 	if awaitEventAgentBead != "" {
 		workDir, wdErr := findLocalBeadsDir()
@@ -143,14 +152,38 @@ func runMoleculeAwaitEvent(cmd *cobra.Command, args []string) error {
 						idleCycles = n
 					}
 				}
+				if untilStr, ok := labels["backoff-until"]; ok {
+					if ts, parseErr := parseIntSimple(untilStr); parseErr == nil && ts > 0 {
+						backoffUntil = time.Unix(int64(ts), 0)
+					}
+				}
 			}
 		}
 	}
 
 	// Calculate timeout (with backoff if configured)
-	timeout, err := calculateEventTimeout(idleCycles)
+	fullTimeout, err := calculateEventTimeout(idleCycles)
 	if err != nil {
 		return fmt.Errorf("invalid timeout configuration: %w", err)
+	}
+
+	// Resume from backoff-until if interrupted (same pattern as await-signal)
+	timeout := fullTimeout
+	now := time.Now()
+	if awaitEventAgentBead != "" && !backoffUntil.IsZero() && backoffUntil.After(now) {
+		remaining := backoffUntil.Sub(now)
+		if remaining <= fullTimeout {
+			timeout = remaining
+			if !awaitEventQuiet && !moleculeJSON {
+				fmt.Printf("%s Resuming backoff window (%v remaining)\n",
+					style.Dim.Render("↻"), remaining.Round(time.Second))
+			}
+		}
+	}
+
+	// Persist backoff-until for crash recovery
+	if awaitEventAgentBead != "" && beadsDir != "" {
+		_ = setAgentBackoffUntil(awaitEventAgentBead, beadsDir, now.Add(timeout))
 	}
 
 	if !awaitEventQuiet && !moleculeJSON {
@@ -170,8 +203,12 @@ func runMoleculeAwaitEvent(cmd *cobra.Command, args []string) error {
 	}
 	result.Elapsed = time.Since(startTime)
 
-	// Update agent bead idle cycles (same pattern as await-signal)
+	// Update agent bead idle cycles and heartbeat
 	if awaitEventAgentBead != "" && beadsDir != "" {
+		// Always update heartbeat (both event and timeout) so witness doesn't
+		// think we're dead during long idle periods.
+		_ = updateAgentHeartbeat(awaitEventAgentBead, beadsDir)
+
 		if result.Reason == "timeout" {
 			newIdle := idleCycles + 1
 			if setErr := setAgentIdleCycles(awaitEventAgentBead, beadsDir, newIdle); setErr != nil {
@@ -183,9 +220,15 @@ func runMoleculeAwaitEvent(cmd *cobra.Command, args []string) error {
 				result.IdleCycles = newIdle
 			}
 		} else if result.Reason == "event" {
-			_ = updateAgentHeartbeat(awaitEventAgentBead, beadsDir)
-			result.IdleCycles = idleCycles
+			// Reset idle on event received
+			if idleCycles > 0 {
+				_ = setAgentIdleCycles(awaitEventAgentBead, beadsDir, 0)
+			}
+			result.IdleCycles = 0
 		}
+
+		// Clear backoff-until — we completed normally
+		_ = clearAgentBackoffUntil(awaitEventAgentBead, beadsDir)
 	}
 
 	// Cleanup event files if requested
@@ -250,7 +293,8 @@ func calculateEventTimeout(idleCycles int) (time.Duration, error) {
 	return time.ParseDuration(awaitEventTimeout)
 }
 
-// waitForEventFiles checks for pending events, then blocks via inotifywait.
+// waitForEventFiles checks for pending events, then polls until events appear or timeout.
+// Uses a polling loop instead of inotifywait for cross-platform compatibility.
 func waitForEventFiles(ctx context.Context, eventDir string) (*AwaitEventResult, error) {
 	// Check for already-pending events
 	events, err := readPendingEvents(eventDir)
@@ -274,40 +318,37 @@ func waitForEventFiles(ctx context.Context, eventDir string) (*AwaitEventResult,
 		return &AwaitEventResult{Reason: "timeout"}, nil
 	}
 
-	// Block via inotifywait
-	timeoutSecs := int(remaining.Seconds())
-	if timeoutSecs < 1 {
-		timeoutSecs = 1
+	// Poll with 500ms interval until event appears or timeout.
+	// This is cross-platform (no inotifywait dependency) and the 500ms
+	// latency is acceptable for the event-driven patrol use case.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Final check for events (race condition safety)
+			events, _ = readPendingEvents(eventDir)
+			if len(events) > 0 {
+				return &AwaitEventResult{
+					Reason: "event",
+					Events: events,
+				}, nil
+			}
+			return &AwaitEventResult{Reason: "timeout"}, nil
+		case <-ticker.C:
+			events, err = readPendingEvents(eventDir)
+			if err != nil {
+				return nil, err
+			}
+			if len(events) > 0 {
+				return &AwaitEventResult{
+					Reason: "event",
+					Events: events,
+				}, nil
+			}
+		}
 	}
-
-	cmd := exec.CommandContext(ctx, "inotifywait",
-		"-t", fmt.Sprintf("%d", timeoutSecs),
-		"-e", "create",
-		"--format", "%f",
-		eventDir,
-	)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-
-	err = cmd.Run()
-
-	// inotifywait exit codes: 0=event, 1=error, 2=timeout
-	// When context is canceled, we get a killed process error
-	if ctx.Err() != nil {
-		return &AwaitEventResult{Reason: "timeout"}, nil
-	}
-
-	// Check for events regardless of exit code (race condition safety)
-	events, _ = readPendingEvents(eventDir)
-	if len(events) > 0 {
-		return &AwaitEventResult{
-			Reason: "event",
-			Events: events,
-		}, nil
-	}
-
-	// No events found — timeout
-	return &AwaitEventResult{Reason: "timeout"}, nil
 }
 
 // readPendingEvents reads all .event files from the directory.

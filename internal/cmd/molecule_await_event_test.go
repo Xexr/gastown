@@ -241,9 +241,71 @@ func TestReadPendingEvents(t *testing.T) {
 	})
 }
 
+func TestValidChannelName(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		valid bool
+	}{
+		{"simple alpha", "refinery", true},
+		{"with hyphen", "my-channel", true},
+		{"with underscore", "my_channel", true},
+		{"with numbers", "chan123", true},
+		{"mixed", "A-b_3", true},
+		{"path traversal dots", "../etc", false},
+		{"path traversal slash", "foo/bar", false},
+		{"empty string", "", false},
+		{"space", "foo bar", false},
+		{"shell metachar", "chan;rm", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validChannelName.MatchString(tt.input)
+			if got != tt.valid {
+				t.Errorf("validChannelName.MatchString(%q) = %v, want %v", tt.input, got, tt.valid)
+			}
+		})
+	}
+}
+
+func TestWaitForEventFilesPolling(t *testing.T) {
+	// Test that polling picks up events written after the wait starts.
+	dir := t.TempDir()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Write an event after a short delay in a goroutine
+	go func() {
+		time.Sleep(800 * time.Millisecond) // longer than one poll interval (500ms)
+		content := `{"type":"DELAYED_EVENT","channel":"test"}`
+		os.WriteFile(filepath.Join(dir, "delayed.event"), []byte(content), 0644)
+	}()
+
+	start := time.Now()
+	result, err := waitForEventFiles(ctx, dir)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Reason != "event" {
+		t.Fatalf("expected reason 'event', got %q (elapsed: %v)", result.Reason, elapsed)
+	}
+	if len(result.Events) != 1 {
+		t.Errorf("expected 1 event, got %d", len(result.Events))
+	}
+	// Should have taken at least 800ms (the delay) but less than 5s (timeout)
+	if elapsed < 700*time.Millisecond {
+		t.Errorf("polling returned too quickly (%v), event was delayed 800ms", elapsed)
+	}
+	if elapsed > 3*time.Second {
+		t.Errorf("polling took too long (%v), expected ~1-1.5s", elapsed)
+	}
+}
+
 func TestWaitForEventFilesWithPending(t *testing.T) {
-	// When events already exist, waitForEventFiles should return immediately
-	// without blocking on inotifywait.
+	// When events already exist, waitForEventFiles should return immediately.
 	dir := t.TempDir()
 	content := `{"type":"PATROL_WAKE","channel":"refinery"}`
 	os.WriteFile(filepath.Join(dir, "existing.event"), []byte(content), 0644)
