@@ -971,7 +971,12 @@ func runCostsRecord(cmd *cobra.Command, args []string) error {
 		session = detectCurrentTmuxSession()
 	}
 	if session == "" {
-		return fmt.Errorf("--session flag required (or set GT_SESSION env var, or GT_RIG/GT_ROLE)")
+		// Not a Gas Town session (e.g., Claude Code launched outside gt agent system).
+		// Exit silently — no costs to record.
+		if costsVerbose {
+			fmt.Fprintf(os.Stderr, "[costs] no session context found, skipping costs record\n")
+		}
+		return nil
 	}
 
 	// Get working directory from environment or tmux session
