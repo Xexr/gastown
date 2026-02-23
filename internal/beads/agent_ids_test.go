@@ -267,3 +267,51 @@ func TestExtractAgentPrefix(t *testing.T) {
 	}
 }
 
+// TestAgentBeadIDRoundTrip verifies that generating an ID and parsing it back
+// produces consistent results, especially for the collapsed form (GH#1877).
+func TestAgentBeadIDRoundTrip(t *testing.T) {
+	tests := []struct {
+		name   string
+		prefix string
+		rig    string
+		role   string
+		wname  string
+	}{
+		// Normal cases
+		{"normal witness", "gt", "gastown", "witness", ""},
+		{"normal polecat", "gt", "gastown", "polecat", "nux"},
+		{"normal crew", "bd", "beads", "crew", "dave"},
+
+		// Collapsed cases (prefix == rig)
+		{"collapsed witness", "ff", "ff", "witness", ""},
+		{"collapsed refinery", "ff", "ff", "refinery", ""},
+		{"collapsed polecat", "ff", "ff", "polecat", "nux"},
+		{"collapsed crew", "ff", "ff", "crew", "dave"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := AgentBeadIDWithPrefix(tt.prefix, tt.rig, tt.role, tt.wname)
+
+			// Validate the generated ID
+			if err := ValidateAgentID(id); err != nil {
+				t.Errorf("AgentBeadIDWithPrefix(%q,%q,%q,%q) = %q, ValidateAgentID error: %v",
+					tt.prefix, tt.rig, tt.role, tt.wname, id, err)
+			}
+
+			// Parse back and verify role and name
+			_, gotRole, gotName, ok := ParseAgentBeadID(id)
+			if !ok {
+				t.Errorf("ParseAgentBeadID(%q) failed", id)
+				return
+			}
+			if gotRole != tt.role {
+				t.Errorf("ParseAgentBeadID(%q) role = %q, want %q", id, gotRole, tt.role)
+			}
+			if gotName != tt.wname {
+				t.Errorf("ParseAgentBeadID(%q) name = %q, want %q", id, gotName, tt.wname)
+			}
+		})
+	}
+}
+
