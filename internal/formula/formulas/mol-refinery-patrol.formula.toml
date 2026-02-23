@@ -60,8 +60,8 @@ source of truth.
 
 ## Target Resolution Rule
 
-When instructions reference `<effective-target>` (for rebase, merge, or verification),
-resolve it once using this rule:
+When instructions reference `<rebase-target>`, `<merge-target>`, or `<verification-target>`,
+resolve that placeholder with this rule:
 
 - If integration_branch_refinery_enabled = "true": use MR target when present, otherwise {{target_branch}}.
 - If integration_branch_refinery_enabled = "false": always use {{target_branch}}.
@@ -77,7 +77,7 @@ resolve it once using this rule:
 You MUST process steps in strict DAG order. Walk through each step sequentially,
 unless you are explicitly told to skip to a step."""
 formula = "mol-refinery-patrol"
-version = 7
+version = 8
 
 [vars]
 [vars.wisp_type]
@@ -655,10 +655,13 @@ bd list --type=merge-request --status=open
 
 For each open MR bead:
 1. Check if branch exists: `git ls-remote origin refs/heads/<branch>`
-2. Determine merge target using the **Target Resolution Rule** above.
-3. If branch gone, verify work is on target: `git log origin/<merge-target> --oneline | grep "<source_issue>"`
-4. If work on target → close MR with reason "Merged (verified on <merge-target>)"
-5. If work NOT on target → investigate before closing:
+2. Determine `<merge-target>` using the **Target Resolution Rule** above.
+3. If branch is gone, pick `<verification-target>`:
+   - If `origin/<merge-target>` exists, use `<merge-target>`.
+   - If `origin/<merge-target>` is missing (e.g. deleted integration branch), use `{{target_branch}}`.
+4. Verify landed work: `git log origin/<verification-target> --oneline | grep "<source_issue>"`
+5. If work found → close MR with reason "Merged (verified on <verification-target>; merge target was <merge-target>)"
+6. If work NOT found → investigate before closing:
    - Check source_issue validity (should be gt-xxxxx, not branch name)
    - Search reflog/dangling commits if possible
    - If unverifiable, close with reason "Unverifiable - no audit trail"
