@@ -100,21 +100,14 @@ func (c *PatrolMoleculesExistCheck) Run(ctx *CheckContext) *CheckResult {
 
 // checkPatrolFormulas returns missing patrol formula names for a rig.
 func (c *PatrolMoleculesExistCheck) checkPatrolFormulas(rigPath string) []string {
-	// List formulas accessible from this rig using bd formula list
-	// This checks .beads/formulas/, ~/.beads/formulas/, and $GT_ROOT/.beads/formulas/
-	cmd := exec.Command("bd", "formula", "list")
-	cmd.Dir = rigPath
-	output, err := cmd.Output()
-	if err != nil {
-		// Can't check formulas, assume all missing
-		return patrolFormulas
-	}
-
-	outputStr := string(output)
+	// Check for formula files directly on the filesystem rather than shelling
+	// out to `bd formula list`, which may not be available in all environments
+	// (e.g., CI). Formulas are provisioned as .formula.toml files in .beads/formulas/.
+	formulasDir := filepath.Join(rigPath, ".beads", "formulas")
 	var missing []string
 	for _, formulaName := range patrolFormulas {
-		// Formula list output includes the formula name without extension
-		if !strings.Contains(outputStr, formulaName) {
+		formulaPath := filepath.Join(formulasDir, formulaName+".formula.toml")
+		if _, err := os.Stat(formulaPath); os.IsNotExist(err) {
 			missing = append(missing, formulaName)
 		}
 	}
