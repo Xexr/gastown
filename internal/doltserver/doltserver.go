@@ -375,11 +375,16 @@ func IsRunning(townRoot string) (bool, int, error) {
 		_ = os.Remove(config.PidFile)
 	}
 
-	// No valid PID file - check if port is in use by dolt anyway
-	// This catches externally-started dolt servers
+	// No valid PID file - check if port is in use by dolt anyway.
+	// This catches externally-started dolt servers.
+	// Verify --data-dir matches this town to avoid claiming another town's Dolt.
 	pid := findDoltServerOnPort(config.Port)
 	if pid > 0 {
-		return true, pid, nil
+		processDataDir := getProcessDataDir(pid)
+		if processDataDir == "" || processDataDir == config.DataDir {
+			return true, pid, nil
+		}
+		// Port is used by a different town's Dolt — not ours
 	}
 
 	return false, 0, nil
@@ -508,6 +513,25 @@ func hasServerMode(beadsDir string) bool {
 		return false
 	}
 	return metadata.DoltMode == "server"
+}
+
+// CheckPortConflict checks if the configured port is occupied by another town's Dolt.
+// Returns (conflicting PID, conflicting data-dir) if a foreign Dolt holds the port,
+// or (0, "") if the port is free or used by this town's own Dolt.
+func CheckPortConflict(townRoot string) (int, string) {
+	cfg := DefaultConfig(townRoot)
+	if cfg.IsRemote() {
+		return 0, ""
+	}
+	pid := findDoltServerOnPort(cfg.Port)
+	if pid <= 0 {
+		return 0, ""
+	}
+	dataDir := getProcessDataDir(pid)
+	if dataDir == "" || dataDir == cfg.DataDir {
+		return 0, "" // It's ours or unknown
+	}
+	return pid, dataDir
 }
 
 // findDoltServerOnPort finds a dolt sql-server process listening on the given port.
@@ -689,6 +713,28 @@ func KillImposters(townRoot string) error {
 	return nil
 }
 
+// checkPortAvailable verifies a TCP port is free before starting the server.
+// Returns a user-friendly error if the port is already in use, which commonly
+// happens when multiple Gas Town instances share the same Dolt port.
+func checkPortAvailable(port int) error {
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		// Try to identify who holds the port
+		detail := ""
+		if pid := findDoltServerOnPort(port); pid > 0 {
+			if dataDir := getProcessDataDir(pid); dataDir != "" {
+				detail = fmt.Sprintf("\nPort is held by dolt PID %d serving %s", pid, dataDir)
+			}
+		}
+		return fmt.Errorf("port %d is already in use.%s\n"+
+			"If you're running multiple Gas Town instances, each needs a unique Dolt port.\n"+
+			"Set GT_DOLT_PORT in mayor/daemon.json env section:\n"+
+			"  {\"env\": {\"GT_DOLT_PORT\": \"<port>\"}}", port, detail)
+	}
+	_ = ln.Close()
+	return nil
+}
+
 // Start starts the Dolt SQL server.
 func Start(townRoot string) error {
 	config := DefaultConfig(townRoot)
@@ -794,6 +840,12 @@ func Start(townRoot string) error {
 	logFile, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("opening log file: %w", err)
+	}
+
+	// Validate port is available before starting (catches multi-town port conflicts)
+	if err := checkPortAvailable(config.Port); err != nil {
+		logFile.Close()
+		return err
 	}
 
 	// Start dolt sql-server with --data-dir to serve all databases

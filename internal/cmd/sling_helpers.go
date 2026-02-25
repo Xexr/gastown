@@ -354,7 +354,7 @@ func injectStartPrompt(pane, beadID, subject, args string) error {
 func getSessionFromPane(pane string) string {
 	if strings.HasPrefix(pane, "%") {
 		// Pane ID format - query tmux for the session
-		cmd := exec.Command("tmux", "display-message", "-t", pane, "-p", "#{session_name}")
+		cmd := tmux.BuildCommand("display-message", "-t", pane, "-p", "#{session_name}")
 		out, err := cmd.Output()
 		if err != nil {
 			return ""
@@ -431,7 +431,7 @@ func ensureAgentReady(sessionName string) error {
 
 // isSessionYoung returns true if the tmux session was created less than maxAge ago.
 func isSessionYoung(sessionName string, maxAge time.Duration) bool {
-	out, err := exec.Command("tmux", "display-message", "-t", sessionName, "-p", "#{session_created}").Output()
+	out, err := tmux.BuildCommand("display-message", "-t", sessionName, "-p", "#{session_created}").Output()
 	if err != nil {
 		return false
 	}

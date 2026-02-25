@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -1876,7 +1875,7 @@ func (m *Manager) DetectStalePolecats(threshold int) ([]*StalenessInfo, error) {
 // checkTmuxSession checks if a tmux session exists.
 func checkTmuxSession(sessionName string) bool {
 	// Use has-session command which returns 0 if session exists
-	cmd := exec.Command("tmux", "has-session", "-t", sessionName) //nolint:gosec // G204: sessionName is constructed internally
+	cmd := tmux.BuildCommand("has-session", "-t", sessionName)
 	return cmd.Run() == nil
 }
 

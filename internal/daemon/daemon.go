@@ -127,6 +127,11 @@ func New(config *Config) (*Daemon, error) {
 	patrolConfig := LoadPatrolConfig(config.TownRoot)
 	if patrolConfig != nil {
 		logger.Printf("Loaded patrol config from %s", PatrolConfigFile(config.TownRoot))
+		// Propagate env vars from daemon.json to this process and all spawned sessions.
+		for k, v := range patrolConfig.Env {
+			os.Setenv(k, v)
+			logger.Printf("Set env %s=%s from daemon.json", k, v)
+		}
 	}
 
 	// Initialize Dolt server manager if configured

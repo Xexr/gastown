@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
 	"sort"
 
 	"github.com/spf13/cobra"
 	sessionpkg "github.com/steveyegge/gastown/internal/session"
+	"github.com/steveyegge/gastown/internal/tmux"
 )
 
 // cycleSession is the --session flag for cycle next/prev commands.
@@ -185,13 +185,12 @@ func cycleInGroup(direction int, currentSession string, sessions []string) error
 		return nil // Only one session
 	}
 
-	args := []string{"-u", "switch-client"}
+	args := []string{"switch-client"}
 	if cycleClientTarget != "" {
 		args = append(args, "-c", cycleClientTarget)
 	}
 	args = append(args, "-t", sessions[targetIdx])
-	cmd := exec.Command("tmux", args...)
-	return cmd.Run()
+	return tmux.BuildCommand(args...).Run()
 }
 
 // cycleRigInfraSession cycles between witness and refinery sessions for a rig.
@@ -216,7 +215,7 @@ func cycleRigInfraSession(direction int, currentSession, rig string) error {
 
 // listTmuxSessions returns all tmux session names.
 func listTmuxSessions() ([]string, error) {
-	out, err := exec.Command("tmux", "list-sessions", "-F", "#{session_name}").Output()
+	out, err := tmux.BuildCommand("list-sessions", "-F", "#{session_name}").Output()
 	if err != nil {
 		return nil, err
 	}

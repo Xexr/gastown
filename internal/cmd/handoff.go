@@ -519,7 +519,7 @@ func runHandoffCycle() error {
 
 // getCurrentTmuxSession returns the current tmux session name.
 func getCurrentTmuxSession() (string, error) {
-	out, err := exec.Command("tmux", "display-message", "-p", "#{session_name}").Output()
+	out, err := tmux.BuildCommand("display-message", "-p", "#{session_name}").Output()
 	if err != nil {
 		return "", err
 	}
@@ -1038,7 +1038,7 @@ func handoffRemoteSession(t *tmux.Tmux, targetSession, restartCmd string) error 
 	if handoffWatch {
 		fmt.Printf("Switching to %s...\n", targetSession)
 		// Use tmux switch-client to move our view to the target session
-		if err := exec.Command("tmux", "-u", "switch-client", "-t", targetSession).Run(); err != nil {
+		if err := tmux.BuildCommand("switch-client", "-t", targetSession).Run(); err != nil {
 			// Non-fatal - they can manually switch
 			fmt.Printf("Note: Could not auto-switch (use: tmux switch-client -t %s)\n", targetSession)
 		}
@@ -1050,7 +1050,7 @@ func handoffRemoteSession(t *tmux.Tmux, targetSession, restartCmd string) error 
 // getSessionPane returns the pane identifier for a session's main pane.
 func getSessionPane(sessionName string) (string, error) {
 	// Get the pane ID for the first pane in the session
-	out, err := exec.Command("tmux", "list-panes", "-t", sessionName, "-F", "#{pane_id}").Output()
+	out, err := tmux.BuildCommand("list-panes", "-t", sessionName, "-F", "#{pane_id}").Output()
 	if err != nil {
 		return "", err
 	}

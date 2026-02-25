@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/steveyegge/gastown/internal/beads"
+	"github.com/steveyegge/gastown/internal/tmux"
 )
 
 // Panel represents which panel has focus
@@ -611,10 +612,10 @@ func (m *Model) attachToSelected() (tea.Model, tea.Cmd) {
 	var c *exec.Cmd
 	if os.Getenv("TMUX") != "" {
 		// Inside tmux: switch the current client to the target session
-		c = exec.Command("tmux", "switch-client", "-t", agent.SessionID)
+		c = tmux.BuildCommand("switch-client", "-t", agent.SessionID)
 	} else {
 		// Outside tmux: attach to the session
-		c = exec.Command("tmux", "attach-session", "-t", agent.SessionID)
+		c = tmux.BuildCommand("attach-session", "-t", agent.SessionID)
 	}
 	return m, tea.Sequence(
 		tea.ExitAltScreen,

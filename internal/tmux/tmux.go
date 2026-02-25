@@ -56,12 +56,41 @@ func validateSessionName(name string) error {
 	return nil
 }
 
-// Tmux wraps tmux operations.
-type Tmux struct{}
+// defaultSocket is the tmux socket name (-L flag) for multi-instance isolation.
+// When set, all tmux commands use this socket instead of the default server.
+var defaultSocket string
 
-// NewTmux creates a new Tmux wrapper.
+// SetDefaultSocket sets the package-level default tmux socket name.
+// Called during init to scope tmux to the current town.
+func SetDefaultSocket(name string) { defaultSocket = name }
+
+// GetDefaultSocket returns the current default tmux socket name.
+func GetDefaultSocket() string { return defaultSocket }
+
+// BuildCommand creates an exec.Cmd for tmux with the default socket applied.
+// Use this instead of exec.Command("tmux", ...) for code outside the Tmux struct.
+func BuildCommand(args ...string) *exec.Cmd {
+	allArgs := []string{"-u"}
+	if defaultSocket != "" {
+		allArgs = append(allArgs, "-L", defaultSocket)
+	}
+	allArgs = append(allArgs, args...)
+	return exec.Command("tmux", allArgs...)
+}
+
+// Tmux wraps tmux operations.
+type Tmux struct {
+	socketName string // tmux socket name (-L flag), empty = default socket
+}
+
+// NewTmux creates a new Tmux wrapper that inherits the default socket.
 func NewTmux() *Tmux {
-	return &Tmux{}
+	return &Tmux{socketName: defaultSocket}
+}
+
+// NewTmuxWithSocket creates a new Tmux wrapper with a specific socket name.
+func NewTmuxWithSocket(socket string) *Tmux {
+	return &Tmux{socketName: socket}
 }
 
 // run executes a tmux command and returns stdout.
@@ -69,7 +98,11 @@ func NewTmux() *Tmux {
 // See: https://github.com/steveyegge/gastown/issues/1219
 func (t *Tmux) run(args ...string) (string, error) {
 	// Prepend -u flag for UTF-8 mode (PATCH-004)
-	allArgs := append([]string{"-u"}, args...)
+	allArgs := []string{"-u"}
+	if t.socketName != "" {
+		allArgs = append(allArgs, "-L", t.socketName)
+	}
+	allArgs = append(allArgs, args...)
 	cmd := exec.Command("tmux", allArgs...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -2326,7 +2359,7 @@ func CurrentSessionName() string {
 	}
 	// TMUX format: /path/to/socket,server_pid,session_index
 	// We can use display-message to get the session name directly
-	out, err := exec.Command("tmux", "display-message", "-p", "#{session_name}").Output()
+	out, err := BuildCommand("display-message", "-p", "#{session_name}").Output()
 	if err != nil {
 		return ""
 	}

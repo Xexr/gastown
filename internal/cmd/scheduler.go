@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/steveyegge/gastown/internal/scheduler/capacity"
 	"github.com/steveyegge/gastown/internal/session"
 	"github.com/steveyegge/gastown/internal/style"
+	"github.com/steveyegge/gastown/internal/tmux"
 	"github.com/steveyegge/gastown/internal/workspace"
 )
 
@@ -483,7 +483,7 @@ func beadsSearchDirs(townRoot string) []string {
 
 // countActivePolecats counts all running polecats across all rigs in the town.
 func countActivePolecats() int {
-	listCmd := exec.Command("tmux", "list-sessions", "-F", "#{session_name}")
+	listCmd := tmux.BuildCommand("list-sessions", "-F", "#{session_name}")
 	out, err := listCmd.Output()
 	if err != nil {
 		return 0
