@@ -557,3 +557,6 @@ Please review the feedback and address the issues before resubmitting.`,
 		log.Printf("warning: notifying worker of rejection for %s: %v", mr.IssueID, err)
 	}
 }
+
+// Town root is computed in Start() as filepath.Dir(m.rig.Path) and passed
+// through to callers — no filesystem-inference function needed (ZFC gt-qago).
