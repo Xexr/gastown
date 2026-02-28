@@ -181,7 +181,10 @@ func burnExistingMolecules(molecules []string, beadID, townRoot string) error {
 		}
 	}
 
-	// Step 4: Force-close the orphaned wisp roots so they don't linger.
+	// Step 4: Close descendants, then force-close the orphaned wisp roots.
+	for _, molID := range molecules {
+		forceCloseDescendants(bd, molID)
+	}
 	if err := bd.ForceCloseWithReason("burned: force re-sling", molecules...); err != nil {
 		fmt.Printf("  %s Could not close molecule wisp(s): %v\n",
 			style.Dim.Render("Warning:"), err)

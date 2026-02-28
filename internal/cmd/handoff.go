@@ -1552,6 +1552,10 @@ func cleanupMoleculeOnHandoff() {
 		fmt.Fprintf(os.Stderr, "handoff: warning: detach molecule audit failed: %v\n", err)
 	}
 
+	// Close all descendant wisps first, then the molecule root.
+	// Without this, handoff leaks orphan wisps into the DB.
+	forceCloseDescendants(b, molID)
+
 	// Force-close the molecule root wisp
 	if err := b.ForceCloseWithReason("handoff", molID); err != nil {
 		fmt.Fprintf(os.Stderr, "handoff: warning: couldn't close molecule %s: %v\n", molID, err)
