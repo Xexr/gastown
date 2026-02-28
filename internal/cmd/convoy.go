@@ -1267,7 +1267,9 @@ func findStrandedConvoys(townBeads string) ([]strandedConvoyInfo, error) {
 	for _, convoy := range convoys {
 		tracked, err := getTrackedIssues(townBeads, convoy.ID)
 		if err != nil {
-			style.PrintWarning("skipping convoy %s: %v", convoy.ID, err)
+			// Write to stderr explicitly — stdout may be consumed as JSON
+			// by the daemon's JSON parser (fixes #2142).
+			fmt.Fprintf(os.Stderr, "⚠ Warning: skipping convoy %s: %v\n", convoy.ID, err)
 			continue
 		}
 		// Empty convoys (0 tracked issues) are stranded — they need

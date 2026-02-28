@@ -373,7 +373,9 @@ func (m *ConvoyManager) findStranded() ([]strandedConvoyInfo, error) {
 
 	var stranded []strandedConvoyInfo
 	if err := json.Unmarshal(stdout.Bytes(), &stranded); err != nil {
-		return nil, fmt.Errorf("parsing stranded JSON: %w", err)
+		// Include first line of raw output for debugging (e.g., non-JSON warnings on stdout)
+		raw := util.FirstLine(stdout.String())
+		return nil, fmt.Errorf("parsing stranded JSON: %w (raw: %q)", err, raw)
 	}
 
 	return stranded, nil
