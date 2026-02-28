@@ -499,16 +499,13 @@ func createCleanupWisp(workDir, polecatName, issueID, branch string) (string, er
 	var created struct {
 		ID string `json:"id"`
 	}
-	if err := json.Unmarshal([]byte(output), &created); err == nil && created.ID != "" {
-		return created.ID, nil
+	if err := json.Unmarshal([]byte(output), &created); err != nil {
+		return "", fmt.Errorf("could not parse bead ID from bd create output: %w", err)
 	}
-
-	// Fallback: extract from "Created: <id>" format
-	if strings.HasPrefix(output, "Created:") {
-		return strings.TrimSpace(strings.TrimPrefix(output, "Created:")), nil
+	if created.ID == "" {
+		return "", fmt.Errorf("bd create --json returned empty ID")
 	}
-
-	return "", fmt.Errorf("could not parse bead ID from bd create output: %q", output)
+	return created.ID, nil
 }
 
 // createSwarmWisp creates a wisp to track swarm (batch) work.
@@ -520,6 +517,7 @@ func createSwarmWisp(workDir string, payload *SwarmStartPayload) (string, error)
 
 	output, err := util.ExecWithOutput(workDir, bdCommand, "create",
 		"--ephemeral",
+		"--json",
 		"--title", title,
 		"--description", description,
 		"--labels", labels,
@@ -528,11 +526,17 @@ func createSwarmWisp(workDir string, payload *SwarmStartPayload) (string, error)
 		return "", err
 	}
 
-	if strings.HasPrefix(output, "Created:") {
-		return strings.TrimSpace(strings.TrimPrefix(output, "Created:")), nil
+	// Parse JSON output from bd create --json
+	var created struct {
+		ID string `json:"id"`
 	}
-
-	return output, nil
+	if err := json.Unmarshal([]byte(output), &created); err != nil {
+		return "", fmt.Errorf("could not parse bead ID from bd create output: %w", err)
+	}
+	if created.ID == "" {
+		return "", fmt.Errorf("bd create --json returned empty ID")
+	}
+	return created.ID, nil
 }
 
 // findCleanupWisp finds an existing cleanup wisp for a polecat.
@@ -543,10 +547,6 @@ func findCleanupWisp(workDir, polecatName string) (string, error) {
 		"--json",
 	)
 	if err != nil {
-		// Empty result is fine
-		if strings.Contains(err.Error(), "no issues found") {
-			return "", nil
-		}
 		return "", err
 	}
 
@@ -605,29 +605,19 @@ func getCleanupStatus(workDir, rigName, polecatName string) string {
 		return ""
 	}
 
-	// Parse cleanup_status from description
-	// Description format has "cleanup_status: <value>" line
-	for _, line := range strings.Split(issues[0].Description, "\n") {
-		line = strings.TrimSpace(line)
-		lower := strings.ToLower(line)
-		if strings.HasPrefix(lower, "cleanup_status:") {
-			// Use the lowercased version to ensure consistent prefix removal
-			value := strings.TrimSpace(strings.TrimPrefix(lower, "cleanup_status:"))
-			if value != "" && value != "null" {
-				return value
-			}
-		}
-	}
-
-	return ""
+	// Use structured field parser instead of ad-hoc string parsing
+	fields := beads.ParseAgentFields(issues[0].Description)
+	return fields.CleanupStatus
 }
 
 // findMRBeadForBranch queries beads for an open merge-request bead whose
-// description contains the given branch name. Returns the bead ID if found,
+// branch field matches the given branch name. Returns the bead ID if found,
 // or empty string if no matching MR bead exists.
 func findMRBeadForBranch(workDir, branch string) string {
+	// Use --desc-contains to filter at the bd level instead of fetching all MR beads
 	output, err := util.ExecWithOutput(workDir, bdCommand, "list",
-		"--type=merge-request", "--status=open", "--json", "--limit=0")
+		"--type=merge-request", "--status=open", "--json", "--limit=0",
+		"--desc-contains", "branch: "+branch)
 	if err != nil || output == "" || output == "[]" || output == "null" {
 		return ""
 	}
@@ -640,9 +630,10 @@ func findMRBeadForBranch(workDir, branch string) string {
 		return ""
 	}
 
-	needle := "branch: " + branch
+	// Verify exact branch match using structured field parser
 	for _, item := range items {
-		if strings.Contains(item.Description, needle) {
+		mrFields := beads.ParseMRFields(&beads.Issue{Description: item.Description})
+		if mrFields != nil && mrFields.Branch == branch {
 			return item.ID
 		}
 	}
