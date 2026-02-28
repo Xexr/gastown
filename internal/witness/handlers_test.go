@@ -14,6 +14,7 @@ import (
 )
 
 func TestHandlePolecatDoneFromBead_NilFields(t *testing.T) {
+	t.Parallel()
 	result := HandlePolecatDoneFromBead("/tmp", "testrig", "nux", nil, nil)
 	if result.Error == nil {
 		t.Error("expected error for nil fields")
@@ -24,6 +25,7 @@ func TestHandlePolecatDoneFromBead_NilFields(t *testing.T) {
 }
 
 func TestHandlePolecatDoneFromBead_PhaseComplete(t *testing.T) {
+	t.Parallel()
 	fields := &beads.AgentFields{
 		ExitType: "PHASE_COMPLETE",
 		Branch:   "polecat/nux",
@@ -41,6 +43,7 @@ func TestHandlePolecatDoneFromBead_PhaseComplete(t *testing.T) {
 }
 
 func TestHandlePolecatDoneFromBead_NoMR(t *testing.T) {
+	t.Parallel()
 	fields := &beads.AgentFields{
 		ExitType:       "COMPLETED",
 		Branch:         "polecat/nux",
@@ -57,6 +60,7 @@ func TestHandlePolecatDoneFromBead_NoMR(t *testing.T) {
 }
 
 func TestHandlePolecatDoneFromBead_ProtocolType(t *testing.T) {
+	t.Parallel()
 	fields := &beads.AgentFields{
 		ExitType: "COMPLETED",
 		Branch:   "polecat/nux",
@@ -68,6 +72,7 @@ func TestHandlePolecatDoneFromBead_ProtocolType(t *testing.T) {
 }
 
 func TestZombieResult_Types(t *testing.T) {
+	t.Parallel()
 	// Verify the ZombieResult type has all expected fields
 	z := ZombieResult{
 		PolecatName:   "nux",
@@ -96,6 +101,7 @@ func TestZombieResult_Types(t *testing.T) {
 }
 
 func TestDetectZombiePolecatsResult_EmptyResult(t *testing.T) {
+	t.Parallel()
 	result := &DetectZombiePolecatsResult{}
 
 	if result.Checked != 0 {
@@ -107,6 +113,7 @@ func TestDetectZombiePolecatsResult_EmptyResult(t *testing.T) {
 }
 
 func TestDetectZombiePolecats_NonexistentDir(t *testing.T) {
+	t.Parallel()
 	// Should handle missing polecats directory gracefully
 	result := DetectZombiePolecats("/nonexistent/path", "testrig", nil)
 
@@ -119,6 +126,7 @@ func TestDetectZombiePolecats_NonexistentDir(t *testing.T) {
 }
 
 func TestDetectZombiePolecats_DirectoryScanning(t *testing.T) {
+	t.Parallel()
 	// Create a temp directory structure simulating polecats
 	tmpDir := t.TempDir()
 	rigName := "testrig"
@@ -159,6 +167,7 @@ func TestDetectZombiePolecats_DirectoryScanning(t *testing.T) {
 }
 
 func TestDetectZombiePolecats_EmptyPolecatsDir(t *testing.T) {
+	t.Parallel()
 	// Empty polecats directory should return 0 checked
 	tmpDir := t.TempDir()
 	rigName := "testrig"
@@ -175,6 +184,7 @@ func TestDetectZombiePolecats_EmptyPolecatsDir(t *testing.T) {
 }
 
 func TestGetAgentBeadState_EmptyOutput(t *testing.T) {
+	t.Parallel()
 	// getAgentBeadState with invalid bead ID should return empty strings
 	// (it calls bd which won't exist in test, so it returns empty)
 	state, hook := getAgentBeadState("/nonexistent", "nonexistent-bead")
@@ -188,6 +198,7 @@ func TestGetAgentBeadState_EmptyOutput(t *testing.T) {
 }
 
 func TestSessionRecreated_NoSession(t *testing.T) {
+	t.Parallel()
 	// When the session doesn't exist, sessionRecreated should return false
 	// (the session wasn't recreated, it's still dead)
 	tm := tmux.NewTmux()
@@ -200,6 +211,7 @@ func TestSessionRecreated_NoSession(t *testing.T) {
 }
 
 func TestSessionRecreated_DetectedAtEdgeCases(t *testing.T) {
+	t.Parallel()
 	// Verify that sessionRecreated returns false when session is dead
 	// regardless of the detectedAt timestamp
 	tm := tmux.NewTmux()
@@ -218,6 +230,7 @@ func TestSessionRecreated_DetectedAtEdgeCases(t *testing.T) {
 }
 
 func TestZombieClassification_SpawningState(t *testing.T) {
+	t.Parallel()
 	// Verify that "spawning" agent state is treated as a zombie indicator.
 	// This tests the classification logic inline in DetectZombiePolecats.
 	// We can't easily test this via the full function without mocking,
@@ -248,6 +261,7 @@ func TestZombieClassification_SpawningState(t *testing.T) {
 }
 
 func TestZombieClassification_HookBeadAlwaysZombie(t *testing.T) {
+	t.Parallel()
 	// Any polecat with a hook_bead and dead session should be classified as zombie,
 	// regardless of agent_state.
 	for _, state := range []string{"", "idle", "done", "working"} {
@@ -267,6 +281,7 @@ func TestZombieClassification_HookBeadAlwaysZombie(t *testing.T) {
 }
 
 func TestZombieClassification_NoHookNoActiveState(t *testing.T) {
+	t.Parallel()
 	// Polecats with no hook_bead and non-active agent_state should NOT be zombies.
 	for _, state := range []string{"", "idle", "done", "completed"} {
 		hookBead := ""
@@ -285,6 +300,7 @@ func TestZombieClassification_NoHookNoActiveState(t *testing.T) {
 }
 
 func TestFindAnyCleanupWisp_NoBdAvailable(t *testing.T) {
+	t.Parallel()
 	// When bd is not available (test environment), findAnyCleanupWisp
 	// should return empty string without panicking
 	result := findAnyCleanupWisp("/nonexistent", "testpolecat")
@@ -294,17 +310,20 @@ func TestFindAnyCleanupWisp_NoBdAvailable(t *testing.T) {
 }
 
 // installFakeBd creates a fake bd script that logs all invocations to a file.
+// Sets bdCommand to the full path of the mock script (no PATH modification needed).
 // Returns the path to the args log file.
+// These tests remain non-parallel since they share the bdCommand global.
 func installFakeBd(t *testing.T) string {
 	t.Helper()
 	binDir := t.TempDir()
 	argsLog := filepath.Join(binDir, "bd_args.log")
 
+	var scriptPath string
 	if runtime.GOOS == "windows" {
 		// Windows: create a .bat file since shell scripts don't work
 		script := fmt.Sprintf("@echo off\r\necho %%* >> %q\r\nif \"%%1\"==\"list\" (\r\n  echo []\r\n) else if \"%%1\"==\"update\" (\r\n  exit /b 0\r\n) else if \"%%1\"==\"show\" (\r\n  echo [{\"labels\":[\"cleanup\",\"polecat:testpol\",\"state:pending\"]}]\r\n) else (\r\n  echo {}\r\n)\r\n", argsLog)
-		bdPath := filepath.Join(binDir, "bd.bat")
-		if err := os.WriteFile(bdPath, []byte(script), 0o755); err != nil {
+		scriptPath = filepath.Join(binDir, "bd.bat")
+		if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
 			t.Fatalf("write fake bd.bat: %v", err)
 		}
 	} else {
@@ -318,12 +337,18 @@ case "$1" in
   *) echo "{}" ;;
 esac
 `, argsLog)
-		bdPath := filepath.Join(binDir, "bd")
-		if err := os.WriteFile(bdPath, []byte(script), 0o755); err != nil {
+		scriptPath = filepath.Join(binDir, "bd")
+		if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
 			t.Fatalf("write fake bd: %v", err)
 		}
 	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	// Set bdCommand to full path — no PATH manipulation needed
+	old := bdCommand
+	bdCommand = scriptPath
+	t.Cleanup(func() {
+		bdCommand = old
+	})
 	return argsLog
 }
 
@@ -426,6 +451,7 @@ func TestUpdateCleanupWispState_UsesCorrectBdUpdateFlags(t *testing.T) {
 }
 
 func TestExtractDoneIntent_Valid(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().Add(-45 * time.Second)
 	labels := []string{
 		"gt:agent",
@@ -446,6 +472,7 @@ func TestExtractDoneIntent_Valid(t *testing.T) {
 }
 
 func TestExtractDoneIntent_Missing(t *testing.T) {
+	t.Parallel()
 	labels := []string{"gt:agent", "idle:2", "backoff-until:1738972900"}
 
 	intent := extractDoneIntent(labels)
@@ -455,6 +482,7 @@ func TestExtractDoneIntent_Missing(t *testing.T) {
 }
 
 func TestExtractDoneIntent_Malformed(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		labels []string
@@ -476,6 +504,7 @@ func TestExtractDoneIntent_Malformed(t *testing.T) {
 }
 
 func TestExtractDoneIntent_AllExitTypes(t *testing.T) {
+	t.Parallel()
 	ts := time.Now().Unix()
 	for _, exitType := range []string{"COMPLETED", "ESCALATED", "DEFERRED", "PHASE_COMPLETE"} {
 		label := fmt.Sprintf("done-intent:%s:%d", exitType, ts)
@@ -491,6 +520,7 @@ func TestExtractDoneIntent_AllExitTypes(t *testing.T) {
 }
 
 func TestDetectZombie_DoneIntentDeadSession(t *testing.T) {
+	t.Parallel()
 	// Verify the logic: dead session + done-intent older than 30s → should be treated as zombie
 	// gt-dsgp: action is restart (not nuke), but detection logic is the same
 	doneIntent := &DoneIntent{
@@ -508,6 +538,7 @@ func TestDetectZombie_DoneIntentDeadSession(t *testing.T) {
 }
 
 func TestDetectZombie_DoneIntentLiveStuck(t *testing.T) {
+	t.Parallel()
 	// Verify the logic: live session + done-intent older than 60s → should restart session
 	// gt-dsgp: restart instead of kill
 	doneIntent := &DoneIntent{
@@ -525,6 +556,7 @@ func TestDetectZombie_DoneIntentLiveStuck(t *testing.T) {
 }
 
 func TestDetectZombie_DoneIntentRecent(t *testing.T) {
+	t.Parallel()
 	// Verify the logic: done-intent younger than 30s → skip (polecat still working)
 	doneIntent := &DoneIntent{
 		ExitType:  "COMPLETED",
@@ -548,6 +580,7 @@ func TestDetectZombie_DoneIntentRecent(t *testing.T) {
 }
 
 func TestDetectZombie_AgentDeadInLiveSession(t *testing.T) {
+	t.Parallel()
 	// Verify the logic: live session + agent process dead → zombie
 	// This is the gt-kj6r6 fix: DetectZombiePolecats now checks IsAgentAlive
 	// for sessions that DO exist, catching the tmux-alive-but-agent-dead class.
@@ -570,6 +603,7 @@ func TestDetectZombie_AgentDeadInLiveSession(t *testing.T) {
 }
 
 func TestGetAgentBeadLabels_NoBdAvailable(t *testing.T) {
+	t.Parallel()
 	// When bd is not available, should return nil without panicking
 	labels := getAgentBeadLabels("/nonexistent", "nonexistent-bead")
 	if labels != nil {
@@ -580,6 +614,7 @@ func TestGetAgentBeadLabels_NoBdAvailable(t *testing.T) {
 // --- extractPolecatFromJSON tests (issue #1228: panic-safe JSON parsing) ---
 
 func TestExtractPolecatFromJSON_ValidOutput(t *testing.T) {
+	t.Parallel()
 	input := `[{"labels":["cleanup","polecat:nux","state:pending"]}]`
 	got := extractPolecatFromJSON(input)
 	if got != "nux" {
@@ -588,6 +623,7 @@ func TestExtractPolecatFromJSON_ValidOutput(t *testing.T) {
 }
 
 func TestExtractPolecatFromJSON_InvalidInputs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input string
@@ -611,6 +647,7 @@ func TestExtractPolecatFromJSON_InvalidInputs(t *testing.T) {
 }
 
 func TestGetBeadStatus_NoBdAvailable(t *testing.T) {
+	t.Parallel()
 	// When bd is not available (test environment), getBeadStatus
 	// should return empty string without panicking
 	result := getBeadStatus("/nonexistent", "gt-abc123")
@@ -620,6 +657,7 @@ func TestGetBeadStatus_NoBdAvailable(t *testing.T) {
 }
 
 func TestGetBeadStatus_EmptyBeadID(t *testing.T) {
+	t.Parallel()
 	// Empty bead ID should return empty string immediately
 	result := getBeadStatus("/nonexistent", "")
 	if result != "" {
@@ -628,6 +666,7 @@ func TestGetBeadStatus_EmptyBeadID(t *testing.T) {
 }
 
 func TestDetectZombie_BeadClosedStillRunning(t *testing.T) {
+	t.Parallel()
 	// Verify the logic: live session + agent alive + hooked bead closed → zombie
 	// This is the gt-h1l6i fix: DetectZombiePolecats now checks if the
 	// polecat's hooked bead has been closed while the session is still running.
@@ -663,6 +702,7 @@ func TestDetectZombie_BeadClosedStillRunning(t *testing.T) {
 }
 
 func TestDetectZombie_BeadClosedVsDoneIntent(t *testing.T) {
+	t.Parallel()
 	// Verify done-intent takes priority over closed-bead check.
 	// If done-intent exists (recent), the polecat is still working through
 	// gt done and we should NOT trigger the closed-bead path.
@@ -692,6 +732,7 @@ func TestDetectZombie_BeadClosedVsDoneIntent(t *testing.T) {
 }
 
 func TestResetAbandonedBead_EmptyHookBead(t *testing.T) {
+	t.Parallel()
 	// resetAbandonedBead should return false for empty hookBead
 	result := resetAbandonedBead("/tmp", "testrig", "", "nux", nil)
 	if result {
@@ -700,6 +741,7 @@ func TestResetAbandonedBead_EmptyHookBead(t *testing.T) {
 }
 
 func TestResetAbandonedBead_NoRouter(t *testing.T) {
+	t.Parallel()
 	// resetAbandonedBead with nil router should not panic even if bead exists.
 	// It will return false because bd won't find the bead, but shouldn't crash.
 	result := resetAbandonedBead("/tmp/nonexistent", "testrig", "gt-fake123", "nux", nil)
@@ -709,6 +751,7 @@ func TestResetAbandonedBead_NoRouter(t *testing.T) {
 }
 
 func TestBeadRecoveredField_DefaultFalse(t *testing.T) {
+	t.Parallel()
 	// BeadRecovered should default to false (zero value)
 	z := ZombieResult{
 		PolecatName: "nux",
@@ -720,6 +763,7 @@ func TestBeadRecoveredField_DefaultFalse(t *testing.T) {
 }
 
 func TestStalledResult_Types(t *testing.T) {
+	t.Parallel()
 	// Verify the StalledResult type has all expected fields
 	s := StalledResult{
 		PolecatName: "alpha",
@@ -754,6 +798,7 @@ func TestStalledResult_Types(t *testing.T) {
 }
 
 func TestDetectStalledPolecatsResult_Empty(t *testing.T) {
+	t.Parallel()
 	result := &DetectStalledPolecatsResult{}
 
 	if result.Checked != 0 {
@@ -768,6 +813,7 @@ func TestDetectStalledPolecatsResult_Empty(t *testing.T) {
 }
 
 func TestDetectStalledPolecats_NoPolecats(t *testing.T) {
+	t.Parallel()
 	// Should handle missing polecats directory gracefully
 	result := DetectStalledPolecats("/nonexistent/path", "testrig")
 
@@ -783,6 +829,7 @@ func TestDetectStalledPolecats_NoPolecats(t *testing.T) {
 }
 
 func TestDetectStalledPolecats_EmptyPolecatsDir(t *testing.T) {
+	t.Parallel()
 	// Empty polecats directory should return 0 checked
 	tmpDir := t.TempDir()
 	rigName := "testrig"
@@ -802,6 +849,7 @@ func TestDetectStalledPolecats_EmptyPolecatsDir(t *testing.T) {
 }
 
 func TestDetectStalledPolecats_NoSession(t *testing.T) {
+	t.Parallel()
 	// When tmux sessions don't exist (no real tmux in test),
 	// HasSession returns false so polecats are skipped (not errors).
 	tmpDir := t.TempDir()
@@ -838,6 +886,7 @@ func TestDetectStalledPolecats_NoSession(t *testing.T) {
 }
 
 func TestStartupStallThresholds(t *testing.T) {
+	t.Parallel()
 	// Verify thresholds are reasonable
 	if StartupStallThreshold < 30*time.Second {
 		t.Errorf("StartupStallThreshold = %v, too short (< 30s)", StartupStallThreshold)
@@ -854,6 +903,7 @@ func TestStartupStallThresholds(t *testing.T) {
 }
 
 func TestDetectOrphanedBeads_NoBdAvailable(t *testing.T) {
+	t.Parallel()
 	// When bd is not available (test environment), should return empty result
 	result := DetectOrphanedBeads("/nonexistent", "testrig", nil)
 
@@ -866,6 +916,7 @@ func TestDetectOrphanedBeads_NoBdAvailable(t *testing.T) {
 }
 
 func TestDetectOrphanedBeads_ResultTypes(t *testing.T) {
+	t.Parallel()
 	// Verify the OrphanedBeadResult type has all expected fields
 	o := OrphanedBeadResult{
 		BeadID:        "gt-orphan1",
@@ -972,7 +1023,9 @@ esac
 	if err := os.WriteFile(bdPath, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	old := bdCommand
+	bdCommand = bdPath
+	defer func() { bdCommand = old }()
 
 	result := DetectOrphanedBeads(townRoot, rigName, nil)
 
@@ -1054,7 +1107,9 @@ exit 1
 	if err := os.WriteFile(bdPath, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	old := bdCommand
+	bdCommand = bdPath
+	defer func() { bdCommand = old }()
 
 	result := DetectOrphanedBeads(t.TempDir(), "testrig", nil)
 
@@ -1072,6 +1127,7 @@ exit 1
 // --- DetectOrphanedMolecules tests ---
 
 func TestOrphanedMoleculeResult_Types(t *testing.T) {
+	t.Parallel()
 	// Verify the result types have all expected fields.
 	r := OrphanedMoleculeResult{
 		BeadID:        "gt-work-123",
@@ -1116,11 +1172,10 @@ func TestOrphanedMoleculeResult_Types(t *testing.T) {
 }
 
 func TestDetectOrphanedMolecules_NoBdAvailable(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("test uses Unix-style PATH override not compatible with Windows")
-	}
-	// When bd is not in PATH, should return empty result with errors.
-	t.Setenv("PATH", "/nonexistent")
+	// When bd is not available, should return empty result with errors.
+	old := bdCommand
+	bdCommand = "/nonexistent/bd"
+	defer func() { bdCommand = old }()
 	result := DetectOrphanedMolecules("/tmp/nonexistent", "testrig", nil)
 	if result == nil {
 		t.Fatal("result should not be nil")
@@ -1144,7 +1199,9 @@ func TestDetectOrphanedMolecules_EmptyResult(t *testing.T) {
 	if err := os.WriteFile(mockBd, []byte("#!/bin/sh\necho '[]'\n"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", tmpDir)
+	old := bdCommand
+	bdCommand = mockBd
+	defer func() { bdCommand = old }()
 
 	result := DetectOrphanedMolecules(tmpDir, "testrig", nil)
 	if result == nil {
@@ -1159,11 +1216,10 @@ func TestDetectOrphanedMolecules_EmptyResult(t *testing.T) {
 }
 
 func TestGetAttachedMoleculeID_EmptyOutput(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("test uses Unix-style PATH override not compatible with Windows")
-	}
 	// When bd show returns empty, should return empty string.
-	t.Setenv("PATH", "/nonexistent")
+	old := bdCommand
+	bdCommand = "/nonexistent/bd"
+	defer func() { bdCommand = old }()
 	result := getAttachedMoleculeID("/tmp", "gt-fake-123")
 	if result != "" {
 		t.Errorf("expected empty string, got %q", result)
@@ -1171,6 +1227,7 @@ func TestGetAttachedMoleculeID_EmptyOutput(t *testing.T) {
 }
 
 func TestHandlePolecatDone_CompletedWithoutMRID_NoMergeReady(t *testing.T) {
+	t.Parallel()
 	// When Exit==COMPLETED but MRID is empty and MRFailed is true,
 	// the witness should NOT send MERGE_READY (go to no-MR path).
 	// This tests the fix for gt-xp6e9p.
@@ -1196,6 +1253,7 @@ func TestHandlePolecatDone_CompletedWithoutMRID_NoMergeReady(t *testing.T) {
 }
 
 func TestHandlePolecatDone_CompletedWithMRID(t *testing.T) {
+	t.Parallel()
 	// When Exit==COMPLETED and MRID is set, hasPendingMR should be true.
 	payload := &PolecatDonePayload{
 		PolecatName: "nux",
@@ -1211,6 +1269,7 @@ func TestHandlePolecatDone_CompletedWithMRID(t *testing.T) {
 }
 
 func TestFindMRBeadForBranch_NoBdAvailable(t *testing.T) {
+	t.Parallel()
 	// When bd is not available, should return empty string
 	result := findMRBeadForBranch("/nonexistent", "polecat/nux-abc123")
 	if result != "" {
@@ -1314,7 +1373,9 @@ esac
 	if err := os.WriteFile(mockBd, []byte(mockScript), 0755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", tmpDir+":"+os.Getenv("PATH"))
+	oldBd := bdCommand
+	bdCommand = mockBd
+	defer func() { bdCommand = oldBd }()
 
 	result := DetectOrphanedMolecules(tmpDir, rigName, nil)
 	if result == nil {
@@ -1371,6 +1432,7 @@ esac
 }
 
 func TestCompletionDiscovery_Types(t *testing.T) {
+	t.Parallel()
 	// Verify CompletionDiscovery has all expected fields
 	d := CompletionDiscovery{
 		PolecatName:    "nux",
@@ -1397,6 +1459,7 @@ func TestCompletionDiscovery_Types(t *testing.T) {
 }
 
 func TestDiscoverCompletionsResult_EmptyResult(t *testing.T) {
+	t.Parallel()
 	result := &DiscoverCompletionsResult{}
 	if result.Checked != 0 {
 		t.Errorf("Checked = %d, want 0", result.Checked)
@@ -1410,6 +1473,7 @@ func TestDiscoverCompletionsResult_EmptyResult(t *testing.T) {
 }
 
 func TestDiscoverCompletions_NonexistentDir(t *testing.T) {
+	t.Parallel()
 	// When workDir doesn't exist, should return empty result
 	result := DiscoverCompletions("/nonexistent/path", "testrig", nil)
 	if result.Checked != 0 {
@@ -1418,6 +1482,7 @@ func TestDiscoverCompletions_NonexistentDir(t *testing.T) {
 }
 
 func TestDiscoverCompletions_EmptyPolecatsDir(t *testing.T) {
+	t.Parallel()
 	// When polecats directory exists but is empty, should scan 0
 	tmpDir := t.TempDir()
 	rigName := "testrig"
@@ -1465,7 +1530,9 @@ esac
 	if err := os.WriteFile(mockBd, []byte(mockScript), 0755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", tmpDir+":"+os.Getenv("PATH"))
+	oldBd := bdCommand
+	bdCommand = mockBd
+	defer func() { bdCommand = oldBd }()
 
 	result := DiscoverCompletions(tmpDir, rigName, nil)
 	if result.Checked != 1 {
@@ -1477,6 +1544,7 @@ esac
 }
 
 func TestProcessDiscoveredCompletion_PhaseComplete(t *testing.T) {
+	t.Parallel()
 	payload := &PolecatDonePayload{
 		PolecatName: "nux",
 		Exit:        "PHASE_COMPLETE",
@@ -1489,6 +1557,7 @@ func TestProcessDiscoveredCompletion_PhaseComplete(t *testing.T) {
 }
 
 func TestProcessDiscoveredCompletion_NoMR(t *testing.T) {
+	t.Parallel()
 	payload := &PolecatDonePayload{
 		PolecatName: "nux",
 		Exit:        "COMPLETED",
@@ -1502,6 +1571,7 @@ func TestProcessDiscoveredCompletion_NoMR(t *testing.T) {
 }
 
 func TestProcessDiscoveredCompletion_EscalatedNoMR(t *testing.T) {
+	t.Parallel()
 	payload := &PolecatDonePayload{
 		PolecatName: "nux",
 		Exit:        "ESCALATED",
@@ -1515,7 +1585,9 @@ func TestProcessDiscoveredCompletion_EscalatedNoMR(t *testing.T) {
 
 func TestGetAgentBeadFields_NoAgentBead(t *testing.T) {
 	// When bd is not available, should return nil
-	t.Setenv("PATH", "/nonexistent")
+	old := bdCommand
+	bdCommand = "/nonexistent/bd"
+	defer func() { bdCommand = old }()
 	fields := getAgentBeadFields("/tmp", "gt-fake-agent")
 	if fields != nil {
 		t.Error("expected nil fields when bd unavailable")
@@ -1524,7 +1596,9 @@ func TestGetAgentBeadFields_NoAgentBead(t *testing.T) {
 
 func TestClearCompletionMetadata_NoBd(t *testing.T) {
 	// When bd is not available, should return error
-	t.Setenv("PATH", "/nonexistent")
+	old := bdCommand
+	bdCommand = "/nonexistent/bd"
+	defer func() { bdCommand = old }()
 	err := clearCompletionMetadata("/tmp", "gt-fake-agent")
 	if err == nil {
 		t.Error("expected error when bd unavailable")

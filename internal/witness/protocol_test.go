@@ -7,6 +7,7 @@ import (
 )
 
 func TestClassifyMessage(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		subject  string
 		expected ProtocolType
@@ -40,6 +41,7 @@ func TestClassifyMessage(t *testing.T) {
 }
 
 func TestParsePolecatDone(t *testing.T) {
+	t.Parallel()
 	subject := "POLECAT_DONE nux"
 	body := `Exit: MERGED
 Issue: gt-abc123
@@ -69,6 +71,7 @@ Branch: feature-branch`
 }
 
 func TestParsePolecatDone_MinimalBody(t *testing.T) {
+	t.Parallel()
 	subject := "POLECAT_DONE ace"
 	body := "Exit: DEFERRED"
 
@@ -89,6 +92,7 @@ func TestParsePolecatDone_MinimalBody(t *testing.T) {
 }
 
 func TestParsePolecatDone_InvalidSubject(t *testing.T) {
+	t.Parallel()
 	_, err := ParsePolecatDone("Invalid subject", "body")
 	if err == nil {
 		t.Error("ParsePolecatDone() expected error for invalid subject")
@@ -96,6 +100,7 @@ func TestParsePolecatDone_InvalidSubject(t *testing.T) {
 }
 
 func TestParsePolecatDone_MRFailed(t *testing.T) {
+	t.Parallel()
 	subject := "POLECAT_DONE nux"
 	body := `Exit: COMPLETED
 Issue: gt-abc123
@@ -120,6 +125,7 @@ Errors: MR bead creation failed: connection refused`
 }
 
 func TestParsePolecatDone_MRFailedAbsent(t *testing.T) {
+	t.Parallel()
 	// When MRFailed is not in the body, it should default to false
 	subject := "POLECAT_DONE nux"
 	body := `Exit: COMPLETED
@@ -138,6 +144,7 @@ Branch: polecat/nux-abc123`
 }
 
 func TestParseHelp(t *testing.T) {
+	t.Parallel()
 	subject := "HELP: Tests failing on CI"
 	body := `Agent: gastown/polecats/nux
 Issue: gt-abc123
@@ -167,6 +174,7 @@ Tried: Increased timeout, checked for deadlocks`
 }
 
 func TestParseHelp_InvalidSubject(t *testing.T) {
+	t.Parallel()
 	_, err := ParseHelp("Not a help message", "body")
 	if err == nil {
 		t.Error("ParseHelp() expected error for invalid subject")
@@ -174,6 +182,7 @@ func TestParseHelp_InvalidSubject(t *testing.T) {
 }
 
 func TestParseMerged(t *testing.T) {
+	t.Parallel()
 	subject := "MERGED nux"
 	body := `Branch: feature-nux
 Issue: gt-abc123
@@ -199,6 +208,7 @@ Merged-At: 2025-12-30T10:30:00Z`
 }
 
 func TestParseMerged_InvalidSubject(t *testing.T) {
+	t.Parallel()
 	_, err := ParseMerged("Not merged", "body")
 	if err == nil {
 		t.Error("ParseMerged() expected error for invalid subject")
@@ -206,6 +216,7 @@ func TestParseMerged_InvalidSubject(t *testing.T) {
 }
 
 func TestParseMergeFailed(t *testing.T) {
+	t.Parallel()
 	subject := "MERGE_FAILED nux"
 	body := `Branch: feature-nux
 Issue: gt-abc123
@@ -238,6 +249,7 @@ Error: unit tests failed with 3 errors`
 }
 
 func TestParseMergeFailed_MinimalBody(t *testing.T) {
+	t.Parallel()
 	subject := "MERGE_FAILED ace"
 	body := "FailureType: build"
 
@@ -258,6 +270,7 @@ func TestParseMergeFailed_MinimalBody(t *testing.T) {
 }
 
 func TestParseMergeFailed_InvalidSubject(t *testing.T) {
+	t.Parallel()
 	_, err := ParseMergeFailed("Not a merge failed", "body")
 	if err == nil {
 		t.Error("ParseMergeFailed() expected error for invalid subject")
@@ -265,6 +278,7 @@ func TestParseMergeFailed_InvalidSubject(t *testing.T) {
 }
 
 func TestParseMergeReady(t *testing.T) {
+	t.Parallel()
 	subject := "MERGE_READY nux"
 	body := `Branch: polecat/nux/gt-abc123
 Issue: gt-abc123
@@ -295,6 +309,7 @@ Verified: clean git state`
 }
 
 func TestParseMergeReady_MinimalBody(t *testing.T) {
+	t.Parallel()
 	subject := "MERGE_READY ace"
 	body := "Branch: feature-ace"
 
@@ -315,6 +330,7 @@ func TestParseMergeReady_MinimalBody(t *testing.T) {
 }
 
 func TestParseMergeReady_InvalidSubject(t *testing.T) {
+	t.Parallel()
 	_, err := ParseMergeReady("Not a merge ready", "body")
 	if err == nil {
 		t.Error("ParseMergeReady() expected error for invalid subject")
@@ -322,6 +338,7 @@ func TestParseMergeReady_InvalidSubject(t *testing.T) {
 }
 
 func TestParseSwarmStart(t *testing.T) {
+	t.Parallel()
 	body := `SwarmID: batch-123
 Beads: bd-a, bd-b, bd-c
 Total: 3`
@@ -352,6 +369,7 @@ Total: 3`
 }
 
 func TestParseSwarmStart_MinimalBody(t *testing.T) {
+	t.Parallel()
 	body := "SwarmID: batch-456"
 
 	payload, err := ParseSwarmStart(body)
@@ -371,6 +389,7 @@ func TestParseSwarmStart_MinimalBody(t *testing.T) {
 }
 
 func TestCleanupWispLabels(t *testing.T) {
+	t.Parallel()
 	labels := CleanupWispLabels("nux", "pending")
 
 	expected := []string{"cleanup", "polecat:nux", "state:pending"}
@@ -386,6 +405,7 @@ func TestCleanupWispLabels(t *testing.T) {
 }
 
 func TestFormatHelpSummary_FullPayload(t *testing.T) {
+	t.Parallel()
 	ts := time.Date(2026, 2, 28, 12, 0, 0, 0, time.UTC)
 	payload := &HelpPayload{
 		Agent:       "gastown/polecats/nux",
@@ -419,6 +439,7 @@ func TestFormatHelpSummary_FullPayload(t *testing.T) {
 }
 
 func TestFormatHelpSummary_MinimalPayload(t *testing.T) {
+	t.Parallel()
 	payload := &HelpPayload{
 		Agent:   "gastown/polecats/furiosa",
 		Problem: "Tests fail on CI",
@@ -449,16 +470,17 @@ func TestFormatHelpSummary_MinimalPayload(t *testing.T) {
 // --- Agent state and exit type constants (gt-x7t9) ---
 
 func TestAgentStateConstants(t *testing.T) {
+	t.Parallel()
 	// Verify all expected agent states are defined
 	states := map[AgentState]string{
-		AgentStateRunning:  "running",
-		AgentStateIdle:     "idle",
-		AgentStateDone:     "done",
-		AgentStateStuck:    "stuck",
+		AgentStateRunning:   "running",
+		AgentStateIdle:      "idle",
+		AgentStateDone:      "done",
+		AgentStateStuck:     "stuck",
 		AgentStateEscalated: "escalated",
-		AgentStateSpawning: "spawning",
-		AgentStateWorking:  "working",
-		AgentStateNuked:    "nuked",
+		AgentStateSpawning:  "spawning",
+		AgentStateWorking:   "working",
+		AgentStateNuked:     "nuked",
 	}
 	for state, expected := range states {
 		if string(state) != expected {
@@ -468,6 +490,7 @@ func TestAgentStateConstants(t *testing.T) {
 }
 
 func TestExitTypeConstants(t *testing.T) {
+	t.Parallel()
 	// Verify all expected exit types are defined and match PolecatDonePayload.Exit values
 	types := map[ExitType]string{
 		ExitTypeCompleted:     "COMPLETED",
@@ -483,6 +506,7 @@ func TestExitTypeConstants(t *testing.T) {
 }
 
 func TestExitTypeMatchesPolecatDonePayload(t *testing.T) {
+	t.Parallel()
 	// The ExitType constants must match values parsed by ParsePolecatDone
 	subject := "POLECAT_DONE nux"
 

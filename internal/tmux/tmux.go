@@ -59,14 +59,26 @@ func validateSessionName(name string) error {
 
 // defaultSocket is the tmux socket name (-L flag) for multi-instance isolation.
 // When set, all tmux commands use this socket instead of the default server.
-var defaultSocket string
+// Access is protected by defaultSocketMu for concurrent test safety.
+var (
+	defaultSocket   string
+	defaultSocketMu sync.RWMutex
+)
 
 // SetDefaultSocket sets the package-level default tmux socket name.
 // Called during init to scope tmux to the current town.
-func SetDefaultSocket(name string) { defaultSocket = name }
+func SetDefaultSocket(name string) {
+	defaultSocketMu.Lock()
+	defaultSocket = name
+	defaultSocketMu.Unlock()
+}
 
 // GetDefaultSocket returns the current default tmux socket name.
-func GetDefaultSocket() string { return defaultSocket }
+func GetDefaultSocket() string {
+	defaultSocketMu.RLock()
+	defer defaultSocketMu.RUnlock()
+	return defaultSocket
+}
 
 // SocketDir returns the directory where tmux stores its socket files.
 // On macOS, tmux uses /tmp (not $TMPDIR which points to /var/folders/...),
@@ -87,7 +99,7 @@ func IsInSameSocket() bool {
 	parts := strings.SplitN(tmuxEnv, ",", 2)
 	currentSocket := filepath.Base(parts[0])
 
-	targetSocket := defaultSocket
+	targetSocket := GetDefaultSocket()
 	if targetSocket == "" {
 		targetSocket = "default"
 	}
@@ -98,8 +110,8 @@ func IsInSameSocket() bool {
 // Use this instead of exec.Command("tmux", ...) for code outside the Tmux struct.
 func BuildCommand(args ...string) *exec.Cmd {
 	allArgs := []string{"-u"}
-	if defaultSocket != "" {
-		allArgs = append(allArgs, "-L", defaultSocket)
+	if sock := GetDefaultSocket(); sock != "" {
+		allArgs = append(allArgs, "-L", sock)
 	}
 	allArgs = append(allArgs, args...)
 	return exec.Command("tmux", allArgs...)
@@ -119,7 +131,7 @@ const noTownSocket = "gt-no-town-socket"
 // Falls back to GT_TOWN_SOCKET env var (set by cross-socket tmux bindings),
 // then to a sentinel socket that fails clearly if neither is available.
 func NewTmux() *Tmux {
-	sock := defaultSocket
+	sock := GetDefaultSocket()
 	if sock == "" {
 		// GT_TOWN_SOCKET is embedded in tmux bindings created by EnsureBindingsOnSocket
 		// so that "gt agents menu" / "gt feed" invoked from a personal terminal still

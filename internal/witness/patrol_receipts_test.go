@@ -7,6 +7,7 @@ import (
 )
 
 func TestBuildPatrolReceipt_StaleVerdictFromHookBead(t *testing.T) {
+	t.Parallel()
 	receipt := BuildPatrolReceipt("gastown", ZombieResult{
 		PolecatName: "atlas",
 		AgentState:  "idle",
@@ -23,6 +24,7 @@ func TestBuildPatrolReceipt_StaleVerdictFromHookBead(t *testing.T) {
 }
 
 func TestBuildPatrolReceipt_OrphanVerdictWithoutHookedWork(t *testing.T) {
+	t.Parallel()
 	receipt := BuildPatrolReceipt("gastown", ZombieResult{
 		PolecatName: "echo",
 		AgentState:  "idle",
@@ -35,6 +37,7 @@ func TestBuildPatrolReceipt_OrphanVerdictWithoutHookedWork(t *testing.T) {
 }
 
 func TestBuildPatrolReceipt_ErrorIncludedInEvidence(t *testing.T) {
+	t.Parallel()
 	receipt := BuildPatrolReceipt("gastown", ZombieResult{
 		PolecatName: "nux",
 		AgentState:  "running",
@@ -47,6 +50,7 @@ func TestBuildPatrolReceipt_ErrorIncludedInEvidence(t *testing.T) {
 }
 
 func TestReceiptVerdictForZombie_AllStates(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		state    string
@@ -95,6 +99,7 @@ func TestReceiptVerdictForZombie_AllStates(t *testing.T) {
 }
 
 func TestBuildPatrolReceipts_NilAndEmpty(t *testing.T) {
+	t.Parallel()
 	if got := BuildPatrolReceipts("rig", nil); got != nil {
 		t.Errorf("BuildPatrolReceipts(nil) = %v, want nil", got)
 	}
@@ -107,6 +112,7 @@ func TestBuildPatrolReceipts_NilAndEmpty(t *testing.T) {
 }
 
 func TestBuildPatrolReceipts_JSONShape(t *testing.T) {
+	t.Parallel()
 	receipts := BuildPatrolReceipts("gastown", &DetectZombiePolecatsResult{
 		Zombies: []ZombieResult{
 			{
@@ -147,6 +153,7 @@ func TestBuildPatrolReceipts_JSONShape(t *testing.T) {
 }
 
 func TestBuildPatrolReceipts_DeterministicStaleOrphanOrdering(t *testing.T) {
+	t.Parallel()
 	receipts := BuildPatrolReceipts("gastown", &DetectZombiePolecatsResult{
 		Zombies: []ZombieResult{
 			{
