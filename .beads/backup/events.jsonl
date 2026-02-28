@@ -3085,3 +3085,593 @@
 {"actor":"gastown/polecats/dag","comment":"","created_at":"2026-02-28T11:46:56Z","event_type":"closed","id":5919,"issue_id":"gt-wisp-44uany","new_value":"done","old_value":""}
 {"actor":"gastown/witness","comment":"","created_at":"2026-02-28T11:46:57Z","event_type":"closed","id":5920,"issue_id":"gt-wisp-c01lwt","new_value":"burned: polecat nuked","old_value":""}
 {"actor":"gastown/witness","comment":"","created_at":"2026-02-28T11:47:11Z","event_type":"closed","id":5921,"issue_id":"gt-wisp-44uany","new_value":"burned: polecat nuked","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T11:58:23Z","event_type":"closed","id":5922,"issue_id":"gt-wisp-s2vyx","new_value":"stale patrol cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T11:58:23Z","event_type":"closed","id":5923,"issue_id":"gt-wisp-1072a2","new_value":"patrol cycle complete: Merged 7 branches to main, all tests passing, 0 conflicts. Branches: rictus/gt-qago, toast/gt-4d7p, nux/gt-utuk, dementus/gt-jq7l, furiosa/gt-sjzd, dag/gt-qjtq, rictus/gt-mcw2 (orphan). Dolt restarted at session start. RSS: 3MB.","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T11:59:19Z","event_type":"closed","id":5924,"issue_id":"gt-wisp-s2vyx","new_value":"stale patrol cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T11:59:19Z","event_type":"closed","id":5925,"issue_id":"gt-wisp-13weva","new_value":"patrol cycle complete: Idle cycle. Queue empty, inbox empty. RSS: 3MB. Continuing.","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5926,"issue_id":"gt-wisp-zzh50","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5927,"issue_id":"gt-wisp-fl473","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5928,"issue_id":"gt-wisp-0z7eh","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5929,"issue_id":"gt-wisp-1r5at","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5930,"issue_id":"gt-wisp-54l1v","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5931,"issue_id":"gt-wisp-ckxd2","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5932,"issue_id":"gt-wisp-dxgw4","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5933,"issue_id":"gt-wisp-eq6yh","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5934,"issue_id":"gt-wisp-gtgp7","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5935,"issue_id":"gt-wisp-kxctl","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5936,"issue_id":"gt-wisp-welo5","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5937,"issue_id":"gt-wisp-xa548","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5938,"issue_id":"gt-wisp-xxo0n","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5939,"issue_id":"gt-wisp-4wt5o","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5940,"issue_id":"gt-wisp-b8o8v","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5941,"issue_id":"gt-wisp-b9ae7","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5942,"issue_id":"gt-wisp-dqbgl","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5943,"issue_id":"gt-wisp-fbptp","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5944,"issue_id":"gt-wisp-gxnwv","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5945,"issue_id":"gt-wisp-jc7km","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5946,"issue_id":"gt-wisp-lnhf5","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5947,"issue_id":"gt-wisp-ntvpy","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5948,"issue_id":"gt-wisp-tdwqh","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5949,"issue_id":"gt-wisp-tg5pr","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5950,"issue_id":"gt-wisp-zsh6g","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5951,"issue_id":"gt-wisp-c91dr","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5952,"issue_id":"gt-wisp-liwao","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5953,"issue_id":"gt-wisp-03rto","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5954,"issue_id":"gt-wisp-0sob8","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5955,"issue_id":"gt-wisp-2qln1","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5956,"issue_id":"gt-wisp-9gj9e","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5957,"issue_id":"gt-wisp-e4q2g","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5958,"issue_id":"gt-wisp-gwmen","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5959,"issue_id":"gt-wisp-nwzrp","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5960,"issue_id":"gt-wisp-pc42n","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5961,"issue_id":"gt-wisp-w706w","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5962,"issue_id":"gt-wisp-y5s6q","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5963,"issue_id":"gt-wisp-ykcjw","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5964,"issue_id":"gt-wisp-0md58","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5965,"issue_id":"gt-wisp-0w110","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5966,"issue_id":"gt-wisp-4wgug","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5967,"issue_id":"gt-wisp-6da15","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5968,"issue_id":"gt-wisp-dm0m9","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5969,"issue_id":"gt-wisp-mr2l3","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5970,"issue_id":"gt-wisp-qmdxe","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5971,"issue_id":"gt-wisp-tei0a","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5972,"issue_id":"gt-wisp-yctcs","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5973,"issue_id":"gt-wisp-yuozm","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5974,"issue_id":"gt-wisp-zkg2o","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:57Z","event_type":"closed","id":5975,"issue_id":"gt-wisp-1fotmi","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5976,"issue_id":"gt-wisp-1xg1oc","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5977,"issue_id":"gt-wisp-2tkljb","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5978,"issue_id":"gt-wisp-3bh509","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5979,"issue_id":"gt-wisp-4yhhze","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5980,"issue_id":"gt-wisp-54a0bg","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5981,"issue_id":"gt-wisp-57niqh","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5982,"issue_id":"gt-wisp-5wbj4v","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5983,"issue_id":"gt-wisp-7g8wcv","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5984,"issue_id":"gt-wisp-8oq8l2","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5985,"issue_id":"gt-wisp-996y4q","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5986,"issue_id":"gt-wisp-9lvni5","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5987,"issue_id":"gt-wisp-a4x3ca","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5988,"issue_id":"gt-wisp-a5hf90","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5989,"issue_id":"gt-wisp-chmfcf","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5990,"issue_id":"gt-wisp-d2rwoe","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5991,"issue_id":"gt-wisp-edt3ex","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5992,"issue_id":"gt-wisp-ee0zap","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5993,"issue_id":"gt-wisp-ee6hu4","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5994,"issue_id":"gt-wisp-egs2ga","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5995,"issue_id":"gt-wisp-es0846","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5996,"issue_id":"gt-wisp-h0olsz","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5997,"issue_id":"gt-wisp-h6jhf4","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5998,"issue_id":"gt-wisp-hog8dx","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":5999,"issue_id":"gt-wisp-i19qog","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6000,"issue_id":"gt-wisp-idnh53","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6001,"issue_id":"gt-wisp-jto0sx","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6002,"issue_id":"gt-wisp-jw65yo","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6003,"issue_id":"gt-wisp-m38u2i","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6004,"issue_id":"gt-wisp-m879ku","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6005,"issue_id":"gt-wisp-mu7wry","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6006,"issue_id":"gt-wisp-nf1ca2","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6007,"issue_id":"gt-wisp-nq9j8c","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6008,"issue_id":"gt-wisp-p9dadz","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6009,"issue_id":"gt-wisp-ps2hir","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6010,"issue_id":"gt-wisp-q171su","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6011,"issue_id":"gt-wisp-q7fg3k","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6012,"issue_id":"gt-wisp-qh2069","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6013,"issue_id":"gt-wisp-ql837y","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6014,"issue_id":"gt-wisp-r5gqlp","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6015,"issue_id":"gt-wisp-rqh1ur","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6016,"issue_id":"gt-wisp-rxvanu","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6017,"issue_id":"gt-wisp-sdph3n","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6018,"issue_id":"gt-wisp-ubya2s","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6019,"issue_id":"gt-wisp-uvc1bx","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6020,"issue_id":"gt-wisp-uy2s2x","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6021,"issue_id":"gt-wisp-v2spmb","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6022,"issue_id":"gt-wisp-vr6pj1","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6023,"issue_id":"gt-wisp-wgft53","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"mayor","comment":"","created_at":"2026-02-28T11:59:58Z","event_type":"closed","id":6024,"issue_id":"gt-wisp-z7unik","new_value":"Wisp pollution cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:04Z","event_type":"closed","id":6025,"issue_id":"gt-wisp-s2vyx","new_value":"stale patrol cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:31Z","event_type":"closed","id":6026,"issue_id":"gt-wisp-wdupd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:39Z","event_type":"closed","id":6027,"issue_id":"gt-wisp-0c08n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6028,"issue_id":"gt-wisp-jw3sc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6029,"issue_id":"gt-wisp-aklr5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6030,"issue_id":"gt-wisp-cepn6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6031,"issue_id":"gt-wisp-onpvt","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6032,"issue_id":"gt-wisp-z6t88","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:45Z","event_type":"closed","id":6033,"issue_id":"gt-wisp-fhw3x","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:52Z","event_type":"closed","id":6034,"issue_id":"gt-wisp-v0ogu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:04:59Z","event_type":"closed","id":6035,"issue_id":"gt-wisp-82j5b","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:03Z","event_type":"closed","id":6036,"issue_id":"gt-wisp-g9kts","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:08Z","event_type":"closed","id":6037,"issue_id":"gt-wisp-s2vyx","new_value":"stale patrol cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:08Z","event_type":"closed","id":6038,"issue_id":"gt-wisp-t83k2","new_value":"stale patrol cleanup","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:25Z","event_type":"closed","id":6039,"issue_id":"gt-wisp-7z9ah","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:35Z","event_type":"closed","id":6040,"issue_id":"gt-wisp-b4cot","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:35Z","event_type":"closed","id":6041,"issue_id":"gt-wisp-elatp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6042,"issue_id":"gt-wisp-yzil7","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6043,"issue_id":"gt-wisp-emgg2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6044,"issue_id":"gt-wisp-jnc2l","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6045,"issue_id":"gt-wisp-6njun","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6046,"issue_id":"gt-wisp-1je8h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6047,"issue_id":"gt-wisp-zqf4f","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6048,"issue_id":"gt-wisp-zb2rx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:05:36Z","event_type":"closed","id":6049,"issue_id":"gt-wisp-ialsw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6050,"issue_id":"gt-wisp-2pa2s","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6051,"issue_id":"gt-wisp-3xnv2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6052,"issue_id":"gt-wisp-ahrsi","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6053,"issue_id":"gt-wisp-bhvrz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6054,"issue_id":"gt-wisp-csdlc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6055,"issue_id":"gt-wisp-eiwmm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6056,"issue_id":"gt-wisp-ls8aw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6057,"issue_id":"gt-wisp-q9vmu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6058,"issue_id":"gt-wisp-z5zcw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6059,"issue_id":"gt-wisp-zthw5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:02Z","event_type":"closed","id":6060,"issue_id":"gt-wisp-zzzu3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:25Z","event_type":"closed","id":6061,"issue_id":"gt-wisp-31772","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:25Z","event_type":"closed","id":6062,"issue_id":"gt-wisp-4jvop","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6063,"issue_id":"gt-wisp-67yua","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6064,"issue_id":"gt-wisp-6jaq8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6065,"issue_id":"gt-wisp-crgwg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6066,"issue_id":"gt-wisp-dtuwc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6067,"issue_id":"gt-wisp-j2ec4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6068,"issue_id":"gt-wisp-j8dbv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6069,"issue_id":"gt-wisp-jpi18","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6070,"issue_id":"gt-wisp-lg47c","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:26Z","event_type":"closed","id":6071,"issue_id":"gt-wisp-yv2zv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:50Z","event_type":"closed","id":6072,"issue_id":"gt-wisp-2azqy","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:50Z","event_type":"closed","id":6073,"issue_id":"gt-wisp-aeing","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:50Z","event_type":"closed","id":6074,"issue_id":"gt-wisp-b39kx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6075,"issue_id":"gt-wisp-eovmb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6076,"issue_id":"gt-wisp-jjsrd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6077,"issue_id":"gt-wisp-kawyp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6078,"issue_id":"gt-wisp-l5iwu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6079,"issue_id":"gt-wisp-n75k6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6080,"issue_id":"gt-wisp-ucs7g","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6081,"issue_id":"gt-wisp-yygrn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:06:51Z","event_type":"closed","id":6082,"issue_id":"gt-wisp-z1a5c","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:09Z","event_type":"closed","id":6083,"issue_id":"gt-wisp-2aoeo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:09Z","event_type":"closed","id":6084,"issue_id":"gt-wisp-byezk","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6085,"issue_id":"gt-wisp-hmtg2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6086,"issue_id":"gt-wisp-htine","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6087,"issue_id":"gt-wisp-mnl5b","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6088,"issue_id":"gt-wisp-mwszg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6089,"issue_id":"gt-wisp-o8bdn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6090,"issue_id":"gt-wisp-tc5m8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6091,"issue_id":"gt-wisp-vfa6h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6092,"issue_id":"gt-wisp-w70yz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:10Z","event_type":"closed","id":6093,"issue_id":"gt-wisp-zxiqr","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:26Z","event_type":"closed","id":6094,"issue_id":"gt-wisp-24jd0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:26Z","event_type":"closed","id":6095,"issue_id":"gt-wisp-2l53p","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:26Z","event_type":"closed","id":6096,"issue_id":"gt-wisp-4od7i","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:26Z","event_type":"closed","id":6097,"issue_id":"gt-wisp-g7dws","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6098,"issue_id":"gt-wisp-ip5fl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6099,"issue_id":"gt-wisp-knwc9","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6100,"issue_id":"gt-wisp-npt4o","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6101,"issue_id":"gt-wisp-o147w","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6102,"issue_id":"gt-wisp-u3adc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6103,"issue_id":"gt-wisp-udsux","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:27Z","event_type":"closed","id":6104,"issue_id":"gt-wisp-vg69b","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:45Z","event_type":"closed","id":6105,"issue_id":"gt-wisp-62s7r","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:45Z","event_type":"closed","id":6106,"issue_id":"gt-wisp-9zxzc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6107,"issue_id":"gt-wisp-dmm1m","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6108,"issue_id":"gt-wisp-etra8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6109,"issue_id":"gt-wisp-gobto","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6110,"issue_id":"gt-wisp-mxeyx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6111,"issue_id":"gt-wisp-orwp7","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6112,"issue_id":"gt-wisp-oyljc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6113,"issue_id":"gt-wisp-siavp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6114,"issue_id":"gt-wisp-utlaf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:07:46Z","event_type":"closed","id":6115,"issue_id":"gt-wisp-x0rgk","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:04Z","event_type":"closed","id":6116,"issue_id":"gt-wisp-1298v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:04Z","event_type":"closed","id":6117,"issue_id":"gt-wisp-1zacf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:04Z","event_type":"closed","id":6118,"issue_id":"gt-wisp-7mstp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:04Z","event_type":"closed","id":6119,"issue_id":"gt-wisp-avxjd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:04Z","event_type":"closed","id":6120,"issue_id":"gt-wisp-b5w1c","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6121,"issue_id":"gt-wisp-lsoc4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6122,"issue_id":"gt-wisp-o2qz3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6123,"issue_id":"gt-wisp-od5wl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6124,"issue_id":"gt-wisp-pbfzs","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6125,"issue_id":"gt-wisp-pge38","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:05Z","event_type":"closed","id":6126,"issue_id":"gt-wisp-wbd4v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6127,"issue_id":"gt-wisp-1wcdl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6128,"issue_id":"gt-wisp-6lche","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6129,"issue_id":"gt-wisp-89a8q","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6130,"issue_id":"gt-wisp-9jxsb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6131,"issue_id":"gt-wisp-a2wod","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6132,"issue_id":"gt-wisp-bpop2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6133,"issue_id":"gt-wisp-j5ek4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6134,"issue_id":"gt-wisp-knrsf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:23Z","event_type":"closed","id":6135,"issue_id":"gt-wisp-onkv4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:24Z","event_type":"closed","id":6136,"issue_id":"gt-wisp-u6e26","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:24Z","event_type":"closed","id":6137,"issue_id":"gt-wisp-z8lxa","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:40Z","event_type":"closed","id":6138,"issue_id":"gt-wisp-46rvf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:40Z","event_type":"closed","id":6139,"issue_id":"gt-wisp-8f101","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6140,"issue_id":"gt-wisp-9eyt8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6141,"issue_id":"gt-wisp-mh7og","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6142,"issue_id":"gt-wisp-picuv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6143,"issue_id":"gt-wisp-plgiq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6144,"issue_id":"gt-wisp-v6mc5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6145,"issue_id":"gt-wisp-wngq0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6146,"issue_id":"gt-wisp-y0ysd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6147,"issue_id":"gt-wisp-ywabk","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:41Z","event_type":"closed","id":6148,"issue_id":"gt-wisp-zxa9e","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:58Z","event_type":"closed","id":6149,"issue_id":"gt-wisp-32do1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:58Z","event_type":"closed","id":6150,"issue_id":"gt-wisp-4crli","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:58Z","event_type":"closed","id":6151,"issue_id":"gt-wisp-5a2rc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:58Z","event_type":"closed","id":6152,"issue_id":"gt-wisp-6lnc1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:58Z","event_type":"closed","id":6153,"issue_id":"gt-wisp-8p75h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6154,"issue_id":"gt-wisp-afgu9","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6155,"issue_id":"gt-wisp-jxmur","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6156,"issue_id":"gt-wisp-r8d6y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6157,"issue_id":"gt-wisp-x3p24","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6158,"issue_id":"gt-wisp-y8f2v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:08:59Z","event_type":"closed","id":6159,"issue_id":"gt-wisp-ygb32","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:17Z","event_type":"closed","id":6160,"issue_id":"gt-wisp-0me10","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:17Z","event_type":"closed","id":6161,"issue_id":"gt-wisp-4lrjz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6162,"issue_id":"gt-wisp-5ceag","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6163,"issue_id":"gt-wisp-a8y8t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6164,"issue_id":"gt-wisp-bkah1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6165,"issue_id":"gt-wisp-blt2y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6166,"issue_id":"gt-wisp-fvf22","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6167,"issue_id":"gt-wisp-mqpju","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6168,"issue_id":"gt-wisp-sh6yg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6169,"issue_id":"gt-wisp-tg0hv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:18Z","event_type":"closed","id":6170,"issue_id":"gt-wisp-vhggd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6171,"issue_id":"gt-wisp-11281","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6172,"issue_id":"gt-wisp-3krhg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6173,"issue_id":"gt-wisp-3whnu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6174,"issue_id":"gt-wisp-atm2g","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6175,"issue_id":"gt-wisp-mzxqm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:37Z","event_type":"closed","id":6176,"issue_id":"gt-wisp-o6023","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:38Z","event_type":"closed","id":6177,"issue_id":"gt-wisp-oards","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:38Z","event_type":"closed","id":6178,"issue_id":"gt-wisp-pbra1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:38Z","event_type":"closed","id":6179,"issue_id":"gt-wisp-ukp8u","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:38Z","event_type":"closed","id":6180,"issue_id":"gt-wisp-xe9vp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:38Z","event_type":"closed","id":6181,"issue_id":"gt-wisp-ybipb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:53Z","event_type":"closed","id":6182,"issue_id":"gt-wisp-29jgd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:53Z","event_type":"closed","id":6183,"issue_id":"gt-wisp-47ihf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6184,"issue_id":"gt-wisp-bof40","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6185,"issue_id":"gt-wisp-di4me","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6186,"issue_id":"gt-wisp-dv6cc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6187,"issue_id":"gt-wisp-g4oma","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6188,"issue_id":"gt-wisp-hxukl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6189,"issue_id":"gt-wisp-p59q2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6190,"issue_id":"gt-wisp-rbo4c","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6191,"issue_id":"gt-wisp-u7rci","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:09:54Z","event_type":"closed","id":6192,"issue_id":"gt-wisp-ued4z","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:10Z","event_type":"closed","id":6193,"issue_id":"gt-wisp-17qt3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6194,"issue_id":"gt-wisp-4t9pv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6195,"issue_id":"gt-wisp-5etet","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6196,"issue_id":"gt-wisp-d2iev","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6197,"issue_id":"gt-wisp-e1df4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6198,"issue_id":"gt-wisp-q11ul","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6199,"issue_id":"gt-wisp-vepe5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6200,"issue_id":"gt-wisp-w5c4v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6201,"issue_id":"gt-wisp-wm0iy","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6202,"issue_id":"gt-wisp-xgzwm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:11Z","event_type":"closed","id":6203,"issue_id":"gt-wisp-znpay","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6204,"issue_id":"gt-wisp-5wq2h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6205,"issue_id":"gt-wisp-6cp2w","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6206,"issue_id":"gt-wisp-96bz2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6207,"issue_id":"gt-wisp-d4hib","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6208,"issue_id":"gt-wisp-jkeki","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:31Z","event_type":"closed","id":6209,"issue_id":"gt-wisp-kfzdk","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:32Z","event_type":"closed","id":6210,"issue_id":"gt-wisp-p2117","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:32Z","event_type":"closed","id":6211,"issue_id":"gt-wisp-rl38b","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:32Z","event_type":"closed","id":6212,"issue_id":"gt-wisp-v7gvd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:32Z","event_type":"closed","id":6213,"issue_id":"gt-wisp-x461y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:32Z","event_type":"closed","id":6214,"issue_id":"gt-wisp-yme2w","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6215,"issue_id":"gt-wisp-0wayj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6216,"issue_id":"gt-wisp-4xqig","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6217,"issue_id":"gt-wisp-544e1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6218,"issue_id":"gt-wisp-7tj6t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6219,"issue_id":"gt-wisp-908cx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6220,"issue_id":"gt-wisp-fkkav","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6221,"issue_id":"gt-wisp-k0v1s","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:48Z","event_type":"closed","id":6222,"issue_id":"gt-wisp-k112t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:49Z","event_type":"closed","id":6223,"issue_id":"gt-wisp-lto63","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:49Z","event_type":"closed","id":6224,"issue_id":"gt-wisp-nzpvo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:10:49Z","event_type":"closed","id":6225,"issue_id":"gt-wisp-y7e38","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:05Z","event_type":"closed","id":6226,"issue_id":"gt-wisp-0rzs6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:05Z","event_type":"closed","id":6227,"issue_id":"gt-wisp-27vne","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6228,"issue_id":"gt-wisp-dnkeu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6229,"issue_id":"gt-wisp-dru7n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6230,"issue_id":"gt-wisp-mef1u","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6231,"issue_id":"gt-wisp-n5c76","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6232,"issue_id":"gt-wisp-n9t89","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6233,"issue_id":"gt-wisp-ng09f","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6234,"issue_id":"gt-wisp-tukax","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6235,"issue_id":"gt-wisp-wm3fo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:06Z","event_type":"closed","id":6236,"issue_id":"gt-wisp-ybdtq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:22Z","event_type":"closed","id":6237,"issue_id":"gt-wisp-247ig","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6238,"issue_id":"gt-wisp-6dr3c","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6239,"issue_id":"gt-wisp-9g0hf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6240,"issue_id":"gt-wisp-blyda","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6241,"issue_id":"gt-wisp-c5twh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6242,"issue_id":"gt-wisp-k2pom","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6243,"issue_id":"gt-wisp-n7to5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6244,"issue_id":"gt-wisp-nhmdh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6245,"issue_id":"gt-wisp-th6ld","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6246,"issue_id":"gt-wisp-wa1kf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:23Z","event_type":"closed","id":6247,"issue_id":"gt-wisp-yylro","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:40Z","event_type":"closed","id":6248,"issue_id":"gt-wisp-8avea","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:40Z","event_type":"closed","id":6249,"issue_id":"gt-wisp-argph","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:40Z","event_type":"closed","id":6250,"issue_id":"gt-wisp-doite","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:40Z","event_type":"closed","id":6251,"issue_id":"gt-wisp-dvgg3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:40Z","event_type":"closed","id":6252,"issue_id":"gt-wisp-l92d7","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6253,"issue_id":"gt-wisp-oj1hz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6254,"issue_id":"gt-wisp-r6buu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6255,"issue_id":"gt-wisp-rbvc4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6256,"issue_id":"gt-wisp-tyo1g","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6257,"issue_id":"gt-wisp-ufkav","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:41Z","event_type":"closed","id":6258,"issue_id":"gt-wisp-v8wdg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:58Z","event_type":"closed","id":6259,"issue_id":"gt-wisp-05tx6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:58Z","event_type":"closed","id":6260,"issue_id":"gt-wisp-2nq2h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:58Z","event_type":"closed","id":6261,"issue_id":"gt-wisp-464el","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:58Z","event_type":"closed","id":6262,"issue_id":"gt-wisp-87d0z","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:58Z","event_type":"closed","id":6263,"issue_id":"gt-wisp-a0rji","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6264,"issue_id":"gt-wisp-eb6px","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6265,"issue_id":"gt-wisp-frbnx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6266,"issue_id":"gt-wisp-i6xmj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6267,"issue_id":"gt-wisp-md6ni","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6268,"issue_id":"gt-wisp-p622a","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:11:59Z","event_type":"closed","id":6269,"issue_id":"gt-wisp-tw46v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:19Z","event_type":"closed","id":6270,"issue_id":"gt-wisp-5b93u","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:19Z","event_type":"closed","id":6271,"issue_id":"gt-wisp-5tc6o","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:19Z","event_type":"closed","id":6272,"issue_id":"gt-wisp-7xcw4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6273,"issue_id":"gt-wisp-b81yx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6274,"issue_id":"gt-wisp-d4me6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6275,"issue_id":"gt-wisp-h1yt3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6276,"issue_id":"gt-wisp-hn38n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6277,"issue_id":"gt-wisp-ksr49","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6278,"issue_id":"gt-wisp-ps2uc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6279,"issue_id":"gt-wisp-u7922","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:20Z","event_type":"closed","id":6280,"issue_id":"gt-wisp-zmxez","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6281,"issue_id":"gt-wisp-0t4re","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6282,"issue_id":"gt-wisp-am46z","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6283,"issue_id":"gt-wisp-azmn8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6284,"issue_id":"gt-wisp-fuwe2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6285,"issue_id":"gt-wisp-fzp3a","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:37Z","event_type":"closed","id":6286,"issue_id":"gt-wisp-k47y2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:38Z","event_type":"closed","id":6287,"issue_id":"gt-wisp-q9eke","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:38Z","event_type":"closed","id":6288,"issue_id":"gt-wisp-r9d39","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:38Z","event_type":"closed","id":6289,"issue_id":"gt-wisp-r9i1j","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:38Z","event_type":"closed","id":6290,"issue_id":"gt-wisp-x6bza","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:38Z","event_type":"closed","id":6291,"issue_id":"gt-wisp-zf4uu","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:55Z","event_type":"closed","id":6292,"issue_id":"gt-wisp-34rop","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:55Z","event_type":"closed","id":6293,"issue_id":"gt-wisp-d25w8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:55Z","event_type":"closed","id":6294,"issue_id":"gt-wisp-glmdj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:55Z","event_type":"closed","id":6295,"issue_id":"gt-wisp-j3rea","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6296,"issue_id":"gt-wisp-lq7ub","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6297,"issue_id":"gt-wisp-prx6y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6298,"issue_id":"gt-wisp-qk8e4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6299,"issue_id":"gt-wisp-rdgpx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6300,"issue_id":"gt-wisp-tfw5j","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6301,"issue_id":"gt-wisp-vq43b","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:12:56Z","event_type":"closed","id":6302,"issue_id":"gt-wisp-w1iti","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6303,"issue_id":"gt-wisp-ba6mb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6304,"issue_id":"gt-wisp-c5xlh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6305,"issue_id":"gt-wisp-gswum","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6306,"issue_id":"gt-wisp-hnjrw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6307,"issue_id":"gt-wisp-joanj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6308,"issue_id":"gt-wisp-mc8cv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:14Z","event_type":"closed","id":6309,"issue_id":"gt-wisp-nc0a6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:15Z","event_type":"closed","id":6310,"issue_id":"gt-wisp-tqftv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:15Z","event_type":"closed","id":6311,"issue_id":"gt-wisp-uypr8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:15Z","event_type":"closed","id":6312,"issue_id":"gt-wisp-xs587","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:15Z","event_type":"closed","id":6313,"issue_id":"gt-wisp-y0eo7","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:33Z","event_type":"closed","id":6314,"issue_id":"gt-wisp-2pkn0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6315,"issue_id":"gt-wisp-3hpo9","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6316,"issue_id":"gt-wisp-60zhp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6317,"issue_id":"gt-wisp-7azfb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6318,"issue_id":"gt-wisp-9b1pl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6319,"issue_id":"gt-wisp-aqkbn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6320,"issue_id":"gt-wisp-dsupz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6321,"issue_id":"gt-wisp-fvst0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6322,"issue_id":"gt-wisp-gx1ht","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6323,"issue_id":"gt-wisp-p42h8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:34Z","event_type":"closed","id":6324,"issue_id":"gt-wisp-tpgvm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:50Z","event_type":"closed","id":6325,"issue_id":"gt-wisp-2000o","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:50Z","event_type":"closed","id":6326,"issue_id":"gt-wisp-4vcb0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6327,"issue_id":"gt-wisp-cbxif","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6328,"issue_id":"gt-wisp-gbcf0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6329,"issue_id":"gt-wisp-k1pf6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6330,"issue_id":"gt-wisp-k8crl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6331,"issue_id":"gt-wisp-l9ji0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6332,"issue_id":"gt-wisp-p3nzo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6333,"issue_id":"gt-wisp-u5gr0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6334,"issue_id":"gt-wisp-vnw8x","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:13:51Z","event_type":"closed","id":6335,"issue_id":"gt-wisp-z6akx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:09Z","event_type":"closed","id":6336,"issue_id":"gt-wisp-04xdu2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6337,"issue_id":"gt-wisp-9tlqiv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6338,"issue_id":"gt-wisp-a9yfz2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6339,"issue_id":"gt-wisp-bz58fe","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6340,"issue_id":"gt-wisp-ckyzfk","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6341,"issue_id":"gt-wisp-ewe1l3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6342,"issue_id":"gt-wisp-k9ea64","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6343,"issue_id":"gt-wisp-pj5smt","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6344,"issue_id":"gt-wisp-tc2n9s","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6345,"issue_id":"gt-wisp-w066ci","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:10Z","event_type":"closed","id":6346,"issue_id":"gt-wisp-zj670q","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6347,"issue_id":"gt-wisp-03mde9","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6348,"issue_id":"gt-wisp-6mgb73","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6349,"issue_id":"gt-wisp-84pafx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6350,"issue_id":"gt-wisp-d1f8jv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6351,"issue_id":"gt-wisp-p9mtxq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6352,"issue_id":"gt-wisp-pgm3gb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6353,"issue_id":"gt-wisp-qc3b8w","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6354,"issue_id":"gt-wisp-rlxcjd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:27Z","event_type":"closed","id":6355,"issue_id":"gt-wisp-sxbxpq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:28Z","event_type":"closed","id":6356,"issue_id":"gt-wisp-u2atx4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:28Z","event_type":"closed","id":6357,"issue_id":"gt-wisp-v3e5p1","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6358,"issue_id":"gt-wisp-100qsf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6359,"issue_id":"gt-wisp-6s2g3m","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6360,"issue_id":"gt-wisp-g1mcv5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6361,"issue_id":"gt-wisp-ghcyhn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6362,"issue_id":"gt-wisp-jeshx6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:45Z","event_type":"closed","id":6363,"issue_id":"gt-wisp-kg4ozy","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:46Z","event_type":"closed","id":6364,"issue_id":"gt-wisp-ohboi4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:46Z","event_type":"closed","id":6365,"issue_id":"gt-wisp-szi2y2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:46Z","event_type":"closed","id":6366,"issue_id":"gt-wisp-tfk27g","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:46Z","event_type":"closed","id":6367,"issue_id":"gt-wisp-w7zgf8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:14:46Z","event_type":"closed","id":6368,"issue_id":"gt-wisp-zihomz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:05Z","event_type":"closed","id":6369,"issue_id":"gt-wisp-3d8z4r","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:05Z","event_type":"closed","id":6370,"issue_id":"gt-wisp-b7r9bz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:05Z","event_type":"closed","id":6371,"issue_id":"gt-wisp-bkk5h8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:05Z","event_type":"closed","id":6372,"issue_id":"gt-wisp-du62je","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6373,"issue_id":"gt-wisp-il5tdi","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6374,"issue_id":"gt-wisp-kso763","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6375,"issue_id":"gt-wisp-ku29iq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6376,"issue_id":"gt-wisp-p7rrho","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6377,"issue_id":"gt-wisp-uduwsx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6378,"issue_id":"gt-wisp-wl5exw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:06Z","event_type":"closed","id":6379,"issue_id":"gt-wisp-wsrjig","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6380,"issue_id":"gt-wisp-01n5z2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6381,"issue_id":"gt-wisp-5l2fyr","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6382,"issue_id":"gt-wisp-7d3uw2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6383,"issue_id":"gt-wisp-8osdyq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6384,"issue_id":"gt-wisp-b1k4wn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6385,"issue_id":"gt-wisp-goy7wq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6386,"issue_id":"gt-wisp-itbc98","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6387,"issue_id":"gt-wisp-ob6npz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:23Z","event_type":"closed","id":6388,"issue_id":"gt-wisp-ozmn8p","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:24Z","event_type":"closed","id":6389,"issue_id":"gt-wisp-qy7hmw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:24Z","event_type":"closed","id":6390,"issue_id":"gt-wisp-xkrhlf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:43Z","event_type":"closed","id":6391,"issue_id":"gt-wisp-0ws1h0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:43Z","event_type":"closed","id":6392,"issue_id":"gt-wisp-22ryo0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:43Z","event_type":"closed","id":6393,"issue_id":"gt-wisp-3x6nrh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6394,"issue_id":"gt-wisp-90rzxa","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6395,"issue_id":"gt-wisp-97c4vb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6396,"issue_id":"gt-wisp-9tn9za","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6397,"issue_id":"gt-wisp-ant4ay","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6398,"issue_id":"gt-wisp-jjhfpl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6399,"issue_id":"gt-wisp-n6trx2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6400,"issue_id":"gt-wisp-vg8plz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:15:44Z","event_type":"closed","id":6401,"issue_id":"gt-wisp-wpq2yp","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6402,"issue_id":"gt-wisp-23vifh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6403,"issue_id":"gt-wisp-4feift","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6404,"issue_id":"gt-wisp-irc2td","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6405,"issue_id":"gt-wisp-jlotuj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6406,"issue_id":"gt-wisp-obxki4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6407,"issue_id":"gt-wisp-oyqjq8","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6408,"issue_id":"gt-wisp-pyeg64","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6409,"issue_id":"gt-wisp-qnwvlm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6410,"issue_id":"gt-wisp-ta7ld5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6411,"issue_id":"gt-wisp-utqzyq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:04Z","event_type":"closed","id":6412,"issue_id":"gt-wisp-zbx58n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6413,"issue_id":"gt-wisp-49agbc","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6414,"issue_id":"gt-wisp-4m682j","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6415,"issue_id":"gt-wisp-8e9ib2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6416,"issue_id":"gt-wisp-coh2t4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6417,"issue_id":"gt-wisp-g7oo0t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6418,"issue_id":"gt-wisp-gfv7k6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:23Z","event_type":"closed","id":6419,"issue_id":"gt-wisp-ixxaeo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:24Z","event_type":"closed","id":6420,"issue_id":"gt-wisp-jf0b7n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:24Z","event_type":"closed","id":6421,"issue_id":"gt-wisp-m3km1r","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:24Z","event_type":"closed","id":6422,"issue_id":"gt-wisp-toydtd","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:24Z","event_type":"closed","id":6423,"issue_id":"gt-wisp-yjpkds","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6424,"issue_id":"gt-wisp-2p9zic","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6425,"issue_id":"gt-wisp-3h3qgy","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6426,"issue_id":"gt-wisp-b9abl9","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6427,"issue_id":"gt-wisp-eaen8y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6428,"issue_id":"gt-wisp-evb2he","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6429,"issue_id":"gt-wisp-fpfw5t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6430,"issue_id":"gt-wisp-hqnpsj","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6431,"issue_id":"gt-wisp-j8q24y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6432,"issue_id":"gt-wisp-ooeh2k","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:49Z","event_type":"closed","id":6433,"issue_id":"gt-wisp-ridizx","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:16:50Z","event_type":"closed","id":6434,"issue_id":"gt-wisp-yobvxn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:08Z","event_type":"closed","id":6435,"issue_id":"gt-wisp-0adilf","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:08Z","event_type":"closed","id":6436,"issue_id":"gt-wisp-1lshep","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6437,"issue_id":"gt-wisp-4hu7np","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6438,"issue_id":"gt-wisp-8hfkow","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6439,"issue_id":"gt-wisp-adfbrn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6440,"issue_id":"gt-wisp-an5xnb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6441,"issue_id":"gt-wisp-c47am6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6442,"issue_id":"gt-wisp-i1duy6","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6443,"issue_id":"gt-wisp-n0e798","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6444,"issue_id":"gt-wisp-ocxfj3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:09Z","event_type":"closed","id":6445,"issue_id":"gt-wisp-plqna3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:29Z","event_type":"closed","id":6446,"issue_id":"gt-wisp-1lha13","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6447,"issue_id":"gt-wisp-4ydehv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6448,"issue_id":"gt-wisp-7ovk5x","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6449,"issue_id":"gt-wisp-azu8bw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6450,"issue_id":"gt-wisp-fqqydh","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6451,"issue_id":"gt-wisp-hf9tux","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6452,"issue_id":"gt-wisp-lvrw2f","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6453,"issue_id":"gt-wisp-od46cq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6454,"issue_id":"gt-wisp-s67z1d","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6455,"issue_id":"gt-wisp-x8on2x","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:30Z","event_type":"closed","id":6456,"issue_id":"gt-wisp-y5n77y","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6457,"issue_id":"gt-wisp-09qyp0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6458,"issue_id":"gt-wisp-34c9af","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6459,"issue_id":"gt-wisp-77jf5h","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6460,"issue_id":"gt-wisp-7seqf0","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6461,"issue_id":"gt-wisp-d9wx5t","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6462,"issue_id":"gt-wisp-dd0qsl","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6463,"issue_id":"gt-wisp-m4ifak","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6464,"issue_id":"gt-wisp-n8b3ik","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6465,"issue_id":"gt-wisp-oy3q3f","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:55Z","event_type":"closed","id":6466,"issue_id":"gt-wisp-pxo8mr","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:17:56Z","event_type":"closed","id":6467,"issue_id":"gt-wisp-ttpnvn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:16Z","event_type":"closed","id":6468,"issue_id":"gt-wisp-0axpza","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6469,"issue_id":"gt-wisp-5b1pjt","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6470,"issue_id":"gt-wisp-c3qye4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6471,"issue_id":"gt-wisp-d4vz4n","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6472,"issue_id":"gt-wisp-fdm7c5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6473,"issue_id":"gt-wisp-fh7b5p","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6474,"issue_id":"gt-wisp-jefq1v","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6475,"issue_id":"gt-wisp-l32npg","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6476,"issue_id":"gt-wisp-qt62vw","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6477,"issue_id":"gt-wisp-ttm1fb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:17Z","event_type":"closed","id":6478,"issue_id":"gt-wisp-vgq33i","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:35Z","event_type":"closed","id":6479,"issue_id":"gt-wisp-2hpbwq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:35Z","event_type":"closed","id":6480,"issue_id":"gt-wisp-6pgyvo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6481,"issue_id":"gt-wisp-cknh4g","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6482,"issue_id":"gt-wisp-geyd15","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6483,"issue_id":"gt-wisp-h5vwy2","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6484,"issue_id":"gt-wisp-hr8q80","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6485,"issue_id":"gt-wisp-lh0fg5","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6486,"issue_id":"gt-wisp-lrngob","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6487,"issue_id":"gt-wisp-m360zy","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6488,"issue_id":"gt-wisp-v0vjiq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:36Z","event_type":"closed","id":6489,"issue_id":"gt-wisp-vm5xgs","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:53Z","event_type":"closed","id":6490,"issue_id":"gt-wisp-0zkeei","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6491,"issue_id":"gt-wisp-14uhtq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6492,"issue_id":"gt-wisp-8snzis","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6493,"issue_id":"gt-wisp-bs2laq","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6494,"issue_id":"gt-wisp-cwl0nn","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6495,"issue_id":"gt-wisp-j782jz","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6496,"issue_id":"gt-wisp-l1mlah","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6497,"issue_id":"gt-wisp-nlng9k","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6498,"issue_id":"gt-wisp-or4scv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6499,"issue_id":"gt-wisp-po8m4k","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:18:54Z","event_type":"closed","id":6500,"issue_id":"gt-wisp-vxgws3","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:18Z","event_type":"closed","id":6501,"issue_id":"gt-wisp-0k9bqm","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:18Z","event_type":"closed","id":6502,"issue_id":"gt-wisp-58ctho","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:18Z","event_type":"closed","id":6503,"issue_id":"gt-wisp-b1v3ia","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6504,"issue_id":"gt-wisp-ck2e8f","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6505,"issue_id":"gt-wisp-fp9lqb","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6506,"issue_id":"gt-wisp-kksktv","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6507,"issue_id":"gt-wisp-nhjlfo","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6508,"issue_id":"gt-wisp-o7m2up","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6509,"issue_id":"gt-wisp-p2xp54","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6510,"issue_id":"gt-wisp-uz9jy4","new_value":"completed","old_value":""}
+{"actor":"gastown/refinery","comment":"","created_at":"2026-02-28T12:19:19Z","event_type":"closed","id":6511,"issue_id":"gt-wisp-vvqn1h","new_value":"completed","old_value":""}
