@@ -152,6 +152,15 @@ func runUp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not in a Gas Town workspace: %w", err)
 	}
 
+	// Ensure lifecycle defaults are configured. On first run this creates
+	// mayor/daemon.json with sensible defaults for the six-stage Dolt lifecycle.
+	// On subsequent runs it fills in any newly added patrols without touching
+	// existing config. Errors are non-fatal — the town can run without lifecycle
+	// automation, it just won't have automated maintenance.
+	if err := daemon.EnsureLifecycleConfigFile(townRoot); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not configure lifecycle defaults: %v\n", err)
+	}
+
 	// Load daemon.json env vars so services (Dolt, etc.) use the right config.
 	// The daemon does this too, but gt up starts services before the daemon.
 	if patrolCfg := daemon.LoadPatrolConfig(townRoot); patrolCfg != nil {
