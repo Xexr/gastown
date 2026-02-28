@@ -1426,31 +1426,63 @@ func (t *Tmux) AcceptStartupDialogs(session string) error {
 // in a workspace, asking the user to confirm they trust the folder. Option 1 ("Yes, I trust
 // this folder") is pre-selected, so we just need to press Enter to accept.
 // This dialog appears BEFORE the bypass permissions warning, so call this first.
+//
+// Uses a polling loop instead of a single check to handle the race condition where
+// Claude hasn't rendered the dialog yet when we first check. Exits early if the
+// agent prompt appears (indicating no dialog will be shown).
 func (t *Tmux) AcceptWorkspaceTrustDialog(session string) error {
-	// Wait for the dialog to potentially render
-	time.Sleep(1 * time.Second)
+	deadline := time.Now().Add(constants.DialogPollTimeout)
+	for time.Now().Before(deadline) {
+		content, err := t.CapturePane(session, 30)
+		if err != nil {
+			time.Sleep(constants.DialogPollInterval)
+			continue
+		}
 
-	// Check if the workspace trust dialog is present
-	content, err := t.CapturePane(session, 30)
-	if err != nil {
-		return err
+		// Look for characteristic trust dialog text
+		if strings.Contains(content, "trust this folder") || strings.Contains(content, "Quick safety check") {
+			// Dialog found — accept it (option 1 is pre-selected, just press Enter)
+			if _, err := t.run("send-keys", "-t", session, "Enter"); err != nil {
+				return err
+			}
+			// Wait for dialog to dismiss before proceeding
+			time.Sleep(500 * time.Millisecond)
+			return nil
+		}
+
+		// Early exit: if agent prompt or shell prompt is visible, no trust dialog will appear.
+		// Claude prompt is ">", shell prompts are "$", "%", "#".
+		// Also exit if bypass permissions dialog is next (handled by AcceptBypassPermissionsWarning).
+		if containsPromptIndicator(content) || strings.Contains(content, "Bypass Permissions mode") {
+			return nil
+		}
+
+		time.Sleep(constants.DialogPollInterval)
 	}
 
-	// Look for characteristic trust dialog text
-	if !strings.Contains(content, "trust this folder") && !strings.Contains(content, "Quick safety check") {
-		// Trust dialog not present, nothing to do
-		return nil
-	}
-
-	// Option 1 ("Yes, I trust this folder") is already pre-selected, just press Enter
-	if _, err := t.run("send-keys", "-t", session, "Enter"); err != nil {
-		return err
-	}
-
-	// Wait for dialog to dismiss before proceeding to bypass permissions
-	time.Sleep(500 * time.Millisecond)
-
+	// Timeout — no dialog detected, safe to proceed
 	return nil
+}
+
+// promptSuffixes are strings that indicate a shell or agent prompt is visible.
+// Claude prompt ends with ">", shell prompts end with "$", "%", "#", or "❯".
+var promptSuffixes = []string{">", "$", "%", "#", "❯"}
+
+// containsPromptIndicator checks if pane content contains a prompt indicator
+// that signals a shell or agent is ready (no dialog blocking it).
+func containsPromptIndicator(content string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		for _, suffix := range promptSuffixes {
+			if strings.HasSuffix(trimmed, suffix) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // AcceptBypassPermissionsWarning dismisses the Claude Code bypass permissions warning dialog.
@@ -1459,37 +1491,43 @@ func (t *Tmux) AcceptWorkspaceTrustDialog(session string) error {
 // This function checks if the warning is present before sending keys to avoid interfering
 // with sessions that don't show the warning (e.g., already accepted or different config).
 //
+// Uses a polling loop instead of a single check to handle the race condition where
+// Claude hasn't rendered the dialog yet when we first check. Exits early if the
+// agent prompt appears (indicating no dialog will be shown).
+//
 // Call this after starting Claude and waiting for it to initialize (WaitForCommand),
 // but before sending any prompts.
 func (t *Tmux) AcceptBypassPermissionsWarning(session string) error {
-	// Wait for the dialog to potentially render
-	time.Sleep(1 * time.Second)
+	deadline := time.Now().Add(constants.DialogPollTimeout)
+	for time.Now().Before(deadline) {
+		content, err := t.CapturePane(session, 30)
+		if err != nil {
+			time.Sleep(constants.DialogPollInterval)
+			continue
+		}
 
-	// Check if the bypass permissions warning is present
-	content, err := t.CapturePane(session, 30)
-	if err != nil {
-		return err
+		// Look for the characteristic warning text
+		if strings.Contains(content, "Bypass Permissions mode") {
+			// Dialog found — press Down to select "Yes, I accept" then Enter
+			if _, err := t.run("send-keys", "-t", session, "Down"); err != nil {
+				return err
+			}
+			time.Sleep(200 * time.Millisecond)
+			if _, err := t.run("send-keys", "-t", session, "Enter"); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// Early exit: if agent prompt or shell prompt is visible, no dialog will appear
+		if containsPromptIndicator(content) {
+			return nil
+		}
+
+		time.Sleep(constants.DialogPollInterval)
 	}
 
-	// Look for the characteristic warning text
-	if !strings.Contains(content, "Bypass Permissions mode") {
-		// Warning not present, nothing to do
-		return nil
-	}
-
-	// Press Down to select "Yes, I accept" (option 2)
-	if _, err := t.run("send-keys", "-t", session, "Down"); err != nil {
-		return err
-	}
-
-	// Small delay to let selection update
-	time.Sleep(200 * time.Millisecond)
-
-	// Press Enter to confirm
-	if _, err := t.run("send-keys", "-t", session, "Enter"); err != nil {
-		return err
-	}
-
+	// Timeout — no dialog detected, safe to proceed
 	return nil
 }
 

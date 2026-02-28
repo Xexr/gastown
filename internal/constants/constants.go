@@ -52,6 +52,15 @@ const (
 	// Prevents the TUI from freezing if these commands hang.
 	BdSubprocessTimeout = 5 * time.Second
 
+	// DialogPollInterval is the interval between pane content checks when
+	// polling for startup dialogs (workspace trust, bypass permissions).
+	DialogPollInterval = 500 * time.Millisecond
+
+	// DialogPollTimeout is how long to poll for startup dialogs before giving up.
+	// 8 seconds provides enough time for Claude to render dialogs on slow machines
+	// while keeping startup fast when no dialog is present.
+	DialogPollTimeout = 8 * time.Second
+
 	// StartupNudgeVerifyDelay is how long to wait after sending a startup nudge
 	// before checking if the agent started working. Must be long enough for the
 	// agent to begin processing the nudge (receive text, parse, start first tool).

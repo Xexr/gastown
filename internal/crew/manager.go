@@ -817,26 +817,15 @@ func (m *Manager) Start(name string, opts StartOptions) error {
 	// Track PID for defense-in-depth orphan cleanup (non-fatal)
 	_ = session.TrackSessionPID(townRoot, sessionID, t)
 
-	// Wait for the agent to start, then accept the bypass permissions warning
-	// dialog if it appears. Without this, crew sessions get stuck on the
-	// "Bypass Permissions mode" confirmation dialog.
+	// Wait for the agent to start, then accept any startup dialogs that appear.
+	// Workspace trust dialog is independent of bypass permissions and can appear
+	// for any agent, so we always check for non-interactive sessions.
 	if !opts.Interactive {
-		agentName := opts.AgentOverride
-		if agentName == "" {
-			if rc := config.ResolveRoleAgentConfig("crew", townRoot, m.rig.Path); rc != nil && rc.Provider != "" {
-				agentName = rc.Provider
-			} else {
-				agentName = "claude"
-			}
+		if err := t.WaitForCommand(sessionID, constants.SupportedShells, constants.ClaudeStartTimeout); err != nil {
+			// Non-fatal — agent might still start
+			style.PrintWarning("timeout waiting for agent to start: %v", err)
 		}
-		preset := config.GetAgentPresetByName(agentName)
-		if preset != nil && preset.EmitsPermissionWarning {
-			if err := t.WaitForCommand(sessionID, constants.SupportedShells, constants.ClaudeStartTimeout); err != nil {
-				// Non-fatal — agent might still start
-				style.PrintWarning("timeout waiting for agent to start: %v", err)
-			}
-			_ = t.AcceptStartupDialogs(sessionID)
-		}
+		_ = t.AcceptStartupDialogs(sessionID)
 	}
 
 	return nil
