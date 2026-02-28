@@ -36,8 +36,10 @@ func TestCrossSocketZombieCheck_NoTownSocket(t *testing.T) {
 	}
 }
 
-func TestCrossSocketZombieCheck_SameAsDefault(t *testing.T) {
-	// When town socket IS "default", check should pass (no cross-socket scenario)
+func TestCrossSocketZombieCheck_DefaultSocket(t *testing.T) {
+	// When town socket IS "default", check should sweep legacy sockets (gt, gas-town).
+	// Without a real tmux server on those sockets, the check should still return OK
+	// (it handles ListSessions errors gracefully).
 	old := tmux.GetDefaultSocket()
 	tmux.SetDefaultSocket("default")
 	defer tmux.SetDefaultSocket(old)
@@ -46,6 +48,32 @@ func TestCrossSocketZombieCheck_SameAsDefault(t *testing.T) {
 	result := check.Run(&CheckContext{TownRoot: t.TempDir()})
 
 	if result.Status != StatusOK {
-		t.Errorf("expected StatusOK when town socket is default, got %v: %s", result.Status, result.Message)
+		t.Errorf("expected StatusOK when no legacy socket servers running, got %v: %s", result.Status, result.Message)
+	}
+}
+
+func TestCrossSocketTargets(t *testing.T) {
+	old := tmux.GetDefaultSocket()
+	defer tmux.SetDefaultSocket(old)
+
+	// Empty socket → no targets
+	tmux.SetDefaultSocket("")
+	targets := crossSocketTargets()
+	if targets != nil {
+		t.Errorf("expected nil targets for empty socket, got %v", targets)
+	}
+
+	// "default" socket → legacy named sockets
+	tmux.SetDefaultSocket("default")
+	targets = crossSocketTargets()
+	if len(targets) != 2 || targets[0] != "gt" || targets[1] != "gas-town" {
+		t.Errorf("expected [gt gas-town] for default socket, got %v", targets)
+	}
+
+	// Named socket → ["default"]
+	tmux.SetDefaultSocket("mytown")
+	targets = crossSocketTargets()
+	if len(targets) != 1 || targets[0] != "default" {
+		t.Errorf("expected [default] for named socket, got %v", targets)
 	}
 }

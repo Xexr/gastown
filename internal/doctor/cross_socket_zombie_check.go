@@ -8,13 +8,16 @@ import (
 	"github.com/steveyegge/gastown/internal/tmux"
 )
 
-// CrossSocketZombieCheck detects agent sessions on the default tmux socket
-// when a separate town socket exists. After the socket isolation fix (gt-qkekp),
-// sessions that were created on the wrong socket remain as zombies consuming
-// resources and potentially causing split-brain behavior.
+// legacyNamedSockets lists tmux socket names that Gas Town historically used
+// before migrating to the "default" socket.
+var legacyNamedSockets = []string{"gt", "gas-town"}
+
+// CrossSocketZombieCheck detects agent sessions on other tmux sockets.
+// When the town uses "default", checks legacy named sockets (gt, gas-town).
+// When the town uses a named socket, checks the default socket.
 type CrossSocketZombieCheck struct {
 	FixableCheck
-	zombieSessions []string // Cached during Run for use in Fix
+	zombieSessions map[string][]string // socket -> sessions, cached for Fix
 }
 
 // NewCrossSocketZombieCheck creates a new cross-socket zombie check.
@@ -30,99 +33,93 @@ func NewCrossSocketZombieCheck() *CrossSocketZombieCheck {
 	}
 }
 
-// Run checks for Gas Town agent sessions on the default socket when a town socket exists.
-func (c *CrossSocketZombieCheck) Run(ctx *CheckContext) *CheckResult {
+// crossSocketTargets returns the tmux socket names to check for zombies.
+func crossSocketTargets() []string {
 	townSocket := tmux.GetDefaultSocket()
-	if townSocket == "" || townSocket == "default" {
+	if townSocket == "" {
+		return nil
+	}
+	if townSocket == "default" {
+		return legacyNamedSockets
+	}
+	return []string{"default"}
+}
+
+// Run checks for Gas Town agent sessions on other sockets.
+func (c *CrossSocketZombieCheck) Run(ctx *CheckContext) *CheckResult {
+	targets := crossSocketTargets()
+	if len(targets) == 0 {
 		return &CheckResult{
 			Name:    c.Name(),
 			Status:  StatusOK,
-			Message: "No separate town socket configured (single-socket mode)",
+			Message: "No town socket configured",
 		}
 	}
 
-	// List sessions on the default socket
-	defaultTmux := tmux.NewTmuxWithSocket("default")
-	sessions, err := defaultTmux.ListSessions()
-	if err != nil {
+	c.zombieSessions = make(map[string][]string)
+	totalZombies := 0
+
+	for _, socketName := range targets {
+		t := tmux.NewTmuxWithSocket(socketName)
+		sessions, err := t.ListSessions()
+		if err != nil {
+			continue // No server on this socket
+		}
+
+		for _, sess := range sessions {
+			if sess == "" {
+				continue
+			}
+			if session.IsKnownSession(sess) {
+				c.zombieSessions[socketName] = append(c.zombieSessions[socketName], sess)
+				totalZombies++
+			}
+		}
+	}
+
+	if totalZombies == 0 {
 		return &CheckResult{
 			Name:    c.Name(),
 			Status:  StatusOK,
-			Message: "No default socket server running",
+			Message: "No agent sessions on other sockets",
 		}
 	}
 
-	if len(sessions) == 0 {
-		return &CheckResult{
-			Name:    c.Name(),
-			Status:  StatusOK,
-			Message: "No sessions on default socket",
-		}
-	}
-
-	// Find agent sessions on the default socket that should be on the town socket
-	var zombies []string
-	var userSessions int
-
-	for _, sess := range sessions {
-		if sess == "" {
-			continue
-		}
-
-		// Check if this session name matches a Gas Town agent pattern
-		if session.IsKnownSession(sess) {
-			zombies = append(zombies, sess)
-		} else {
-			userSessions++
-		}
-	}
-
-	// Cache zombies for Fix
-	c.zombieSessions = zombies
-
-	if len(zombies) == 0 {
-		msg := "No agent sessions on default socket"
-		if userSessions > 0 {
-			msg = fmt.Sprintf("Default socket has %d user session(s), no agent zombies", userSessions)
-		}
-		return &CheckResult{
-			Name:    c.Name(),
-			Status:  StatusOK,
-			Message: msg,
-		}
-	}
-
-	details := make([]string, 0, len(zombies)+1)
+	townSocket := tmux.GetDefaultSocket()
+	details := make([]string, 0, totalZombies+1)
 	details = append(details, fmt.Sprintf("Town socket: %s (agent sessions should be here)", townSocket))
-	for _, sess := range zombies {
-		details = append(details, fmt.Sprintf("  Zombie on default socket: %s", sess))
+	for socketName, sessions := range c.zombieSessions {
+		for _, sess := range sessions {
+			details = append(details, fmt.Sprintf("  Zombie on %s socket: %s", socketName, sess))
+		}
 	}
 
 	return &CheckResult{
 		Name:    c.Name(),
 		Status:  StatusWarning,
-		Message: fmt.Sprintf("Found %d agent session(s) on default socket (should be on %s)", len(zombies), townSocket),
+		Message: fmt.Sprintf("Found %d agent session(s) on other socket(s) (should be on %s)", totalZombies, townSocket),
 		Details: details,
 		FixHint: "Run 'gt doctor --fix' to kill cross-socket zombie sessions",
 	}
 }
 
-// Fix kills agent sessions on the default socket, preserving user sessions.
+// Fix kills agent sessions on other sockets, preserving user sessions.
 func (c *CrossSocketZombieCheck) Fix(ctx *CheckContext) error {
 	if len(c.zombieSessions) == 0 {
 		return nil
 	}
 
-	defaultTmux := tmux.NewTmuxWithSocket("default")
 	var lastErr error
 
-	for _, sess := range c.zombieSessions {
-		// Log pre-death event for audit trail
-		_ = events.LogFeed(events.TypeSessionDeath, sess,
-			events.SessionDeathPayload(sess, "unknown", "cross-socket zombie cleanup", "gt doctor"))
+	for socketName, sessions := range c.zombieSessions {
+		t := tmux.NewTmuxWithSocket(socketName)
+		for _, sess := range sessions {
+			_ = events.LogFeed(events.TypeSessionDeath, sess,
+				events.SessionDeathPayload(sess, "unknown", "cross-socket zombie cleanup", "gt doctor"))
 
-		if err := defaultTmux.KillSessionWithProcesses(sess); err != nil {
-			lastErr = err
+			if err := t.KillSessionWithProcesses(sess); err != nil {
+				lastErr = err
+			}
 		}
 	}
 

@@ -560,61 +560,85 @@ func findOrphanedClaudeProcesses(townRoot string) []int {
 	return orphaned
 }
 
-// sweepCrossSocketZombies kills Gas Town agent sessions on the default tmux socket.
-// After the socket isolation fix (gt-qkekp), agent sessions may have been created
-// on the default socket instead of the town socket. This sweeps them during shutdown.
+// legacyNamedSockets lists tmux socket names that Gas Town historically used
+// before migrating to the "default" socket. During shutdown, these are checked
+// for zombie sessions that survived the migration.
+var legacyNamedSockets = []string{"gt", "gas-town"}
+
+// crossSocketTargets returns the tmux socket names to sweep for zombie sessions.
+// When the town uses the "default" socket, it sweeps legacy named sockets.
+// When the town uses a named socket, it sweeps the "default" socket.
+// Returns nil if there's no cross-socket scenario (empty town socket).
+func crossSocketTargets() []string {
+	townSocket := tmux.GetDefaultSocket()
+	if townSocket == "" {
+		return nil
+	}
+	if townSocket == "default" {
+		return legacyNamedSockets
+	}
+	return []string{"default"}
+}
+
+// sweepCrossSocketZombies kills Gas Town agent sessions on other tmux sockets.
+// When the town socket is "default", sweeps legacy named sockets (gt, gas-town).
+// When the town socket is named, sweeps the default socket.
 // Only kills sessions that match Gas Town naming patterns; user sessions are preserved.
 // Returns the number of sessions killed.
 func sweepCrossSocketZombies() int {
-	townSocket := tmux.GetDefaultSocket()
-	if townSocket == "" || townSocket == "default" {
-		return 0 // No cross-socket scenario
-	}
-
-	defaultTmux := tmux.NewTmuxWithSocket("default")
-	sessions, err := defaultTmux.ListSessions()
-	if err != nil {
-		return 0 // No default socket server or error
+	targets := crossSocketTargets()
+	if len(targets) == 0 {
+		return 0
 	}
 
 	killed := 0
-	for _, sess := range sessions {
-		if sess == "" {
-			continue
-		}
-		if !session.IsKnownSession(sess) {
-			continue // Not a Gas Town session — preserve it
+	for _, socketName := range targets {
+		t := tmux.NewTmuxWithSocket(socketName)
+		sessions, err := t.ListSessions()
+		if err != nil {
+			continue // No server on this socket or error
 		}
 
-		_ = events.LogFeed(events.TypeSessionDeath, sess,
-			events.SessionDeathPayload(sess, "unknown", "cross-socket sweep", "gt down"))
+		for _, sess := range sessions {
+			if sess == "" {
+				continue
+			}
+			if !session.IsKnownSession(sess) {
+				continue // Not a Gas Town session — preserve it
+			}
 
-		if err := defaultTmux.KillSessionWithProcesses(sess); err == nil {
-			killed++
+			_ = events.LogFeed(events.TypeSessionDeath, sess,
+				events.SessionDeathPayload(sess, "unknown", "cross-socket sweep", "gt down"))
+
+			if err := t.KillSessionWithProcesses(sess); err == nil {
+				killed++
+			}
 		}
 	}
 
 	return killed
 }
 
-// countCrossSocketZombies counts Gas Town agent sessions on the default tmux socket
+// countCrossSocketZombies counts Gas Town agent sessions on other tmux sockets
 // without killing them. Used for dry-run mode.
 func countCrossSocketZombies() int {
-	townSocket := tmux.GetDefaultSocket()
-	if townSocket == "" || townSocket == "default" {
-		return 0
-	}
-
-	defaultTmux := tmux.NewTmuxWithSocket("default")
-	sessions, err := defaultTmux.ListSessions()
-	if err != nil {
+	targets := crossSocketTargets()
+	if len(targets) == 0 {
 		return 0
 	}
 
 	count := 0
-	for _, sess := range sessions {
-		if sess != "" && session.IsKnownSession(sess) {
-			count++
+	for _, socketName := range targets {
+		t := tmux.NewTmuxWithSocket(socketName)
+		sessions, err := t.ListSessions()
+		if err != nil {
+			continue
+		}
+
+		for _, sess := range sessions {
+			if sess != "" && session.IsKnownSession(sess) {
+				count++
+			}
 		}
 	}
 	return count
