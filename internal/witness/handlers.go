@@ -378,15 +378,16 @@ func handleMergedCleanupStatus(_, _, polecatName, cleanupStatus, wispID string, 
 		result.Action = fmt.Sprintf("polecat %s merged successfully — idle, sandbox preserved (wisp=%s)", polecatName, wispID)
 
 	case "has_uncommitted":
-		result.Error = fmt.Errorf("polecat %s has uncommitted changes after merge - escalate to Mayor", polecatName)
+		// ZFC: report data (cleanup_status), don't hardcode escalation target
+		result.Error = fmt.Errorf("polecat %s has uncommitted changes after merge (cleanup_status=%s)", polecatName, cleanupStatus)
 		result.Action = fmt.Sprintf("WARNING: %s has uncommitted work post-merge, needs review", polecatName)
 
 	case "has_stash":
-		result.Error = fmt.Errorf("polecat %s has stashed work after merge - escalate to Mayor", polecatName)
+		result.Error = fmt.Errorf("polecat %s has stashed work after merge (cleanup_status=%s)", polecatName, cleanupStatus)
 		result.Action = fmt.Sprintf("WARNING: %s has stashed work post-merge, needs review", polecatName)
 
 	case "has_unpushed":
-		result.Error = fmt.Errorf("polecat %s has unpushed commits after merge - escalate to Mayor", polecatName)
+		result.Error = fmt.Errorf("polecat %s has unpushed commits after merge (cleanup_status=%s)", polecatName, cleanupStatus)
 		result.Action = fmt.Sprintf("WARNING: %s has unpushed commits post-merge, needs review", polecatName)
 
 	default:
@@ -991,8 +992,8 @@ type DetectZombiePolecatsResult struct {
 //   - If session is dead but state is working: restart the session
 //   - If agent is dead inside live session: restart the session
 //   - If agent is hung (no output for 30+ min): restart the session
-//   - If git state is dirty (unpushed/uncommitted work): escalate to Mayor via
-//     EscalateRecoveryNeeded, create cleanup wisp
+//   - If git state is dirty (unpushed/uncommitted work): escalate via
+//     EscalateRecoveryNeeded (routes to deacon), create cleanup wisp
 func DetectZombiePolecats(workDir, rigName string, router *mail.Router) *DetectZombiePolecatsResult {
 	result := &DetectZombiePolecatsResult{}
 
