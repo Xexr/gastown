@@ -957,6 +957,7 @@ type ZombieResult struct {
 	PolecatName   string
 	AgentState    string
 	HookBead      string
+	WasActive     bool   // true if evidence of recent work (active state or hooked bead)
 	Action        string // "restarted", "escalated", "cleanup-wisp-created", "auto-nuked" (explicit nuke only)
 	BeadRecovered bool   // true if hooked bead was reset to open for re-dispatch
 	Error         error
@@ -1056,6 +1057,7 @@ func DetectZombiePolecats(workDir, rigName string, router *mail.Router) *DetectZ
 					PolecatName: polecatName,
 					AgentState:  "agent-dead-in-session",
 					HookBead:    deadAgentHookBead,
+					WasActive:   true,
 					Action:      "restarted-agent-dead-session",
 				}
 				// gt-dsgp: Restart instead of nuke — preserve worktree and branch
@@ -1076,6 +1078,7 @@ func DetectZombiePolecats(workDir, rigName string, router *mail.Router) *DetectZ
 						PolecatName: polecatName,
 						AgentState:  "bead-closed-still-running",
 						HookBead:    hookBead,
+						WasActive:   true,
 						Action:      "restarted-bead-closed-polecat",
 					}
 					if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1098,6 +1101,7 @@ func DetectZombiePolecats(workDir, rigName string, router *mail.Router) *DetectZ
 								PolecatName: polecatName,
 								AgentState:  "agent-hung",
 								HookBead:    hungHookBead,
+								WasActive:   true,
 								Action:      fmt.Sprintf("restarted-hung-session (inactive %dm)", inactiveMinutes),
 							}
 							if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1135,6 +1139,7 @@ func detectZombieLiveSession(workDir, rigName, polecatName, agentBeadID, session
 			PolecatName: polecatName,
 			AgentState:  "stuck-in-done",
 			HookBead:    stuckHookBead,
+			WasActive:   true,
 			Action:      fmt.Sprintf("restarted-stuck-session (done-intent age=%v)", time.Since(doneIntent.Timestamp).Round(time.Second)),
 		}
 		if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1152,6 +1157,7 @@ func detectZombieLiveSession(workDir, rigName, polecatName, agentBeadID, session
 			PolecatName: polecatName,
 			AgentState:  "agent-dead-in-session",
 			HookBead:    deadAgentHookBead,
+			WasActive:   true,
 			Action:      "restarted-agent-dead-session",
 		}
 		if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1170,6 +1176,7 @@ func detectZombieLiveSession(workDir, rigName, polecatName, agentBeadID, session
 			PolecatName: polecatName,
 			AgentState:  "bead-closed-still-running",
 			HookBead:    hookBead,
+			WasActive:   true,
 			Action:      "restarted-bead-closed-polecat",
 		}
 		if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1219,6 +1226,7 @@ func detectZombieDeadSession(workDir, rigName, polecatName, agentBeadID, session
 			PolecatName: polecatName,
 			AgentState:  "done-intent-dead",
 			HookBead:    diHookBead,
+			WasActive:   true,
 			Action:      fmt.Sprintf("restarted (done-intent age=%v, type=%s)", age.Round(time.Second), doneIntent.ExitType),
 		}
 		if err := RestartPolecatSession(workDir, rigName, polecatName); err != nil {
@@ -1251,6 +1259,7 @@ func detectZombieDeadSession(workDir, rigName, polecatName, agentBeadID, session
 		PolecatName: polecatName,
 		AgentState:  agentState,
 		HookBead:    hookBead,
+		WasActive:   hookBead != "" || beads.IsActiveAgentState(agentState),
 	}
 
 	// gt-dsgp: Restart instead of nuking. For dirty state, escalate AND restart.
@@ -1264,7 +1273,7 @@ func isZombieState(agentState, hookBead string) bool {
 	if hookBead != "" {
 		return true
 	}
-	return agentState == "working" || agentState == "running" || agentState == "spawning"
+	return beads.IsActiveAgentState(agentState)
 }
 
 // handleZombieRestart determines the restart action for a confirmed zombie (gt-dsgp).
