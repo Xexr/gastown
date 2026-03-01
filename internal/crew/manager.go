@@ -282,7 +282,7 @@ func (m *Manager) addLocked(name string, createBranch bool) (*CrewWorker, error)
 	// Install runtime settings in the shared crew parent directory.
 	// Settings are passed to Claude Code via --settings flag.
 	addTownRoot := filepath.Dir(m.rig.Path)
-	addRuntimeConfig := config.ResolveRoleAgentConfig("crew", addTownRoot, m.rig.Path)
+	addRuntimeConfig := config.ResolveWorkerAgentConfig(name, addTownRoot, m.rig.Path)
 	crewSettingsDir := config.RoleSettingsDir("crew", m.rig.Path)
 	if err := runtime.EnsureSettingsForRole(crewSettingsDir, crewPath, "crew", addRuntimeConfig); err != nil {
 		// Non-fatal - log warning but continue
@@ -689,7 +689,7 @@ func (m *Manager) Start(name string, opts StartOptions) error {
 	// Ensure runtime settings exist in the shared crew parent directory.
 	// Settings are passed to Claude Code via --settings flag.
 	townRoot := filepath.Dir(m.rig.Path)
-	runtimeConfig := config.ResolveRoleAgentConfig("crew", townRoot, m.rig.Path)
+	runtimeConfig := config.ResolveWorkerAgentConfig(name, townRoot, m.rig.Path)
 	crewSettingsDir := config.RoleSettingsDir("crew", m.rig.Path)
 	if err := runtime.EnsureSettingsForRole(crewSettingsDir, worker.ClonePath, "crew", runtimeConfig); err != nil {
 		return fmt.Errorf("ensuring runtime settings: %w", err)
@@ -733,10 +733,10 @@ func (m *Manager) Start(name string, opts StartOptions) error {
 		}
 
 		// Determine agent preset for resume flag.
-		// Try rig-level agent config first, fall back to "claude".
+		// Try worker-level agent config first, fall back to "claude".
 		agentName := opts.AgentOverride
 		if agentName == "" {
-			if rc := config.ResolveRoleAgentConfig("crew", townRoot, m.rig.Path); rc != nil && rc.Provider != "" {
+			if rc := config.ResolveWorkerAgentConfig(name, townRoot, m.rig.Path); rc != nil && rc.Provider != "" {
 				agentName = rc.Provider
 			} else {
 				agentName = "claude"
@@ -831,11 +831,22 @@ func (m *Manager) Start(name string, opts StartOptions) error {
 	// Workspace trust dialog is independent of bypass permissions and can appear
 	// for any agent, so we always check for non-interactive sessions.
 	if !opts.Interactive {
-		if err := t.WaitForCommand(sessionID, constants.SupportedShells, constants.ClaudeStartTimeout); err != nil {
-			// Non-fatal — agent might still start
-			style.PrintWarning("timeout waiting for agent to start: %v", err)
+		agentName := opts.AgentOverride
+		if agentName == "" {
+			if rc := config.ResolveWorkerAgentConfig(name, townRoot, m.rig.Path); rc != nil && rc.Provider != "" {
+				agentName = rc.Provider
+			} else {
+				agentName = "claude"
+			}
 		}
-		_ = t.AcceptStartupDialogs(sessionID)
+		preset := config.GetAgentPresetByName(agentName)
+		if preset != nil && preset.EmitsPermissionWarning {
+			if err := t.WaitForCommand(sessionID, constants.SupportedShells, constants.ClaudeStartTimeout); err != nil {
+				// Non-fatal — agent might still start
+				style.PrintWarning("timeout waiting for agent to start: %v", err)
+			}
+			_ = t.AcceptStartupDialogs(sessionID)
+		}
 	}
 
 	return nil

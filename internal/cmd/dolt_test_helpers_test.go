@@ -22,6 +22,11 @@ func requireDoltServer(t *testing.T) {
 	testutil.RequireDoltContainer(t)
 }
 
+// cleanupDoltServer delegates to testutil.TerminateDoltContainer.
+func cleanupDoltServer() {
+	testutil.TerminateDoltContainer()
+}
+
 // configureTestGitIdentity sets git global config in an isolated HOME directory
 // so that EnsureDoltIdentity (called during gt install preflight) can copy
 // identity from git to dolt.
@@ -40,35 +45,17 @@ func configureTestGitIdentity(t *testing.T, homeDir string) {
 	}
 }
 
-// bridgeDoltPidToTown writes the test Dolt server's PID into townRoot/daemon/dolt.pid
-// so that doltserver.IsRunning(townRoot) finds it via the PID-file path.
+// bridgeDoltPidToTown writes the Go test process PID into townRoot/daemon/dolt.pid
+// so that doltserver.IsRunning(townRoot) finds it via the PID-file shortcut path.
 //
-// Without this, IsRunning falls through to port-scanning and then compares the
-// process's --data-dir against townRoot/.dolt-data. Because the test server's
-// data dir is in /tmp, the comparison fails and IsRunning returns false.
-// Writing the PID file short-circuits that check (PID-file path does not verify
-// data-dir).
+// With containers there is no dolt binary PID file. We write our own process PID
+// instead — the PID file's purpose is to make IsRunning() take the PID-file
+// shortcut path (which just checks if the PID is alive, not the process name).
 func bridgeDoltPidToTown(t *testing.T, townRoot string) {
 	t.Helper()
 
-	port := testutil.DoltTestPort()
-	if port == "" {
-		t.Fatal("bridgeDoltPidToTown: no test Dolt server running (DoltTestPort is empty)")
-	}
+	pid := fmt.Sprintf("%d", os.Getpid())
 
-	// Read the test server PID from the testutil PID file.
-	pidPath := testutil.PidFilePathForPort(port)
-	data, err := os.ReadFile(pidPath)
-	if err != nil {
-		t.Fatalf("bridgeDoltPidToTown: reading PID file %s: %v", pidPath, err)
-	}
-	lines := strings.SplitN(string(data), "\n", 3)
-	if len(lines) == 0 || strings.TrimSpace(lines[0]) == "" {
-		t.Fatalf("bridgeDoltPidToTown: PID file %s is empty", pidPath)
-	}
-	pid := strings.TrimSpace(lines[0])
-
-	// Write the PID to townRoot/daemon/dolt.pid.
 	daemonDir := filepath.Join(townRoot, "daemon")
 	if err := os.MkdirAll(daemonDir, 0755); err != nil {
 		t.Fatalf("bridgeDoltPidToTown: mkdir daemon: %v", err)
@@ -103,13 +90,10 @@ func cleanStaleBeadsDatabases(t *testing.T) {
 	}
 }
 
-// dropStaleBeadsDatabases connects to the Dolt container and drops all beads_*
-// databases that were created by earlier tests. Uses SQL-level cleanup only:
+// dropStaleBeadsDatabases connects to the Dolt server and drops all beads_*
+// databases that were created by earlier tests. Uses two strategies:
 //  1. SHOW DATABASES → DROP any visible beads_* databases
 //  2. DROP known phantom database names from beads_db_init_test.go
-//  3. Purge dropped databases from Dolt's catalog
-//
-// No filesystem cleanup needed — container data is ephemeral.
 func dropStaleBeadsDatabases() error {
 	dsn := "root:@tcp(127.0.0.1:" + testutil.DoltContainerPort() + ")/"
 	db, err := sql.Open("mysql", dsn)
