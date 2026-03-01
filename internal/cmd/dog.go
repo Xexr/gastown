@@ -686,7 +686,12 @@ func runDogDone(cmd *cobra.Command, args []string) error {
 	// Claude agent idles at the prompt indefinitely after completing work,
 	// wasting resources until the stale-working detector kills it (2 hours).
 	// The delay lets the agent see the success output before termination.
+	//
+	// We disable remain-on-exit first — otherwise kill-session leaves a
+	// dead pane that the deacon's health-check reports as an orphan.
 	sessionID := fmt.Sprintf("hq-dog-%s", name)
+	t := tmux.NewTmux()
+	_ = t.SetRemainOnExit(sessionID, false)
 	fmt.Printf("  Session %s will terminate in 3s\n", sessionID)
 	killCmd := exec.Command("bash", "-c",
 		fmt.Sprintf("sleep 3 && tmux kill-session -t '%s' 2>/dev/null", sessionID))
