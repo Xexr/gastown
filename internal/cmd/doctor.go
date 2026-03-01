@@ -87,6 +87,9 @@ Routing checks (fixable):
 Lifecycle checks (fixable):
   - lifecycle-defaults          Ensure daemon.json has all lifecycle patrol entries (fixable)
 
+Migration checks:
+  - town-claude-md           Check town-root CLAUDE.md matches embedded version (fixable)
+
 Session hook checks:
   - session-hooks            Check settings.json use session-start.sh
   - claude-settings          Check Claude settings.json match templates (fixable)
@@ -226,6 +229,9 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 
 	// Priming subsystem check
 	d.Register(doctor.NewPrimingCheck())
+
+	// Town-root CLAUDE.md version check (migration check for behavioral norms)
+	d.Register(doctor.NewTownCLAUDEmdCheck())
 
 	// Crew workspace checks
 	d.Register(doctor.NewCrewStateCheck())
