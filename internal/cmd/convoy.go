@@ -900,11 +900,9 @@ func runConvoyClose(cmd *cobra.Command, args []string) error {
 	}
 
 	// Report molecule if present
-	for _, line := range strings.Split(convoy.Description, "\n") {
-		if strings.HasPrefix(line, "Molecule: ") {
-			mol := strings.TrimPrefix(line, "Molecule: ")
-			fmt.Printf("  Molecule: %s (not auto-detached)\n", mol)
-		}
+	convoyFields := beads.ParseConvoyFields(&beads.Issue{Description: convoy.Description})
+	if convoyFields != nil && convoyFields.Molecule != "" {
+		fmt.Printf("  Molecule: %s (not auto-detached)\n", convoyFields.Molecule)
 	}
 
 	// Send notification if --notify flag provided
@@ -1514,28 +1512,15 @@ func notifyConvoyCompletion(townBeads, convoyID, title string) {
 		return
 	}
 
-	// Parse owner and notify addresses from description
-	desc := convoys[0].Description
-	notified := make(map[string]bool) // Track who we've notified to avoid duplicates
-
-	for _, line := range strings.Split(desc, "\n") {
-		var addr string
-		if strings.HasPrefix(line, "Owner: ") {
-			addr = strings.TrimPrefix(line, "Owner: ")
-		} else if strings.HasPrefix(line, "Notify: ") {
-			addr = strings.TrimPrefix(line, "Notify: ")
-		}
-
-		if addr != "" && !notified[addr] {
-			// Send notification via gt mail
-			mailArgs := []string{"mail", "send", addr,
-				"-s", fmt.Sprintf("🚚 Convoy landed: %s", title),
-				"-m", fmt.Sprintf("Convoy %s has completed.\n\nAll tracked issues are now closed.", convoyID)}
-			mailCmd := exec.Command("gt", mailArgs...)
-			if err := mailCmd.Run(); err != nil {
-				style.PrintWarning("could not notify %s: %v", addr, err)
-			}
-			notified[addr] = true
+	// ZFC: Use typed accessor instead of parsing description text
+	fields := beads.ParseConvoyFields(&beads.Issue{Description: convoys[0].Description})
+	for _, addr := range fields.NotificationAddresses() {
+		mailArgs := []string{"mail", "send", addr,
+			"-s", fmt.Sprintf("🚚 Convoy landed: %s", title),
+			"-m", fmt.Sprintf("Convoy %s has completed.\n\nAll tracked issues are now closed.", convoyID)}
+		mailCmd := exec.Command("gt", mailArgs...)
+		if err := mailCmd.Run(); err != nil {
+			style.PrintWarning("could not notify %s: %v", addr, err)
 		}
 	}
 

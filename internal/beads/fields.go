@@ -221,6 +221,80 @@ func SetAttachmentFields(issue *Issue, fields *AttachmentFields) string {
 	return formatted + "\n\n" + strings.Join(otherLines, "\n")
 }
 
+// ConvoyFields holds the structured fields for a convoy bead.
+// These fields are stored as key: value lines in the issue description.
+type ConvoyFields struct {
+	Owner      string // Convoy owner address (e.g., "mayor/")
+	Notify     string // Additional notification address
+	Molecule   string // Associated molecule/swarm ID
+	Merge      string // Merge strategy
+}
+
+// ParseConvoyFields extracts convoy fields from an issue's description.
+// Returns nil if no convoy fields found.
+func ParseConvoyFields(issue *Issue) *ConvoyFields {
+	if issue == nil || issue.Description == "" {
+		return nil
+	}
+
+	fields := &ConvoyFields{}
+	hasFields := false
+
+	for _, line := range strings.Split(issue.Description, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		colonIdx := strings.Index(line, ":")
+		if colonIdx == -1 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:colonIdx])
+		value := strings.TrimSpace(line[colonIdx+1:])
+		if value == "" {
+			continue
+		}
+
+		switch strings.ToLower(key) {
+		case "owner":
+			fields.Owner = value
+			hasFields = true
+		case "notify":
+			fields.Notify = value
+			hasFields = true
+		case "molecule":
+			fields.Molecule = value
+			hasFields = true
+		case "merge":
+			fields.Merge = value
+			hasFields = true
+		}
+	}
+
+	if !hasFields {
+		return nil
+	}
+	return fields
+}
+
+// NotificationAddresses returns deduplicated notification addresses from convoy fields.
+func (f *ConvoyFields) NotificationAddresses() []string {
+	if f == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var addrs []string
+	for _, addr := range []string{f.Owner, f.Notify} {
+		if addr != "" && !seen[addr] {
+			addrs = append(addrs, addr)
+			seen[addr] = true
+		}
+	}
+	return addrs
+}
+
 // MRFields holds the structured fields for a merge-request issue.
 // These fields are stored as key: value lines in the issue description.
 type MRFields struct {

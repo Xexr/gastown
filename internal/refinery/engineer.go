@@ -1621,25 +1621,15 @@ func (e *Engineer) checkAndCloseCompletedConvoys(townRoot, townBeads string) []c
 
 // notifyConvoyCompletion sends notifications to convoy owner and notify addresses.
 func (e *Engineer) notifyConvoyCompletion(townRoot, convoyID, title, description string) {
-	notified := make(map[string]bool)
-
-	for _, line := range strings.Split(description, "\n") {
-		var addr string
-		if strings.HasPrefix(line, "Owner: ") {
-			addr = strings.TrimPrefix(line, "Owner: ")
-		} else if strings.HasPrefix(line, "Notify: ") {
-			addr = strings.TrimPrefix(line, "Notify: ")
-		}
-
-		if addr != "" && !notified[addr] {
-			mailCmd := exec.Command("gt", "mail", "send", addr,
-				"-s", fmt.Sprintf("🚚 Convoy landed: %s", title),
-				"-m", fmt.Sprintf("Convoy %s has completed.\n\nAll tracked issues are now closed.\n\nClosed by: %s/refinery", convoyID, e.rig.Name))
-			mailCmd.Dir = townRoot
-			if err := mailCmd.Run(); err != nil {
-				_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: could not notify %s: %v\n", addr, err)
-			}
-			notified[addr] = true
+	// ZFC: Use typed accessor instead of parsing description text
+	fields := beads.ParseConvoyFields(&beads.Issue{Description: description})
+	for _, addr := range fields.NotificationAddresses() {
+		mailCmd := exec.Command("gt", "mail", "send", addr,
+			"-s", fmt.Sprintf("🚚 Convoy landed: %s", title),
+			"-m", fmt.Sprintf("Convoy %s has completed.\n\nAll tracked issues are now closed.\n\nClosed by: %s/refinery", convoyID, e.rig.Name))
+		mailCmd.Dir = townRoot
+		if err := mailCmd.Run(); err != nil {
+			_, _ = fmt.Fprintf(e.output, "[Engineer] Warning: could not notify %s: %v\n", addr, err)
 		}
 	}
 }
@@ -1647,13 +1637,11 @@ func (e *Engineer) notifyConvoyCompletion(townRoot, convoyID, title, description
 // landConvoySwarm checks if a completed convoy has an associated swarm with an
 // integration branch, and triggers landing if so.
 func (e *Engineer) landConvoySwarm(townRoot string, convoy convoyInfo) {
-	// Check if convoy description mentions a molecule/swarm
+	// ZFC: Use typed accessor instead of parsing description text
+	fields := beads.ParseConvoyFields(&beads.Issue{Description: convoy.Description})
 	var moleculeID string
-	for _, line := range strings.Split(convoy.Description, "\n") {
-		if strings.HasPrefix(line, "Molecule: ") {
-			moleculeID = strings.TrimPrefix(line, "Molecule: ")
-			break
-		}
+	if fields != nil {
+		moleculeID = fields.Molecule
 	}
 
 	if moleculeID == "" {
