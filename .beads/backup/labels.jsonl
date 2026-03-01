@@ -29,6 +29,13 @@
 {"issue_id":"gt-dhx","label":"gastown"}
 {"issue_id":"gt-dhx","label":"revert"}
 {"issue_id":"gt-egw","label":"enhancement"}
+{"issue_id":"gt-gastown-crew-aragorn","label":"gt:agent"}
+{"issue_id":"gt-gastown-crew-frodo","label":"gt:agent"}
+{"issue_id":"gt-gastown-crew-gandalf","label":"gt:agent"}
+{"issue_id":"gt-gastown-crew-gimli","label":"gt:agent"}
+{"issue_id":"gt-gastown-crew-legolas","label":"gt:agent"}
+{"issue_id":"gt-gastown-refinery","label":"gt:agent"}
+{"issue_id":"gt-gastown-witness","label":"gt:agent"}
 {"issue_id":"gt-gw9","label":"bug"}
 {"issue_id":"gt-gw9","label":"gastown"}
 {"issue_id":"gt-gw9","label":"gt-doctor"}
