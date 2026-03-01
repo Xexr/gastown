@@ -84,6 +84,9 @@ Routing checks (fixable):
   - prefix-mismatch          Detect rigs.json vs routes.jsonl prefix mismatches (fixable)
   - database-prefix          Detect database vs routes.jsonl prefix mismatches (fixable)
 
+Lifecycle checks (fixable):
+  - lifecycle-defaults          Ensure daemon.json has all lifecycle patrol entries (fixable)
+
 Session hook checks:
   - session-hooks            Check settings.json use session-start.sh
   - claude-settings          Check Claude settings.json match templates (fixable)
@@ -231,6 +234,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 
 	// Lifecycle hygiene checks
 	d.Register(doctor.NewLifecycleHygieneCheck())
+	d.Register(doctor.NewLifecycleDefaultsCheck())
 
 	// Hook attachment checks
 	d.Register(doctor.NewHookAttachmentValidCheck())
