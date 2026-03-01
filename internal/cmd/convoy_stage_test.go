@@ -1553,7 +1553,7 @@ func TestCreateStagedConvoy_CleanReady(t *testing.T) {
 		t.Fatalf("computeWaves: %v", err)
 	}
 
-	convoyID, err := createStagedConvoy(convoyDAG, waves, status)
+	convoyID, err := createStagedConvoy(convoyDAG, waves, status, "")
 	if err != nil {
 		t.Fatalf("createStagedConvoy: %v", err)
 	}
@@ -1615,7 +1615,7 @@ func TestCreateStagedConvoy_TracksOnlySlingable(t *testing.T) {
 		t.Fatalf("computeWaves: %v", err)
 	}
 
-	convoyID, err := createStagedConvoy(convoyDAG, waves, "staged_ready")
+	convoyID, err := createStagedConvoy(convoyDAG, waves, "staged_ready", "")
 	if err != nil {
 		t.Fatalf("createStagedConvoy: %v", err)
 	}
@@ -1668,7 +1668,7 @@ func TestCreateStagedConvoy_DescriptionFormat(t *testing.T) {
 		t.Fatalf("computeWaves: %v", err)
 	}
 
-	_, err = createStagedConvoy(convoyDAG, waves, "staged_ready")
+	_, err = createStagedConvoy(convoyDAG, waves, "staged_ready", "")
 	if err != nil {
 		t.Fatalf("createStagedConvoy: %v", err)
 	}
@@ -1730,7 +1730,7 @@ func TestCreateStagedConvoy_IDFormat(t *testing.T) {
 		t.Fatalf("computeWaves: %v", err)
 	}
 
-	convoyID, err := createStagedConvoy(convoyDAG, waves, "staged_ready")
+	convoyID, err := createStagedConvoy(convoyDAG, waves, "staged_ready", "")
 	if err != nil {
 		t.Fatalf("createStagedConvoy: %v", err)
 	}
@@ -1794,7 +1794,7 @@ func TestRestageConvoy_UpdatesInPlace(t *testing.T) {
 	}
 
 	// Call updateStagedConvoy — the re-stage path.
-	err = updateStagedConvoy("hq-cv-test1", convoyDAG, waves, "staged_ready")
+	err = updateStagedConvoy("hq-cv-test1", convoyDAG, waves, "staged_ready", "")
 	if err != nil {
 		t.Fatalf("updateStagedConvoy: %v", err)
 	}
@@ -1913,7 +1913,7 @@ func TestRestageConvoy_UpdatesStatusToWarnings(t *testing.T) {
 	}
 
 	// Call updateStagedConvoy with staged_warnings status.
-	err = updateStagedConvoy("hq-cv-warn", convoyDAG, waves, "staged_warnings")
+	err = updateStagedConvoy("hq-cv-warn", convoyDAG, waves, "staged_warnings", "")
 	if err != nil {
 		t.Fatalf("updateStagedConvoy: %v", err)
 	}
