@@ -31,6 +31,7 @@ import (
 )
 
 // Retry constants for Dolt operations (matching hook update pattern in sling.go).
+// Configurable via operational.polecat in settings/config.json.
 const (
 	doltMaxRetries  = 10
 	doltBaseBackoff = 500 * time.Millisecond
@@ -1518,6 +1519,7 @@ func isSessionProcessDead(t *tmux.Tmux, sessionName string, townRoot string) boo
 // pendingMaxAge is how long a .pending reservation marker may exist before
 // it is considered stale. gt sling completes in seconds, so 5 minutes is
 // a conservative bound that avoids false positives on slow machines.
+// Configurable via operational.polecat.pending_max_age in settings/config.json.
 const pendingMaxAge = 5 * time.Minute
 
 // cleanupOrphanPolecatState removes partial/broken polecat state during allocation.

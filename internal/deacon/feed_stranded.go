@@ -10,6 +10,8 @@ import (
 )
 
 // Default parameters for feed-stranded rate limiting.
+// Configurable via operational.deacon.max_feeds_per_cycle and
+// operational.deacon.feed_cooldown in settings/config.json.
 const (
 	// DefaultMaxFeedsPerCycle is the maximum number of convoys to feed in one invocation.
 	// Prevents spawning too many dogs at once.

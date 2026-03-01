@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"path/filepath"
+	"time"
+)
 
 // Compiled-in defaults for operational thresholds.
 // These are the values used when no config override is provided.
@@ -88,6 +91,18 @@ const (
 	DefaultWebMaxSubjectLen     = 500
 	DefaultWebMaxBodyLen        = 100_000
 )
+
+// LoadOperationalConfig loads operational config from a town root.
+// Returns a valid (possibly empty) config — never nil, never errors.
+// Callers can use accessor methods that return defaults for nil sub-configs.
+func LoadOperationalConfig(townRoot string) *OperationalConfig {
+	settingsPath := filepath.Join(townRoot, "settings", "config.json")
+	ts, err := LoadOrCreateTownSettings(settingsPath)
+	if err != nil || ts == nil || ts.Operational == nil {
+		return &OperationalConfig{}
+	}
+	return ts.Operational
+}
 
 // --- Accessor methods ---
 // Each method reads from config with fallback to the compiled-in default.

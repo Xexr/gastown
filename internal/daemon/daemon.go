@@ -106,7 +106,9 @@ type sessionDeath struct {
 	timestamp   time.Time
 }
 
-// Mass death detection parameters
+// Mass death detection parameters — these are fallback defaults.
+// Prefer config.OperationalConfig.GetDaemonConfig() accessors when
+// a TownSettings is available (loaded via d.loadOperationalConfig()).
 const (
 	massDeathWindow    = 30 * time.Second // Time window to detect mass death
 	massDeathThreshold = 3                // Number of deaths to trigger alert
@@ -118,9 +120,7 @@ const (
 	hungSessionThreshold = constants.HungSessionThreshold
 
 	// doctorMolCooldown is the minimum interval between mol-dog-doctor molecules.
-	// Option B throttling: health checks run every 30s, but we only pour a
-	// molecule when anomalies are detected, with this cooldown to avoid spamming.
-	// 5 minutes = max 288 wisps/day vs ~2880 without throttling.
+	// Configurable via operational.daemon.doctor_mol_cooldown.
 	doctorMolCooldown = 5 * time.Minute
 )
 

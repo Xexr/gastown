@@ -32,8 +32,8 @@ type BeadsMessage struct {
 	Type      string `json:"type"`
 }
 
-// MaxLifecycleMessageAge is the maximum age of a lifecycle message before it's ignored.
-// Messages older than this are considered stale and deleted without execution.
+// MaxLifecycleMessageAge is the default max age of a lifecycle message before it's ignored.
+// Configurable via operational.daemon.max_lifecycle_message_age.
 const MaxLifecycleMessageAge = 6 * time.Hour
 
 // ProcessLifecycleRequests checks for and processes lifecycle requests from the deacon inbox.
@@ -70,11 +70,12 @@ func (d *Daemon) ProcessLifecycleRequests() {
 		}
 
 		// Check message age - ignore stale lifecycle requests
+		maxAge := d.loadOperationalConfig().GetDaemonConfig().MaxLifecycleMessageAgeD()
 		if msgTime, err := time.Parse(time.RFC3339, msg.Timestamp); err == nil {
 			age := time.Since(msgTime)
-			if age > MaxLifecycleMessageAge {
+			if age > maxAge {
 				d.logger.Printf("Ignoring stale lifecycle request from %s (age: %v, max: %v) - deleting",
-					request.From, age.Round(time.Minute), MaxLifecycleMessageAge)
+					request.From, age.Round(time.Minute), maxAge)
 				if err := d.closeMessage(msg.ID); err != nil {
 					d.logger.Printf("Warning: failed to delete stale message %s: %v", msg.ID, err)
 				}
@@ -556,8 +557,9 @@ func (d *Daemon) applySessionTheme(sessionName string, parsed *ParsedIdentity) {
 	}
 }
 
-// syncFailureEscalationThreshold is the number of consecutive pull failures
+// syncFailureEscalationThreshold is the default number of consecutive pull failures
 // before logging escalates from WARN to ERROR.
+// Configurable via operational.daemon.sync_failure_escalation_threshold.
 const syncFailureEscalationThreshold = 3
 
 // syncWorkspace syncs a git workspace before starting a new session.
@@ -633,7 +635,8 @@ func (d *Daemon) syncWorkspace(workDir string) {
 		}
 		d.recordSyncFailure(workDir)
 		failures := d.getSyncFailures(workDir)
-		if failures >= syncFailureEscalationThreshold {
+		escalationThreshold := d.loadOperationalConfig().GetDaemonConfig().SyncFailureEscalationThresholdV()
+		if failures >= escalationThreshold {
 			d.logger.Printf("Error: git pull repeatedly failing in %s (%d consecutive failures): %s", workDir, failures, errMsg)
 		} else {
 			d.logger.Printf("Warning: git pull failed in %s (%d consecutive failure(s)): %s", workDir, failures, errMsg)
