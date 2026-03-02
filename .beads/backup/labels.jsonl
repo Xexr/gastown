@@ -54,7 +54,6 @@
 {"issue_id":"gt-gastown-polecat-dag","label":"gt:agent"}
 {"issue_id":"gt-gastown-polecat-dementus","label":"gt:agent"}
 {"issue_id":"gt-gastown-polecat-furiosa","label":"gt:agent"}
-{"issue_id":"gt-gastown-polecat-furiosa","label":"gt:agent"}
 {"issue_id":"gt-gastown-polecat-keeper","label":"gt:agent"}
 {"issue_id":"gt-gastown-polecat-nux","label":"gt:agent"}
 {"issue_id":"gt-gastown-polecat-rictus","label":"gt:agent"}
@@ -127,9 +126,6 @@
 {"issue_id":"gt-tit8","label":"memory"}
 {"issue_id":"gt-tsut","label":"zfc-violation"}
 {"issue_id":"gt-utbjv","label":"worker-lifecycle"}
-{"issue_id":"gt-wisp-gmgj2","label":"gt:merge-request"}
-{"issue_id":"gt-wisp-tesb4","label":"gt:merge-request"}
-{"issue_id":"gt-wisp-tgysg","label":"gt:merge-request"}
 {"issue_id":"gt-witness-role","label":"migrated-to:hq-witness-role"}
 {"issue_id":"gt-wrdz","label":"cleanup"}
 {"issue_id":"gt-xpgh8","label":"desire-path"}
