@@ -6,7 +6,9 @@
 {"created_at":"2026-02-26T08:34:00Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-wisp-v52w","issue_id":"gt-9io","type":"blocks"}
 {"created_at":"2026-02-26T08:29:02Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-7we","issue_id":"gt-b6t","type":"parent-child"}
 {"created_at":"2026-02-26T08:30:52Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-wisp-zkus","issue_id":"gt-b6t","type":"blocks"}
+{"created_at":"2026-03-04T11:30:58Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-wisp-x025","issue_id":"gt-lgq","type":"blocks"}
 {"created_at":"2026-02-23T16:20:59Z","created_by":"gastown/crew/furiosa","depends_on_id":"gt-test-e6o-epic","issue_id":"gt-test-e6o-a","type":"parent-child"}
 {"created_at":"2026-02-23T16:20:59Z","created_by":"gastown/crew/furiosa","depends_on_id":"gt-test-e6o-epic","issue_id":"gt-test-e6o-b","type":"parent-child"}
+{"created_at":"2026-03-04T11:30:51Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-wisp-9z30","issue_id":"gt-ypu","type":"blocks"}
 {"created_at":"2026-02-26T08:33:32Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-7we","issue_id":"gt-zfv","type":"parent-child"}
 {"created_at":"2026-02-26T08:34:31Z","created_by":"gastown/crew/gandalf","depends_on_id":"gt-wisp-cf21","issue_id":"gt-zfv","type":"blocks"}
