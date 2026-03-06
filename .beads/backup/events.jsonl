@@ -233,3 +233,5 @@
 {"actor":"gastown/refinery","comment":null,"created_at":"2026-03-04T11:37:03Z","event_type":"created","id":1980,"issue_id":"gt-90q","new_value":"","old_value":""}
 {"actor":"gastown/refinery","comment":null,"created_at":"2026-03-04T11:37:38Z","event_type":"closed","id":1981,"issue_id":"gt-lgq","new_value":"Closed","old_value":""}
 {"actor":"gastown/refinery","comment":null,"created_at":"2026-03-04T11:41:08Z","event_type":"closed","id":1982,"issue_id":"gt-ypu","new_value":"Closed","old_value":""}
+{"actor":"gastown/crew/gandalf","comment":null,"created_at":"2026-03-06T08:16:02Z","event_type":"closed","id":1983,"issue_id":"gt-5yy","new_value":"Closed","old_value":""}
+{"actor":"gastown/crew/gandalf","comment":null,"created_at":"2026-03-06T08:16:02Z","event_type":"closed","id":1984,"issue_id":"gt-9hb","new_value":"Closed","old_value":""}
