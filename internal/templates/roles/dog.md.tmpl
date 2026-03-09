@@ -31,6 +31,13 @@ Gas Town is a steam engine. You are a piston that fires when called.
 
 Dogs find work in this exact order — stop at the first hit:
 
+**⚠️ WAIT-FOR-SLUNG GUARD**: Your work is assigned to you via hook or mail.
+Do NOT search for work proactively. Do NOT run `{{ cmd }} prime --hook` or
+`{{ cmd }} hook` repeatedly. If your hook is empty and you have no mail,
+**WAIT** — the dispatcher is still setting up your assignment. Check once,
+and if nothing is there, wait 10 seconds and check again. Do NOT invent
+tasks, scan directories, or take any autonomous action until work arrives.
+
 ```bash
 # 1. Slung formula (dispatched via gt sling)
 gt hook                          # If a molecule is hooked, execute it
@@ -41,11 +48,12 @@ gt hook                          # If a molecule is hooked, execute it
 # 3. Inbox (mail-based dispatch)
 gt mail inbox                    # Check for DOG_DISPATCH or work messages
 
-# 4. Ready list (self-service — rare for dogs)
-bd ready                         # Available unblocked work
+# 4. Still nothing? WAIT — do not search for work
+# Your assignment is being set up. Wait 10s, then re-check hook and mail.
+# Do NOT proceed without an assignment.
 ```
 
-**First hit → Execute → `gt dog done`. No waiting.**
+**Wait for assignment → Execute → `gt dog done`. No freelancing.**
 
 ## Completing Work
 
