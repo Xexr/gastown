@@ -246,6 +246,22 @@ func (m *Manager) Start(foreground bool, agentOverride string, envOverrides []st
 		log.Printf("warning: tracking session PID for %s: %v", sessionID, err)
 	}
 
+	_ = runtime.RunStartupFallback(t, sessionID, "witness", runtimeConfig)
+	startupPromptFallback := runtime.GetStartupPromptFallback(runtimeConfig)
+	if startupPromptFallback.Send {
+		if startupPromptFallback.DelayMs > 0 {
+			_ = t.WaitForRuntimeReady(sessionID,
+				runtime.RuntimeConfigWithMinDelay(runtimeConfig, startupPromptFallback.DelayMs),
+				constants.ClaudeStartTimeout)
+		}
+		initialPrompt := session.BuildStartupPrompt(session.BeaconConfig{
+			Recipient: session.BeaconRecipient("witness", "", m.rig.Name),
+			Sender:    "deacon",
+			Topic:     "patrol",
+		}, "Run `gt prime --hook` and begin patrol.")
+		_ = t.NudgeSession(sessionID, initialPrompt)
+	}
+
 	// Stream witness's Claude Code JSONL conversation log to VictoriaLogs (opt-in).
 	if os.Getenv("GT_LOG_AGENT_OUTPUT") == "true" && os.Getenv("GT_OTEL_LOGS_URL") != "" {
 		if err := session.ActivateAgentLogging(sessionID, witnessDir, runID); err != nil {

@@ -386,6 +386,40 @@ func TestStartupNudgeContent(t *testing.T) {
 	}
 }
 
+func TestGetStartupPromptFallback_NoHooksNoPrompt(t *testing.T) {
+	rc := &config.RuntimeConfig{
+		PromptMode: "none",
+		Hooks: &config.RuntimeHooksConfig{
+			Provider: "none",
+		},
+	}
+
+	fallback := GetStartupPromptFallback(rc)
+	if !fallback.Send {
+		t.Error("NoHooks+NoPrompt should nudge the startup prompt")
+	}
+	if fallback.DelayMs <= 0 {
+		t.Error("NoHooks+NoPrompt should wait for gt prime before nudging the startup prompt")
+	}
+}
+
+func TestGetStartupPromptFallback_WithPrompt(t *testing.T) {
+	rc := &config.RuntimeConfig{
+		PromptMode: "arg",
+		Hooks: &config.RuntimeHooksConfig{
+			Provider: "none",
+		},
+	}
+
+	fallback := GetStartupPromptFallback(rc)
+	if fallback.Send {
+		t.Error("Prompt-capable runtimes should not need a startup prompt nudge")
+	}
+	if fallback.DelayMs <= 0 {
+		t.Error("Prompt-capable runtimes should preserve the startup nudge delay metadata")
+	}
+}
+
 func TestEnsureSettingsForRole_CopilotUsesWorkDir(t *testing.T) {
 	// Copilot instructions must be installed in workDir (not settingsDir) because
 	// Copilot has no --settings equivalent for path redirection.
@@ -531,7 +565,7 @@ func TestRuntimeConfigWithMinDelay_NilTmux(t *testing.T) {
 func TestRuntimeConfigWithMinDelay_BelowMin(t *testing.T) {
 	rc := &config.RuntimeConfig{
 		Tmux: &config.RuntimeTmuxConfig{
-			ReadyDelayMs:    500,
+			ReadyDelayMs:      500,
 			ReadyPromptPrefix: "❯ ",
 		},
 	}

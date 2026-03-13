@@ -221,6 +221,15 @@ func (m *Manager) Start(foreground bool, agentOverride string) error {
 	}
 
 	_ = runtime.RunStartupFallback(t, sessionID, "refinery", runtimeConfig)
+	startupPromptFallback := runtime.GetStartupPromptFallback(runtimeConfig)
+	if startupPromptFallback.Send {
+		if startupPromptFallback.DelayMs > 0 {
+			_ = t.WaitForRuntimeReady(sessionID,
+				runtime.RuntimeConfigWithMinDelay(runtimeConfig, startupPromptFallback.DelayMs),
+				constants.ClaudeStartTimeout)
+		}
+		_ = t.NudgeSession(sessionID, initialPrompt)
+	}
 
 	// Stream refinery's Claude Code JSONL conversation log to VictoriaLogs (opt-in).
 	if os.Getenv("GT_LOG_AGENT_OUTPUT") == "true" && os.Getenv("GT_OTEL_LOGS_URL") != "" {
